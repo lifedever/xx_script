@@ -1,8 +1,28 @@
 # 内容：自用
 # 更新：2024-01-24
 
+# DOMAIN
 DOMAIN-SUFFIX,web.coo.homes
 DOMAIN-SUFFIX,loli.net
 DOMAIN-SUFFIX,smms.app
 DOMAIN-SUFFIX,gtranslate.net
 DOMAIN-SUFFIX,gist.build
+DOMAIN-SUFFIX,ybnet.ga
+DOMAIN-SUFFIX,ghproxy.com
+DOMAIN-SUFFIX,raycast.com
+DOMAIN-SUFFIX,raindrop.io
+DOMAIN-SUFFIX,bjango.com
+DOMAIN-SUFFIX,istatmenus.app
+DOMAIN-SUFFIX,googleapis.com
+DOMAIN-SUFFIX,tinify.com
+DOMAIN-SUFFIX,npmjs.org
+DOMAIN-SUFFIX,gradle.org
+DOMAIN-SUFFIX,sm.ms
+DOMAIN-SUFFIX,exelator.com
+DOMAIN-SUFFIX,adnxs.com
+DOMAIN-SUFFIX,keepsolid.com
+DOMAIN-SUFFIX,docker.com
+DOMAIN-SUFFIX,notion.so
+
+# PROCESS
+PROCESS-NAME,Applite
