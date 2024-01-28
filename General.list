@@ -23,6 +23,8 @@ DOMAIN-SUFFIX,adnxs.com
 DOMAIN-SUFFIX,keepsolid.com
 DOMAIN-SUFFIX,docker.com
 DOMAIN-SUFFIX,notion.so
+DOMAIN-SUFFIX,arc.net
+DOMAIN-SUFFIX,zdassets.com
 
 # PROCESS
 PROCESS-NAME,Applite
