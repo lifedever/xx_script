@@ -25,6 +25,7 @@ DOMAIN-SUFFIX,docker.com
 DOMAIN-SUFFIX,notion.so
 DOMAIN-SUFFIX,arc.net
 DOMAIN-SUFFIX,zdassets.com
+DOMAIN-SUFFIX,typingmind.com
 
 # PROCESS
 PROCESS-NAME,Applite
