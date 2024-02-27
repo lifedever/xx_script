@@ -28,6 +28,9 @@ DOMAIN-SUFFIX,zdassets.com
 DOMAIN-SUFFIX,typingmind.com
 DOMAIN-SUFFIX,extrabux.com
 DOMAIN-SUFFIX,twilio.com
+DOMAIN-SUFFIX,coo.lol
+DOMAIN-SUFFIX,coo.wiki
+DOMAIN-SUFFIX,coo.homes
 
 # PROCESS
 PROCESS-NAME,Applite
