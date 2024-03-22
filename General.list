@@ -36,6 +36,7 @@ DOMAIN-SUFFIX,socloud.me
 DOMAIN-SUFFIX,xn--4gq62f52gdss.com
 DOMAIN-SUFFIX,algolia.io
 DOMAIN-SUFFIX,jetbrains.com
+DOMAIN-SUFFIX,fontawesome.com
 
 # PROCESS
 PROCESS-NAME,Applite
