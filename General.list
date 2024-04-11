@@ -16,6 +16,7 @@ DOMAIN-SUFFIX,figmachina.com
 DOMAIN-SUFFIX,fontawesome.com
 DOMAIN-SUFFIX,ghproxy.com
 DOMAIN-SUFFIX,gist.build
+DOMAIN-SUFFIX,githubusercontent.com
 DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,gradle.org
 DOMAIN-SUFFIX,gtranslate.net
@@ -27,6 +28,7 @@ DOMAIN-SUFFIX,khddouyin.tk
 DOMAIN-SUFFIX,launchdarkly.com
 DOMAIN-SUFFIX,loli.net
 DOMAIN-SUFFIX,notion.so
+DOMAIN-SUFFIX,npmjs.com
 DOMAIN-SUFFIX,npmjs.org
 DOMAIN-SUFFIX,raindrop.io
 DOMAIN-SUFFIX,raycast.com
@@ -46,7 +48,6 @@ DOMAIN-SUFFIX,ybnet.ga
 DOMAIN-SUFFIX,yfjc.xyz
 DOMAIN-SUFFIX,zdassets.com
 DOMAIN-SUFFIX,一分机场.com
-DOMAIN-SUFFIX,npmjs.com
 
 # PROCESS
 PROCESS-NAME,Applite
