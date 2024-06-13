@@ -4,8 +4,10 @@
 # DOMAIN
 DOMAIN-SUFFIX,adnxs.com
 DOMAIN-SUFFIX,algolia.io
+DOMAIN-SUFFIX,appstorrent.ru
 DOMAIN-SUFFIX,arc.net
 DOMAIN-SUFFIX,bjango.com
+DOMAIN-SUFFIX,cloudflareinsights.com
 DOMAIN-SUFFIX,coinbase.com
 DOMAIN-SUFFIX,coo.homes
 DOMAIN-SUFFIX,coo.lol
@@ -18,8 +20,9 @@ DOMAIN-SUFFIX,fontawesome.com
 DOMAIN-SUFFIX,ghproxy.com
 DOMAIN-SUFFIX,gist.build
 DOMAIN-SUFFIX,githubusercontent.com
-DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,gmail.com
+DOMAIN-SUFFIX,google.com
+DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,gradle.org
 DOMAIN-SUFFIX,gtranslate.net
 DOMAIN-SUFFIX,helpscout.net
@@ -32,6 +35,7 @@ DOMAIN-SUFFIX,loli.net
 DOMAIN-SUFFIX,notion.so
 DOMAIN-SUFFIX,npmjs.com
 DOMAIN-SUFFIX,npmjs.org
+DOMAIN-SUFFIX,paopaogou2autoa.top
 DOMAIN-SUFFIX,raindrop.io
 DOMAIN-SUFFIX,raycast.com
 DOMAIN-SUFFIX,sm.ms
@@ -48,11 +52,11 @@ DOMAIN-SUFFIX,v2ex.com
 DOMAIN-SUFFIX,web.coo.homes
 DOMAIN-SUFFIX,xn--4gq62f52gdss.com
 DOMAIN-SUFFIX,xn--4gqx1hgtfdmt.com
+DOMAIN-SUFFIX,yandex.ru
 DOMAIN-SUFFIX,ybnet.ga
 DOMAIN-SUFFIX,yfjc.xyz
 DOMAIN-SUFFIX,zdassets.com
 DOMAIN-SUFFIX,一分机场.com
-DOMAIN-SUFFIX,paopaogou2autoa.top
 
 # PROCESS
 PROCESS-NAME,Applite
