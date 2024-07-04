@@ -22,6 +22,7 @@ DOMAIN-SUFFIX,ghproxy.com
 DOMAIN-SUFFIX,github.com
 DOMAIN-SUFFIX,gist.build
 DOMAIN-SUFFIX,githubusercontent.com
+DOMAIN-SUFFIX,corretto.aws
 DOMAIN-SUFFIX,gmail.com
 DOMAIN-SUFFIX,google.com
 DOMAIN-SUFFIX,googleapis.com
