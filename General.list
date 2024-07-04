@@ -1,11 +1,13 @@
 # 内容：自用
-# 更新：2024-01-24
+# 更新：2024-07-04
 
 # DOMAIN
 DOMAIN-SUFFIX,adnxs.com
 DOMAIN-SUFFIX,algolia.io
 DOMAIN-SUFFIX,arc.net
+DOMAIN-SUFFIX,autodiscover.gmail.com
 DOMAIN-SUFFIX,bjango.com
+DOMAIN-SUFFIX,clientstream.launchdarkly.com
 DOMAIN-SUFFIX,cloudflareinsights.com
 DOMAIN-SUFFIX,coinbase.com
 DOMAIN-SUFFIX,coo.homes
@@ -25,14 +27,12 @@ DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,gradle.org
 DOMAIN-SUFFIX,gtranslate.net
 DOMAIN-SUFFIX,helpscout.net
+DOMAIN-SUFFIX,ingest.sentry.io
 DOMAIN-SUFFIX,istatmenus.app
 DOMAIN-SUFFIX,jetbrains.com
 DOMAIN-SUFFIX,keepsolid.com
 DOMAIN-SUFFIX,khddouyin.tk
 DOMAIN-SUFFIX,launchdarkly.com
-DOMAIN-SUFFIX,clientstream.launchdarkly.com
-DOMAIN-SUFFIX,ingest.sentry.io
-DOMAIN-SUFFIX,segment.io
 DOMAIN-SUFFIX,loli.net
 DOMAIN-SUFFIX,notion.so
 DOMAIN-SUFFIX,npmjs.com
@@ -41,6 +41,7 @@ DOMAIN-SUFFIX,paopaogou2autoa.top
 DOMAIN-SUFFIX,qxwa.com
 DOMAIN-SUFFIX,raindrop.io
 DOMAIN-SUFFIX,raycast.com
+DOMAIN-SUFFIX,segment.io
 DOMAIN-SUFFIX,sm.ms
 DOMAIN-SUFFIX,smms.app
 DOMAIN-SUFFIX,socloud.me
