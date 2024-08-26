@@ -11,6 +11,7 @@ DOMAIN-SUFFIX,bjango.com
 DOMAIN-SUFFIX,claude.ai
 DOMAIN-SUFFIX,clientstream.launchdarkly.com
 DOMAIN-SUFFIX,cloudflareinsights.com
+DOMAIN-SUFFIX,cloudpayments.ru
 DOMAIN-SUFFIX,coinbase.com
 DOMAIN-SUFFIX,coo.homes
 DOMAIN-SUFFIX,coo.lol
@@ -31,6 +32,7 @@ DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,gradle.org
 DOMAIN-SUFFIX,gtranslate.net
 DOMAIN-SUFFIX,helpscout.net
+DOMAIN-SUFFIX,indigo.codes
 DOMAIN-SUFFIX,ingest.sentry.io
 DOMAIN-SUFFIX,istatmenus.app
 DOMAIN-SUFFIX,jetbrains.com
@@ -38,6 +40,7 @@ DOMAIN-SUFFIX,keepsolid.com
 DOMAIN-SUFFIX,khddouyin.tk
 DOMAIN-SUFFIX,launchdarkly.com
 DOMAIN-SUFFIX,loli.net
+DOMAIN-SUFFIX,mojie.me
 DOMAIN-SUFFIX,notion.so
 DOMAIN-SUFFIX,npmjs.com
 DOMAIN-SUFFIX,npmjs.org
@@ -51,6 +54,7 @@ DOMAIN-SUFFIX,smms.app
 DOMAIN-SUFFIX,socloud.me
 DOMAIN-SUFFIX,spcloud.xyz
 DOMAIN-SUFFIX,spring.io
+DOMAIN-SUFFIX,tether.to
 DOMAIN-SUFFIX,tinify.com
 DOMAIN-SUFFIX,twilio.com
 DOMAIN-SUFFIX,typingmind.com
@@ -64,9 +68,6 @@ DOMAIN-SUFFIX,yandex.ru
 DOMAIN-SUFFIX,ybnet.ga
 DOMAIN-SUFFIX,yfjc.xyz
 DOMAIN-SUFFIX,zdassets.com
-DOMAIN-SUFFIX,cloudpayments.ru
-DOMAIN-SUFFIX,tether.to
-DOMAIN-SUFFIX,mojie.me
 DOMAIN-SUFFIX,一分机场.com
 
 # PROCESS
