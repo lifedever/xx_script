@@ -5,6 +5,7 @@
 DOMAIN-SUFFIX,adnxs.com
 DOMAIN-SUFFIX,algolia.io
 DOMAIN-SUFFIX,anthropic.com
+DOMAIN-SUFFIX,apphousekitchen.com
 DOMAIN-SUFFIX,arc.net
 DOMAIN-SUFFIX,autodiscover.gmail.com
 DOMAIN-SUFFIX,bjango.com
@@ -59,6 +60,7 @@ DOMAIN-SUFFIX,tinify.com
 DOMAIN-SUFFIX,twilio.com
 DOMAIN-SUFFIX,typingmind.com
 DOMAIN-SUFFIX,typora.io
+DOMAIN-SUFFIX,umami.is
 DOMAIN-SUFFIX,unpkg.com
 DOMAIN-SUFFIX,v2ex.com
 DOMAIN-SUFFIX,web.coo.homes
@@ -68,7 +70,6 @@ DOMAIN-SUFFIX,yandex.ru
 DOMAIN-SUFFIX,ybnet.ga
 DOMAIN-SUFFIX,yfjc.xyz
 DOMAIN-SUFFIX,zdassets.com
-DOMAIN-SUFFIX,apphousekitchen.com
 DOMAIN-SUFFIX,一分机场.com
 
 # PROCESS
