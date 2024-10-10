@@ -79,6 +79,8 @@ DOMAIN-SUFFIX,pelisplushd.nz
 DOMAIN-SUFFIX,flixhq.to
 DOMAIN-SUFFIX,amplitude.com
 DOMAIN-SUFFIX,streamerapp.tech
+DOMAIN-SUFFIX,omdbapi.com
+DOMAIN-SUFFIX,pelisplushd.bz
 
 # PROCESS
 PROCESS-NAME,Applite
