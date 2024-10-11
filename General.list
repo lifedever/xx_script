@@ -81,6 +81,7 @@ DOMAIN-SUFFIX,amplitude.com
 DOMAIN-SUFFIX,streamerapp.tech
 DOMAIN-SUFFIX,omdbapi.com
 DOMAIN-SUFFIX,pelisplushd.bz
+DOMAIN-SUFFIX,follow.is
 
 # PROCESS
 PROCESS-NAME,Applite
