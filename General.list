@@ -12,7 +12,6 @@ DOMAIN-SUFFIX,autodiscover.gmail.com
 DOMAIN-SUFFIX,bjango.com
 DOMAIN-SUFFIX,box-shadow.dev
 DOMAIN-SUFFIX,cfapi.net
-DOMAIN-SUFFIX,gstatic.com
 DOMAIN-SUFFIX,claude.ai
 DOMAIN-SUFFIX,clientstream.launchdarkly.com
 DOMAIN-SUFFIX,cloudflare.com
@@ -40,6 +39,7 @@ DOMAIN-SUFFIX,google.com
 DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,googlevideo.com
 DOMAIN-SUFFIX,gradle.org
+DOMAIN-SUFFIX,gstatic.com
 DOMAIN-SUFFIX,gtranslate.net
 DOMAIN-SUFFIX,helpscout.net
 DOMAIN-SUFFIX,iill.top
@@ -52,6 +52,7 @@ DOMAIN-SUFFIX,jetbrains.com
 DOMAIN-SUFFIX,keepsolid.com
 DOMAIN-SUFFIX,khddouyin.tk
 DOMAIN-SUFFIX,launchdarkly.com
+DOMAIN-SUFFIX,letsvpn.world
 DOMAIN-SUFFIX,loli.net
 DOMAIN-SUFFIX,missav.com
 DOMAIN-SUFFIX,mojie.me
