@@ -1,7 +1,7 @@
 # 内容：自用
 # 更新：2024-07-04
 
-# DOMAIN
+## DOMAIN
 DOMAIN-SUFFIX,adnxs.com
 DOMAIN-SUFFIX,algolia.io
 DOMAIN-SUFFIX,amplitude.com
@@ -107,7 +107,8 @@ DOMAIN-SUFFIX,yfjc.xyz
 DOMAIN-SUFFIX,zdassets.com
 DOMAIN-SUFFIX,一分机场.com
 
-# IP
+## IP
+# Google翻译
 IP-CIDR,142.250.0.90/32
 
 # PROCESS
