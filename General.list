@@ -37,7 +37,6 @@ DOMAIN-SUFFIX,fontawesome.com
 DOMAIN-SUFFIX,forms.gle
 DOMAIN-SUFFIX,ghproxy.com
 DOMAIN-SUFFIX,gist.build
-DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,githubusercontent.com
 DOMAIN-SUFFIX,gmail.com
 DOMAIN-SUFFIX,google-analytics.com
@@ -107,6 +106,9 @@ DOMAIN-SUFFIX,ybnet.ga
 DOMAIN-SUFFIX,yfjc.xyz
 DOMAIN-SUFFIX,zdassets.com
 DOMAIN-SUFFIX,一分机场.com
+
+# IP
+IP-CIDR,142.250.0.90/32
 
 # PROCESS
 PROCESS-NAME,Applite
