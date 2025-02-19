@@ -67,8 +67,13 @@ DOMAIN-SUFFIX,melaniameme.com
 DOMAIN-SUFFIX,microsoftonline.com
 DOMAIN-SUFFIX,missav.com
 DOMAIN-SUFFIX,mojie.me
+# Notion
 DOMAIN-SUFFIX,notion.so
 DOMAIN-SUFFIX,notionusercontent.com
+DOMAIN-SUFFIX,notion-static.com
+DOMAIN-SUFFIX,splunkcloud.com
+
+
 DOMAIN-SUFFIX,npmjs.com
 DOMAIN-SUFFIX,npmjs.org
 DOMAIN-SUFFIX,nytimes.com
