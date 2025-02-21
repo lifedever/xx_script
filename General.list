@@ -119,6 +119,8 @@ DOMAIN-SUFFIX,一分机场.com
 ## IP
 # Google翻译
 IP-CIDR,142.250.0.90/32
+# Notion
+IP-CIDR,52.218.201.0/24
 
 # PROCESS
 PROCESS-NAME,Applite
