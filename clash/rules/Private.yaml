@@ -1,5 +1,7 @@
 # NAME: Private
 payload:
-  - DOMAIN-KEYWORD,manyiba
-  - DOMAIN-KEYWORD,manyibar
-  - DOMAIN-KEYWORD,kanasinfo
+  - DOMAIN-SUFFIX,manyiba.com
+  - DOMAIN-SUFFIX,manyibar.com
+  - DOMAIN-SUFFIX,manyibar.cn
+  - DOMAIN-SUFFIX,manyibar.com.cn
+  - DOMAIN-SUFFIX,kanasinfo.cn
