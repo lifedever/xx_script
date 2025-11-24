@@ -211,6 +211,14 @@ function main(config) {
     }
 
     config["rule-providers"] = Object.assign(config["rule-providers"], {
+        my_private: {
+            url: "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/clash/rules/Private.yaml",
+            path: "./ruleset/my_private.yaml",
+            behavior: "domain",
+            interval: 86400,
+            format: "yaml",
+            type: "http",
+        },
         private: {
             url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/private.yaml",
             path: "./ruleset/private.yaml",
@@ -369,6 +377,7 @@ function main(config) {
 
     // 路由规则配置
     config["rules"] = [
+        "RULE-SET,my_private,DIRECT",
         "RULE-SET,private,DIRECT",
         "RULE-SET,apple,DIRECT",
         "RULE-SET,my_ai,🤖 AI",
