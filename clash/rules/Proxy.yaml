@@ -6,3 +6,4 @@ payload:
   - DOMAIN-SUFFIX,v1.mk
   - DOMAIN-SUFFIX,substore.stash
   - DOMAIN-SUFFIX,script.hub
+  - DOMAIN-SUFFIX,sagernet.org
