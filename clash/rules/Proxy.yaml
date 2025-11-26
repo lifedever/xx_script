@@ -7,3 +7,4 @@ payload:
   - DOMAIN-SUFFIX,substore.stash
   - DOMAIN-SUFFIX,script.hub
   - DOMAIN-SUFFIX,sagernet.org
+  - DOMAIN-SUFFIX,brew.sh
