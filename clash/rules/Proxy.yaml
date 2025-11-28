@@ -8,3 +8,4 @@ payload:
   - DOMAIN-SUFFIX,script.hub
   - DOMAIN-SUFFIX,sagernet.org
   - DOMAIN-SUFFIX,brew.sh
+  - IP-CIDR,162.125.18.129/32
