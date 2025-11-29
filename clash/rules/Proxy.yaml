@@ -10,4 +10,5 @@ payload:
   - DOMAIN-SUFFIX,brew.sh
   - DOMAIN-SUFFIX,macked.app
   - DOMAIN-SUFFIX,macked.store
+  - DOMAIN-SUFFIX,freedownloadmanager.org
   - IP-CIDR,162.125.18.129/32
