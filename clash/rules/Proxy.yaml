@@ -9,4 +9,5 @@ payload:
   - DOMAIN-SUFFIX,sagernet.org
   - DOMAIN-SUFFIX,brew.sh
   - DOMAIN-SUFFIX,macked.app
+  - DOMAIN-SUFFIX,macked.store
   - IP-CIDR,162.125.18.129/32
