@@ -13,4 +13,5 @@ payload:
   - DOMAIN-SUFFIX,freedownloadmanager.org
   - DOMAIN-SUFFIX,sanity.io
   - DOMAIN-SUFFIX,jsonip.com
+  - DOMAIN-SUFFIX,warp.dev
   - IP-CIDR,162.125.18.129/32
