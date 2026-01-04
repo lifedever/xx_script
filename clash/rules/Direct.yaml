@@ -1,0 +1,7 @@
+# NAME: Direct
+payload:
+  - DOMAIN-SUFFIX,manyibar.cn
+  - DOMAIN-SUFFIX,kanasinfo.cn
+  - DOMAIN-SUFFIX,manyibar.com
+  - DOMAIN-SUFFIX,manyiba.com
+  - IP-CIDR,47.82.7.161/32
