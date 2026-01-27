@@ -373,6 +373,15 @@ function main(config) {
             format: "yaml",
             type: "http",
         },
+        // 自定义规则
+        my_proxy: {
+            url: "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/clash/rules/Proxy.yaml",
+            path: "./ruleset/my_proxy.yaml",
+            behavior: "classical",
+            interval: 86400,
+            format: "yaml",
+            type: "http",
+        },
     });
 
     // 路由规则配置
