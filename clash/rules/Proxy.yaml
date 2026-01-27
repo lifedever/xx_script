@@ -15,4 +15,6 @@ payload:
   - DOMAIN-SUFFIX,jsonip.com
   - DOMAIN-SUFFIX,warp.dev
   - DOMAIN-SUFFIX,llgjc1.com
+  - DOMAIN-SUFFIX,notion.so  # Notion
+  - DOMAIN-SUFFIX,notion.com  # Notion
   - IP-CIDR,162.125.18.129/32
