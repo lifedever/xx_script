@@ -1,0 +1,18 @@
+# Profile Enhancement Merge Template for Clash Verge
+
+profile:
+  store-selected: true
+prepend-rules:
+  # 本地回环
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  # A 类私有地址
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  # B 类私有地址
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  # C 类私有地址
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  # 链路本地地址
+  - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+  # 本地主机名
+  - DOMAIN-SUFFIX,local,DIRECT
+  - DOMAIN-SUFFIX,localhost,DIRECT
