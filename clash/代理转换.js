@@ -390,6 +390,7 @@ function main(config) {
         "RULE-SET,private,DIRECT",
         "RULE-SET,apple,DIRECT",
         "RULE-SET,my_ai,🤖 AI",
+        "RULE-SET,my_proxy,🚀 代理",
         "RULE-SET,bing,🤖 AI",
         "RULE-SET,copilot,🤖 AI",
         "RULE-SET,bard,🤖 AI",
