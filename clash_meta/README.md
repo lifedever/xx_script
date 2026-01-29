@@ -1,114 +1,71 @@
 # Clash Meta 配置说明
 
-## 解决 Notion 等国外网站无法访问的问题
+## 功能特性
 
-### 问题原因
+- TUN 模式接管系统流量
+- 多订阅源支持（良心云 + Hneko云）
+- 按地区自动分组（香港、台湾、新加坡、日本、韩国、美国）
+- 服务分流（AI、Telegram、Google、Microsoft 等）
+- 兼容公司 VPN（内网 IP 自动直连）
 
-国外网站（如 notion.so）无法访问，通常是 **DNS 污染** 导致：
-- 国内 DNS 服务器对国外域名返回错误或被污染的 IP
-- 即使流量走了代理，但 DNS 解析在本地完成，拿到的是错误 IP
+## 关键配置说明
 
-### 解决方案
-
-通过以下三个关键配置解决：
-
-#### 1. 启用 TUN 模式
+### 1. TUN 模式
 
 ```yaml
 tun:
   enable: true
   stack: system
   auto-route: true
-  auto-detect-interface: true
   dns-hijack:
     - any:53
     - tcp://any:53
+  route-exclude-address:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 127.0.0.0/8
+    # ...其他内网网段
 ```
 
 **作用**：
-- 创建虚拟网卡，接管系统所有流量（不只是浏览器）
-- `dns-hijack` 劫持所有 53 端口的 DNS 请求，交给 Clash 处理
-- 不再依赖系统代理设置
+- 创建虚拟网卡接管系统所有流量
+- `dns-hijack` 劫持 DNS 请求交给 Clash 处理
+- `route-exclude-address` 排除内网 IP，让 VPN 流量正常工作
 
-#### 2. 配置 DNS Fallback
+### 2. DNS 配置
 
 ```yaml
 dns:
   enable: true
-  listen: 0.0.0.0:1053
-  enhanced-mode: fake-ip
-
-  # 国内 DNS（用于解析国内域名）
+  enhanced-mode: redir-host  # 返回真实 IP，兼容 VPN
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
-
-  # 国外 DNS（用于解析国外域名）
+  nameserver-policy:
+    '+.manyibar.cn': 'tls://8.8.8.8:853'  # 公司域名用指定 DNS
   fallback:
     - https://dns.cloudflare.com/dns-query
     - https://dns.google/dns-query
-    - tls://8.8.8.8:853
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
 ```
 
-**作用**：
-- `nameserver`：国内域名用国内 DNS 解析（速度快）
-- `fallback`：国外域名用国外 DNS 解析（避免污染）
+**模式说明**：
+- `redir-host`：返回真实 IP，对 VPN 兼容性好
+- `fake-ip`：返回假 IP，分流更精准但可能和 VPN 冲突
 
-#### 3. 配置 Fallback 过滤器
+**DNS 分流**：
+- 国内域名 → 国内 DNS（阿里、腾讯）
+- 国外域名 → 国外 DNS（Cloudflare、Google）
+- 公司域名 → 指定 DNS（8.8.8.8 DoT）
 
-```yaml
-fallback-filter:
-  geoip: true
-  geoip-code: CN
-  geosite:
-    - gfw
-  ipcidr:
-    - 240.0.0.0/4
-```
+### 3. 代理订阅
 
-**作用**：满足以下任一条件时，使用 fallback DNS 解析：
-
-- 解析结果 IP 不在中国（geoip 非 CN）
-- 域名在 GFW 列表中
-- 解析结果是保留 IP（240.0.0.0/4，通常是被污染的特征）
-
-### 工作流程
-
-```
-访问 notion.so
-    ↓
-TUN 接管流量，dns-hijack 劫持 DNS 请求
-    ↓
-Clash DNS 处理：notion.so 命中 fallback-filter
-    ↓
-使用 Cloudflare/Google DNS 解析 → 获得正确 IP
-    ↓
-匹配规则：DOMAIN-SUFFIX,notion.so → 🚀 代理
-    ↓
-通过代理节点访问 notion.so ✓
-```
-
-### 配置文件结构
-
-```
-clash_meta/
-└── config.yaml    # 主配置文件
-```
-
-### 使用方法
-
-1. 将 `config.yaml` 复制到 Clash Meta 配置目录：
-   ```bash
-   cp config.yaml ~/.config/clash.meta/config.yaml
-   ```
-
-2. 重启 Clash Meta
-
-3. 确保 TUN 模式已启用（可能需要授权管理员权限）
-
-### 订阅配置
-
-当前配置了两个代理订阅：
+当前配置了两个订阅源：
 
 | 名称 | Provider |
 |------|----------|
@@ -117,14 +74,59 @@ clash_meta/
 
 所有地区节点组会同时从两个订阅拉取节点。
 
-### 分流规则
+### 4. 代理组
 
-| 服务 | 策略组 |
-|------|--------|
+| 分组 | 类型 | 说明 |
+|------|------|------|
+| 🚀 代理 | select | 主选择器 |
+| ⚡ 自动 | url-test | 自动选最快节点 |
+| 🤖 AI | select | AI 服务专用 |
+| ✈️ 电报 | select | Telegram 专用 |
+| 🔍 谷歌 | select | Google 服务 |
+| 🪟 微软 | select | Microsoft（默认直连） |
+| 🇭🇰/🇨🇳/🇸🇬/🇯🇵/🇰🇷/🇺🇸 | url-test | 地区节点组 |
+| 🐟 兜底 | select | 未匹配规则的流量 |
+
+### 5. 分流规则
+
+| 服务 | 策略 |
+|------|------|
+| 内网 IP (10.x/172.x/192.168.x) | DIRECT |
+| 公司域名 (manyibar.cn 等) | DIRECT |
+| Java 进程 | DIRECT |
 | AI 服务 (OpenAI/Claude/Bing/Copilot) | 🤖 AI |
 | Telegram | ✈️ 电报 |
 | Google | 🔍 谷歌 |
 | Microsoft | 🪟 微软 |
-| Apple / 国内网站 | DIRECT |
+| Apple | DIRECT |
+| 国内网站 | DIRECT |
 | 其他国外网站 | 🚀 代理 |
-| 未匹配 | 🐟 兜底 |
+
+## 使用方法
+
+1. 复制配置文件到 Clash Meta 配置目录：
+```bash
+cp config.yaml ~/.config/clash.meta/config.yaml
+```
+
+2. 重启 Clash Meta
+
+3. 如需修改订阅链接，编辑 `proxy-providers` 部分
+
+## VPN 兼容说明
+
+本配置已针对公司 VPN 做了优化：
+
+1. **DNS 模式**：使用 `redir-host` 而非 `fake-ip`，返回真实 IP
+2. **内网排除**：`route-exclude-address` 排除所有内网 IP 段
+3. **公司域名**：通过 `nameserver-policy` 指定公司域名的 DNS
+4. **进程规则**：Java 进程直连，避免数据库连接问题
+
+如果仍有问题，可尝试在 `/etc/hosts` 添加公司服务器 IP 映射。
+
+## 控制面板
+
+访问 `http://127.0.0.1:9090/ui` 可打开 Clash 控制面板，用于：
+- 切换代理节点
+- 查看连接日志
+- 测试延迟
