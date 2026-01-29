@@ -491,6 +491,9 @@ rule-providers:
 # 路由规则
 #---------------------------------------------------#
 rules:
+  # Java 进程访问公司域名直连
+  - PROCESS-NAME,java,DIRECT
+
   # 公司域名直连（优先级最高）
   - DOMAIN-SUFFIX,manyibar.cn,DIRECT
   - DOMAIN-SUFFIX,manyibar.com,DIRECT
