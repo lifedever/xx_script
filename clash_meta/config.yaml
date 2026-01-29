@@ -43,12 +43,23 @@ dns:
     - '+.stun.playstation.net'
     - '+.msftconnecttest.com'
     - '+.msftncsi.com'
+    # 公司域名 - 需要真实 IP
+    - '+.manyibar.cn'
+    - '+.manyibar.com'
+    - '+.manyiba.com'
+    - '+.kanasinfo.cn'
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
+  # 公司域名使用系统 DNS（走 VPN）
+  nameserver-policy:
+    '+.manyibar.cn': system
+    '+.manyibar.com': system
+    '+.manyiba.com': system
+    '+.kanasinfo.cn': system
   # 国外 DNS，用于解析国外域名
   fallback:
     - https://dns.cloudflare.com/dns-query
@@ -464,6 +475,12 @@ rule-providers:
 # 路由规则
 #---------------------------------------------------#
 rules:
+  # 公司域名直连（优先级最高）
+  - DOMAIN-SUFFIX,manyibar.cn,DIRECT
+  - DOMAIN-SUFFIX,manyibar.com,DIRECT
+  - DOMAIN-SUFFIX,manyiba.com,DIRECT
+  - DOMAIN-SUFFIX,kanasinfo.cn,DIRECT
+
   # Notion 直接走代理（优先级最高）
   - DOMAIN-SUFFIX,notion.so,🚀 代理
   - DOMAIN-SUFFIX,notion.com,🚀 代理
