@@ -50,11 +50,23 @@ geox-url:
 # 请将 YOUR_SUBSCRIPTION_URL 替换为你的实际订阅链接
 #---------------------------------------------------#
 proxy-providers:
-  my-provider:
+  # 良心云
+  liangxin:
     type: http
-    url: "YOUR_SUBSCRIPTION_URL"  # ⚠️ 替换为你的订阅链接
+    url: "https://liangxin.xyz/api/v1/liangxin?OwO=c6c3adf6b73e8f32b0375346fe7224df"
     interval: 3600
-    path: ./proxies/my-provider.yaml
+    path: ./proxies/liangxin.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: http://www.gstatic.com/generate_204
+
+  # Hneko云
+  hneko:
+    type: http
+    url: "https://study.small1999.sbs/study/xuexi/v999/hneko?token=3191030f3727b2d1c0842d4a1365314c"
+    interval: 3600
+    path: ./proxies/hneko.yaml
     health-check:
       enable: true
       interval: 600
@@ -82,7 +94,8 @@ proxy-groups:
   - name: "⚡ 自动"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
     interval: 3600
@@ -143,7 +156,8 @@ proxy-groups:
   - name: "🇭🇰 香港"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "(?i)香港|Hong Kong|HK|🇭🇰"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
@@ -154,7 +168,8 @@ proxy-groups:
   - name: "🇨🇳 台湾"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "(?i)台湾|Taiwan|TW|🇹🇼"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
@@ -165,7 +180,8 @@ proxy-groups:
   - name: "🇸🇬 新加坡"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "(?i)新加坡|Singapore|🇸🇬"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
@@ -176,7 +192,8 @@ proxy-groups:
   - name: "🇯🇵 日本"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "(?i)日本|Japan|🇯🇵"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
@@ -187,7 +204,8 @@ proxy-groups:
   - name: "🇰🇷 韩国"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "(?i)韩国|Korea|KR|🇰🇷"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
@@ -198,7 +216,8 @@ proxy-groups:
   - name: "🇺🇸 美国"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "(?i)美国|USA|🇺🇸"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
@@ -209,7 +228,8 @@ proxy-groups:
   - name: "🌏 其他国家"
     type: url-test
     use:
-      - my-provider
+      - liangxin
+      - hneko
     filter: "^(?!.*(台湾|Taiwan|TW|香港|Hong Kong|HK|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸|韩国|Korea|KR|🇰🇷)).*$"
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
