@@ -22,6 +22,7 @@ external-controller: 127.0.0.1:9090
 dns:
   enable: true
   ipv6: false
+  prefer-h3: true
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter:
@@ -31,15 +32,32 @@ dns:
     - '+.stun.playstation.net'
     - '+.msftconnecttest.com'
     - '+.msftncsi.com'
-    - '+.notion.so'
-    - '+.notion.com'
-    - '+.notion-static.com'
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
+  # 国外 DNS，用于解析国外域名
+  fallback:
+    - https://dns.cloudflare.com/dns-query
+    - https://dns.google/dns-query
+    - tls://8.8.8.8:853
+  # fallback 过滤器：命中条件时使用 fallback DNS
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+    ipcidr:
+      - 240.0.0.0/4
+    domain:
+      - '+.google.com'
+      - '+.youtube.com'
+      - '+.notion.so'
+      - '+.notion.com'
+      - '+.github.com'
+      - '+.githubusercontent.com'
 
 # GEO 数据
 geodata-mode: true
