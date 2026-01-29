@@ -24,10 +24,19 @@ tun:
   stack: system
   auto-route: true
   auto-detect-interface: true
-  # 注释掉 dns-hijack，让 VPN DNS 正常工作
-  # dns-hijack:
-  #   - any:53
-  #   - tcp://any:53
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  # 排除 VPN 接口，避免冲突
+  exclude-interface:
+    - utun0
+    - utun1
+    - utun2
+    - utun3
+    - utun4
+    - utun5
+    - utun6
+    - utun10
   # 排除内网 IP 段，让 VPN 和局域网正常工作
   route-exclude-address:
     # 私有地址 (RFC 1918)
