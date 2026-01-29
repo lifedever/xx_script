@@ -31,6 +31,9 @@ dns:
     - '+.stun.playstation.net'
     - '+.msftconnecttest.com'
     - '+.msftncsi.com'
+    - '+.notion.so'
+    - '+.notion.com'
+    - '+.notion-static.com'
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
@@ -439,6 +442,11 @@ rule-providers:
 # 路由规则
 #---------------------------------------------------#
 rules:
+  # Notion 直接走代理（优先级最高）
+  - DOMAIN-SUFFIX,notion.so,🚀 代理
+  - DOMAIN-SUFFIX,notion.com,🚀 代理
+  - DOMAIN-SUFFIX,notion-static.com,🚀 代理
+
   # 私有网络直连
   - RULE-SET,my_private,DIRECT
   - RULE-SET,private,DIRECT
