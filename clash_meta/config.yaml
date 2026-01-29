@@ -18,41 +18,16 @@ ipv6: false
 external-controller: 127.0.0.1:9090
 # secret: "your-password"  # 可选：设置访问密码
 
-# TUN 模式 - 接管系统所有流量
+# TUN 模式 - 已禁用，改用系统代理
+# 原因：TUN 和公司 VPN 冲突
 tun:
-  enable: true
-  stack: system
-  auto-route: true
-  auto-detect-interface: true
-  dns-hijack:
-    - any:53
-    - tcp://any:53
-  # 排除 VPN 接口，避免冲突
-  exclude-interface:
-    - utun0
-    - utun1
-    - utun2
-    - utun3
-    - utun4
-    - utun5
-    - utun6
-    - utun10
-  # 排除内网 IP 段，让 VPN 和局域网正常工作
-  route-exclude-address:
-    # 私有地址 (RFC 1918)
-    - 10.0.0.0/8
-    - 172.16.0.0/12
-    - 192.168.0.0/16
-    # 回环地址
-    - 127.0.0.0/8
-    # 链路本地地址
-    - 169.254.0.0/16
-    # CGNAT (运营商级 NAT)
-    - 100.64.0.0/10
-    # 组播地址
-    - 224.0.0.0/4
-    # 广播地址
-    - 255.255.255.255/32
+  enable: false
+  # stack: system
+  # auto-route: true
+  # auto-detect-interface: true
+  # dns-hijack:
+  #   - any:53
+  #   - tcp://any:53
 
 # DNS 配置
 dns:
