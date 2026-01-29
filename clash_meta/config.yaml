@@ -62,13 +62,6 @@ dns:
       - gfw
     ipcidr:
       - 240.0.0.0/4
-    domain:
-      - '+.google.com'
-      - '+.youtube.com'
-      - '+.notion.so'
-      - '+.notion.com'
-      - '+.github.com'
-      - '+.githubusercontent.com'
 
 # GEO 数据
 geodata-mode: true

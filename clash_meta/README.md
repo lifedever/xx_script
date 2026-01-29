@@ -64,19 +64,13 @@ fallback-filter:
     - gfw
   ipcidr:
     - 240.0.0.0/4
-  domain:
-    - '+.google.com'
-    - '+.youtube.com'
-    - '+.notion.so'
-    - '+.notion.com'
-    - '+.github.com'
 ```
 
 **作用**：满足以下任一条件时，使用 fallback DNS 解析：
+
 - 解析结果 IP 不在中国（geoip 非 CN）
 - 域名在 GFW 列表中
 - 解析结果是保留 IP（240.0.0.0/4，通常是被污染的特征）
-- 域名匹配指定列表（notion.so、google.com 等）
 
 ### 工作流程
 
