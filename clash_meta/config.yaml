@@ -70,12 +70,12 @@ dns:
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
-  # 公司域名使用系统 DNS（走 VPN）
+  # 公司域名使用指定 DNS（绕过 TUN 循环）
   nameserver-policy:
-    '+.manyibar.cn': system
-    '+.manyibar.com': system
-    '+.manyiba.com': system
-    '+.kanasinfo.cn': system
+    '+.manyibar.cn': 'tls://8.8.8.8:853'
+    '+.manyibar.com': 'tls://8.8.8.8:853'
+    '+.manyiba.com': 'tls://8.8.8.8:853'
+    '+.kanasinfo.cn': 'tls://8.8.8.8:853'
   # 国外 DNS，用于解析国外域名
   fallback:
     - https://dns.cloudflare.com/dns-query
