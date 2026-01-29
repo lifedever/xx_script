@@ -27,6 +27,11 @@ tun:
   dns-hijack:
     - any:53
     - tcp://any:53
+  # 排除公司内网 IP 段，让 VPN 处理
+  route-exclude-address:
+    - 172.16.0.0/12
+    - 10.0.0.0/8
+    - 192.168.0.0/16
 
 # DNS 配置
 dns:
