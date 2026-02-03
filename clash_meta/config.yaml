@@ -9,7 +9,7 @@
 # 基础配置
 mixed-port: 7891
 allow-lan: true
-bind-address: '*'
+bind-address: "*"
 mode: rule
 log-level: info
 ipv6: false
@@ -21,9 +21,13 @@ external-controller: 127.0.0.1:9090
 # TUN 模式
 tun:
   enable: true
-  stack: system
+  stack: gvisor # 改用 gvisor 栈，兼容性更好
   auto-route: true
   auto-detect-interface: true
+  strict-route: false # 放松路由控制，允许 VPN 流量绕过
+  # 排除 VPN 接口，避免与 Viscosity VPN 冲突
+  exclude-interface:
+    - utun10
   dns-hijack:
     - any:53
     - tcp://any:53
@@ -43,27 +47,26 @@ dns:
   listen: 0.0.0.0:1053
   ipv6: false
   prefer-h3: true
-  enhanced-mode: redir-host  # 改用 redir-host，返回真实 IP
-  # fake-ip-range: 198.18.0.1/16  # redir-host 模式不需要
-  # fake-ip-filter 在 redir-host 模式下不需要
+  enhanced-mode: redir-host
+  # enhanced-mode: fake-ip
+  # fake-ip-range: 198.18.0.1/16
+  # fake-ip-filter:
+  #   - "*.lan"
+  #   - "*.localdomain"
+  #   - "*.localhost"
+  #   - "*.local"
+  #   - "*.home.arpa"
+  #   - "stun.*"
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
-  # 公司域名使用指定 DNS（绕过 TUN 循环）
-  nameserver-policy:
-    '+.manyibar.cn': 'tls://8.8.8.8:853'
-    '+.manyibar.com': 'tls://8.8.8.8:853'
-    '+.manyiba.com': 'tls://8.8.8.8:853'
-    '+.kanasinfo.cn': 'tls://8.8.8.8:853'
-  # 国外 DNS，用于解析国外域名
   fallback:
     - https://dns.cloudflare.com/dns-query
     - https://dns.google/dns-query
     - tls://8.8.8.8:853
-  # fallback 过滤器：命中条件时使用 fallback DNS
   fallback-filter:
     geoip: true
     geoip-code: CN
@@ -106,6 +109,17 @@ proxy-providers:
       interval: 600
       url: http://www.gstatic.com/generate_204
 
+  # SoCloud
+  SoCloud:
+    type: http
+    url: "https://doata.net/link/BxjIDpSt5K7OtQpQ?clash=1"
+    interval: 3600
+    path: ./proxies/socloud.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: http://www.gstatic.com/generate_204
+
 #---------------------------------------------------#
 # 代理组配置
 #---------------------------------------------------#
@@ -130,6 +144,7 @@ proxy-groups:
     use:
       - liangxin
       - hneko
+      - SoCloud
     exclude-filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置"
     url: http://www.gstatic.com/generate_204
     interval: 3600
@@ -479,10 +494,7 @@ rules:
   - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
   - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
 
-  # Java 进程访问公司域名直连
-  - PROCESS-NAME,java,DIRECT
-
-  # 公司域名直连（优先级最高）
+  # 公司域名直连
   - DOMAIN-SUFFIX,manyibar.cn,DIRECT
   - DOMAIN-SUFFIX,manyibar.com,DIRECT
   - DOMAIN-SUFFIX,manyiba.com,DIRECT
