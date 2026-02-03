@@ -53,8 +53,8 @@ dns:
     - "*.localhost"
     - "*.local"
     - "*.home.arpa"
-    - "*.manyibar.cn"
-    - "*.ops.manyibar.cn"
+    - "+.manyibar.cn"
+    - "ops.manyibar.cn"
     - "stun.*"
   default-nameserver:
     - 223.5.5.5
