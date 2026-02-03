@@ -86,6 +86,24 @@ function main(config) {
                 "🌏 其他国家",
             ],
         },
+        // Notion 专用
+        {
+            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Notion.png",
+            name: "📝 Notion",
+            type: "select",
+            proxies: [
+                "DIRECT",
+                "🚀 代理",
+                "⚡ 自动",
+                "🇭🇰 香港",
+                "🇨🇳 台湾",
+                "🇸🇬 新加坡",
+                "🇯🇵 日本",
+                "🇰🇷 韩国",
+                "🇺🇸 美国",
+                "🌏 其他国家",
+            ],
+        },
         // 地区节点组
         {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/HK.png",
@@ -382,6 +400,14 @@ function main(config) {
             format: "yaml",
             type: "http",
         },
+        notion: {
+            url: "https://testingcf.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Notion/Notion.yaml",
+            path: "./ruleset/notion.yaml",
+            behavior: "classical",
+            interval: 86400,
+            format: "yaml",
+            type: "http",
+        },
     });
 
     // 路由规则配置
@@ -404,6 +430,7 @@ function main(config) {
         "RULE-SET,google_ip,🔍 谷歌",
         "RULE-SET,microsoft_domain,🪟 微软",
         "RULE-SET,microsoft,🪟 微软",
+        "RULE-SET,notion,📝 Notion",
         "RULE-SET,geolocation-!cn,🚀 代理",
         "RULE-SET,cn_domain,DIRECT",
         "RULE-SET,cn_ip,DIRECT",
