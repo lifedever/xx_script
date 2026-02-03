@@ -25,9 +25,6 @@ tun:
   auto-route: true
   auto-detect-interface: true
   strict-route: false # 放松路由控制，允许 VPN 流量绕过
-  # 排除 VPN 接口，避免与 Viscosity VPN 冲突
-  exclude-interface:
-    - utun10
   dns-hijack:
     - any:53
     - tcp://any:53
@@ -47,16 +44,18 @@ dns:
   listen: 0.0.0.0:1053
   ipv6: false
   prefer-h3: true
-  enhanced-mode: redir-host
-  # enhanced-mode: fake-ip
-  # fake-ip-range: 198.18.0.1/16
-  # fake-ip-filter:
-  #   - "*.lan"
-  #   - "*.localdomain"
-  #   - "*.localhost"
-  #   - "*.local"
-  #   - "*.home.arpa"
-  #   - "stun.*"
+  # enhanced-mode: redir-host
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.localdomain"
+    - "*.localhost"
+    - "*.local"
+    - "*.home.arpa"
+    - "*.manyibar.cn"
+    - "*.ops.manyibar.cn"
+    - "stun.*"
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
