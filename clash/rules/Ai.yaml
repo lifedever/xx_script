@@ -3,6 +3,7 @@ payload:
   - DOMAIN-SUFFIX,antigravity-unleash.goog
   - DOMAIN-SUFFIX,antigravity-unleash.google
   - DOMAIN-SUFFIX,antigravity.google
+  - DOMAIN-SUFFIX,anyrouter.top
   - DOMAIN-SUFFIX,arc.net
   - DOMAIN-SUFFIX,augmentcode.com
   - DOMAIN-SUFFIX,byteoversea.com
@@ -12,6 +13,7 @@ payload:
   - DOMAIN-SUFFIX,codeium.com
   - DOMAIN-SUFFIX,diabrowser.com
   - DOMAIN-SUFFIX,diabrowser.engineering
+  - DOMAIN-SUFFIX,googleapis.com
   - DOMAIN-SUFFIX,nel.goog
   - DOMAIN-SUFFIX,open-vsx.org
   - DOMAIN-SUFFIX,sparklabs.com
