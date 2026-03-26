@@ -1,0 +1,10 @@
+[
+  {
+    "name": "机场A",
+    "url": "https://your-subscription-url?clash=1"
+  },
+  {
+    "name": "机场B",
+    "url": "https://another-subscription?clash=1"
+  }
+]

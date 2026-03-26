@@ -1,1 +1,5 @@
 .idea
+singbox/subscriptions.json
+singbox/config.json
+singbox/rules/
+singbox/cache.db
