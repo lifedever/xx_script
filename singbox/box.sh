@@ -199,6 +199,20 @@ for c in conns:
 " 2>/dev/null
 }
 
+fix() {
+    echo -e "${CYAN}🔧 修复网络...${NC}"
+    # 刷新 DNS 缓存
+    sudo dscacheutil -flushcache 2>/dev/null
+    sudo killall -HUP mDNSResponder 2>/dev/null
+    # 重启 sing-box
+    if is_running; then
+        restart
+    else
+        start
+    fi
+    info "网络已修复"
+}
+
 help() {
     echo -e "${BOLD}sing-box 管理脚本${NC}"
     echo ""
@@ -213,6 +227,9 @@ help() {
     echo -e "${BOLD}配置命令:${NC}"
     echo -e "  ${GREEN}generate${NC}       重新拉取订阅并生成配置"
     echo -e "  ${GREEN}update${NC}         生成配置 + 自动重启 (一键更新)"
+    echo ""
+    echo -e "${BOLD}维护命令:${NC}"
+    echo -e "  ${GREEN}fix${NC}            修复网络 (休眠后断网时使用)"
     echo ""
     echo -e "${BOLD}调试命令:${NC}"
     echo -e "  ${GREEN}log${NC}  [行数]    查看最近日志 (默认 50 行)"
@@ -235,6 +252,7 @@ case "${1:-help}" in
     status)   status ;;
     generate) generate ;;
     update)   update ;;
+    fix)      fix ;;
     log)      log "$2" ;;
     logf)     logf ;;
     panel)    panel ;;
