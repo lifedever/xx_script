@@ -8,7 +8,6 @@ struct LogsView: View {
     @State private var selectedLevel = "info"
     @State private var autoScroll = true
     @State private var wsTask: Task<Void, Never>?
-    @State private var scrollToBottom = false
 
     @State private var wsClient = ClashWebSocket()
 

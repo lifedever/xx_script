@@ -1,14 +1,15 @@
 import Foundation
+import Observation
 
+@Observable
 @MainActor
-final class SingBoxManager: ObservableObject {
+final class SingBoxManager {
     static let shared = SingBoxManager()
 
     private let helperManager = HelperManager.shared
-    private let api = ClashAPI()
 
-    @Published var isRunning = false
-    @Published var pid: Int32 = 0
+    var isRunning = false
+    var pid: Int32 = 0
 
     func refreshStatus() async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -29,10 +30,13 @@ final class SingBoxManager: ObservableObject {
     }
 
     func start(configPath: String) async throws {
-        guard let helper = helperManager.getProxy() else {
-            throw SingBoxError.helperNotAvailable
-        }
         return try await withCheckedThrowingContinuation { continuation in
+            guard let helper = helperManager.getProxyWithErrorHandler({ error in
+                continuation.resume(throwing: SingBoxError.startFailed(error.localizedDescription))
+            }) else {
+                continuation.resume(throwing: SingBoxError.helperNotAvailable)
+                return
+            }
             helper.startSingBox(configPath: configPath) { success, error in
                 if success {
                     Task { @MainActor in
@@ -48,10 +52,13 @@ final class SingBoxManager: ObservableObject {
     }
 
     func stop() async throws {
-        guard let helper = helperManager.getProxy() else {
-            throw SingBoxError.helperNotAvailable
-        }
         return try await withCheckedThrowingContinuation { continuation in
+            guard let helper = helperManager.getProxyWithErrorHandler({ error in
+                continuation.resume(throwing: SingBoxError.stopFailed(error.localizedDescription))
+            }) else {
+                continuation.resume(throwing: SingBoxError.helperNotAvailable)
+                return
+            }
             helper.stopSingBox { success, error in
                 if success {
                     Task { @MainActor in

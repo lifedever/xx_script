@@ -3,7 +3,6 @@ import ServiceManagement
 
 struct SettingsView: View {
     @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("singBoxPath") private var singBoxPath = "/opt/homebrew/bin/sing-box"
     @AppStorage("scriptDir") private var scriptDir = ""
 
     @State private var helperInstalled = false
@@ -25,16 +24,6 @@ struct SettingsView: View {
 
             // Paths
             Section("Paths") {
-                LabeledContent("sing-box Path") {
-                    HStack {
-                        TextField("Path to sing-box binary", text: $singBoxPath)
-                            .textFieldStyle(.roundedBorder)
-                        Button("Browse…") {
-                            browseSingBoxPath()
-                        }
-                    }
-                }
-
                 LabeledContent("Script Directory") {
                     HStack {
                         TextField("Path to xx_script singbox directory", text: $scriptDir)
@@ -95,17 +84,6 @@ struct SettingsView: View {
         } catch {
             helperError = "Launch at login: \(error.localizedDescription)"
             launchAtLogin = !enabled
-        }
-    }
-
-    private func browseSingBoxPath() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.title = "Select sing-box binary"
-        if panel.runModal() == .OK, let url = panel.url {
-            singBoxPath = url.path
         }
     }
 

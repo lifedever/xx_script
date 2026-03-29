@@ -29,6 +29,27 @@ final class HelperManager: @unchecked Sendable {
         if let connection = _xpcConnection {
             return connection.remoteObjectProxy as? HelperProtocol
         }
+        let connection = makeConnection()
+        _xpcConnection = connection
+        return connection.remoteObjectProxy as? HelperProtocol
+    }
+
+    func getProxyWithErrorHandler(_ errorHandler: @escaping (Error) -> Void) -> HelperProtocol? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let connection: NSXPCConnection
+        if let existing = _xpcConnection {
+            connection = existing
+        } else {
+            let newConnection = makeConnection()
+            _xpcConnection = newConnection
+            connection = newConnection
+        }
+        return connection.remoteObjectProxyWithErrorHandler(errorHandler) as? HelperProtocol
+    }
+
+    private func makeConnection() -> NSXPCConnection {
         let connection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
         connection.remoteObjectInterface = NSXPCInterface(with: HelperProtocol.self)
         connection.interruptionHandler = { }
@@ -36,8 +57,7 @@ final class HelperManager: @unchecked Sendable {
             self?.lock.withLock { self?._xpcConnection = nil }
         }
         connection.resume()
-        _xpcConnection = connection
-        return connection.remoteObjectProxy as? HelperProtocol
+        return connection
     }
 
     func disconnect() {

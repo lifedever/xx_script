@@ -1,6 +1,6 @@
 import Foundation
 
-struct LogEntry: Identifiable {
+struct LogEntry: Identifiable, Sendable {
     let id = UUID()
     let level: String
     let message: String

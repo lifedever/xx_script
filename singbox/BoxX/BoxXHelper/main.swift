@@ -12,13 +12,19 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
               let secCode = code else {
             return false
         }
-        var info: CFDictionary?
-        // SecCodeCopySigningInformation requires SecStaticCode; SecCode is a subtype — bridge via unsafeBitCast
-        let staticCode = unsafeBitCast(secCode, to: SecStaticCode.self)
-        guard SecCodeCopySigningInformation(staticCode, [], &info) == errSecSuccess,
-              let dict = info as? [String: Any],
-              let bundleId = dict["identifier"] as? String,
-              bundleId == "com.boxx.app" else {
+        var staticCode: SecStaticCode?
+        guard SecCodeCopyStaticCode(secCode, [], &staticCode) == errSecSuccess,
+              let sc = staticCode else {
+            return false
+        }
+        // Validate code signature with bundle identifier requirement
+        var requirement: SecRequirement?
+        guard SecRequirementCreateWithString(
+            "identifier \"com.boxx.app\"" as CFString, [], &requirement
+        ) == errSecSuccess, let req = requirement else {
+            return false
+        }
+        guard SecStaticCodeCheckValidity(sc, [], req) == errSecSuccess else {
             return false
         }
 
@@ -52,8 +58,14 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
             do {
                 try process.run()
                 singBoxProcess = process
-                usleep(1_000_000)
-                if process.isRunning {
+                // Poll up to 1 second (10 x 100ms) to confirm process stays alive
+                var isAlive = false
+                for _ in 0..<10 {
+                    usleep(100_000)
+                    if !process.isRunning { break }
+                    isAlive = true
+                }
+                if isAlive {
                     reply(true, nil)
                 } else {
                     reply(false, "sing-box exited immediately (code \(process.terminationStatus))")
@@ -89,7 +101,11 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
                 return
             }
             proc.terminate()
-            usleep(2_000_000)
+            // Poll up to 2 seconds (20 x 100ms) waiting for graceful exit
+            for _ in 0..<20 {
+                if !proc.isRunning { break }
+                usleep(100_000)
+            }
             if proc.isRunning {
                 kill(proc.processIdentifier, SIGKILL)
             }

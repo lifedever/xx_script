@@ -1,6 +1,5 @@
 import Foundation
 
-@MainActor
 final class ConfigGenerator {
     private let scriptDir: String
 

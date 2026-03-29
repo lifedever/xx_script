@@ -12,9 +12,6 @@ struct MenuBarView: View {
     @State private var isUpdatingSubscriptions = false
 
     var body: some View {
-        // Refresh proxy groups each time menu body evaluates
-        let _ = Task { await refreshProxyGroups() }
-
         Group {
             // Status
             Label(
@@ -100,13 +97,13 @@ struct MenuBarView: View {
             // Open Dashboard
             Button("Open Dashboard") {
                 openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             }
 
             // Settings
             Button("Settings…") {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             }
 
             Divider()
@@ -115,6 +112,9 @@ struct MenuBarView: View {
             Button("Quit BoxX") {
                 NSApplication.shared.terminate(nil)
             }
+        }
+        .task {
+            await refreshProxyGroups()
         }
     }
 
