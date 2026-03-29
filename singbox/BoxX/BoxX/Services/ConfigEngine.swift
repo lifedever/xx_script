@@ -8,7 +8,7 @@ private extension Notification.Name {
 
 @Observable
 class ConfigEngine {
-    private(set) var config: SingBoxConfig
+    var config: SingBoxConfig
     private(set) var proxies: [String: [Outbound]] = [:]  // key = subscription name
 
     let baseDir: URL
