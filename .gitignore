@@ -3,3 +3,4 @@ singbox/subscriptions.json
 singbox/config.json
 singbox/rules/
 singbox/cache.db
+singbox/sing-box.log
