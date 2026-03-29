@@ -13,11 +13,14 @@
 		0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */; };
 		1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */; };
 		33BF5225C7BA62C13F7D3804 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D36E087DFEB3FE6AC5111 /* main.swift */; };
+		39EA029175CED929C253468B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */; };
 		411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223B0D94A0BDD5B469B1C6D3 /* Rule.swift */; };
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
+		6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1938ECE20FFDCBC5DA86303 /* MainView.swift */; };
 		7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A786DA30C59DB926BE25E5A /* Assets.xcassets */; };
 		8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */; };
+		8CC9F2A705A8A9D8FAEA9926 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D75DB00D57E74D03D75F000 /* MenuBarView.swift */; };
 		A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14648562F958BE7DF9541A7F /* AppState.swift */; };
 		A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */; };
 		A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8356E67918A3E954AF83EA /* ProxyModels.swift */; };
@@ -62,8 +65,10 @@
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
 		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionModels.swift; sourceTree = "<group>"; };
+		7D75DB00D57E74D03D75F000 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXApp.swift; sourceTree = "<group>"; };
 		8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperManager.swift; sourceTree = "<group>"; };
+		948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F9360A996360ED7484C86E3 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
 		B1F605B3DA3C289944EC8E66 /* BoxXHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxXHelper.entitlements; sourceTree = "<group>"; };
@@ -74,6 +79,7 @@
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
 		ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModelsTests.swift; sourceTree = "<group>"; };
+		F1938ECE20FFDCBC5DA86303 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -123,6 +129,7 @@
 		77EB46A4DA9505D2877110A7 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
+				7D75DB00D57E74D03D75F000 /* MenuBarView.swift */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";
@@ -150,6 +157,8 @@
 		A8B70330834890FBCFD372D7 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
+				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -335,9 +344,12 @@
 				0D00DCB833E7B0E79F0D5CAA /* HelperManager.swift in Sources */,
 				B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */,
 				1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */,
+				6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */,
+				8CC9F2A705A8A9D8FAEA9926 /* MenuBarView.swift in Sources */,
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
+				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */,
 				0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */,
 			);
