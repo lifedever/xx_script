@@ -282,16 +282,16 @@ struct ProxiesView: View {
                     showGroupEdit = true
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
 
                 Button("删除") {
                     deletingGroupTag = group.name
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
                 .tint(.red)
             }
-            .frame(width: 100, alignment: .center)
+            .frame(width: 120, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)

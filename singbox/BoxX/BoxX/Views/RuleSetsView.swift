@@ -72,7 +72,7 @@ struct RuleSetsView: View {
                             Text("出站")
                                 .frame(width: 100, alignment: .leading)
                             Text("操作")
-                                .frame(width: 120, alignment: .center)
+                                .frame(width: 160, alignment: .center)
                         }
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
@@ -189,32 +189,41 @@ struct RuleSetsView: View {
                     editingRuleSetTag = tag
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
 
                 Button("删除") {
                     deleteRuleSet(at: index, tag: tag)
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
                 .tint(.red)
 
-                // Refresh status for remote
-                if let status = ruleSetUpdateStatus[tag] {
-                    switch status {
-                    case .updating:
-                        ProgressView().controlSize(.mini)
-                    case .success:
-                        Image(systemName: "checkmark").font(.caption2).foregroundStyle(.green)
-                    case .failed:
-                        Image(systemName: "xmark").font(.caption2).foregroundStyle(.red)
-                    case .idle:
-                        ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
+                if isRemote {
+                    if let status = ruleSetUpdateStatus[tag] {
+                        switch status {
+                        case .updating:
+                            ProgressView().controlSize(.small)
+                        case .success:
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        case .failed:
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                        case .idle:
+                            Button("更新") {
+                                Task { await updateRuleSet(tag: tag, url: url ?? "") }
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    } else {
+                        Button("更新") {
+                            Task { await updateRuleSet(tag: tag, url: url ?? "") }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                } else {
-                    ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
                 }
             }
-            .frame(width: 120, alignment: .center)
+            .frame(width: 160, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)

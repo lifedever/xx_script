@@ -176,17 +176,17 @@ struct RouteRulesView: View {
                         showAddRule = true
                     }
                     .buttonStyle(.bordered)
-                    .controlSize(.mini)
+                    .controlSize(.small)
 
                     Button("删除") {
                         deleteRule(at: rule.id)
                     }
                     .buttonStyle(.bordered)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .tint(.red)
                 }
             }
-            .frame(width: 110, alignment: .center)
+            .frame(width: 120, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -271,9 +271,8 @@ struct RouteRulesView: View {
         isLoading = true
         defer { isLoading = false }
         let configRules = appState.configEngine.config.route.rules ?? []
-        // Filter out RULE-SET rules (managed in 规则集 page) to avoid duplication
-        rules = configRules.enumerated().compactMap { (index, rule) -> Rule? in
-            // Skip rules that only have rule_set references
+        // Filter out RULE-SET rules (managed in 规则集 page)
+        let allRules = configRules.enumerated().compactMap { (index, rule) -> Rule? in
             if rule["rule_set"] != nil { return nil }
             return Rule(
                 id: index,
@@ -282,6 +281,10 @@ struct RouteRulesView: View {
                 proxy: rule["outbound"]?.stringValue ?? rule["action"]?.stringValue ?? "—"
             )
         }
+        // Sort: editable rules first, system rules at bottom
+        let editable = allRules.filter { !Self.systemTypes.contains($0.type) }
+        let system = allRules.filter { Self.systemTypes.contains($0.type) }
+        rules = editable + system
     }
 
     /// Extract rule type from a JSONValue rule object
