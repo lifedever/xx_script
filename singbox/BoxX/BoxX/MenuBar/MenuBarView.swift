@@ -44,7 +44,7 @@ struct MenuBarView: View {
                 Button(String(localized: "menu.stop")) {
                     Task {
                         do {
-                            try await singBoxManager.stop()
+                            try await singBoxManager.stopAny()
                         } catch {
                             appState.showAlert(error.localizedDescription)
                         }
@@ -52,14 +52,20 @@ struct MenuBarView: View {
                     }
                 }
             } else {
-                Button(String(localized: "menu.start")) {
-                    Task {
-                        do {
-                            try await singBoxManager.start(configPath: configGenerator.configPath)
-                        } catch {
-                            appState.showAlert(error.localizedDescription)
+                if appState.isHelperInstalled {
+                    Button(String(localized: "menu.start")) {
+                        Task {
+                            do {
+                                try await singBoxManager.start(configPath: configGenerator.configPath)
+                            } catch {
+                                appState.showAlert(error.localizedDescription)
+                            }
+                            await syncStatus()
                         }
-                        await syncStatus()
+                    }
+                } else {
+                    Button(String(localized: "menu.start")) {
+                        appState.showAlert(String(localized: "menu.start_no_helper_hint"))
                     }
                 }
             }

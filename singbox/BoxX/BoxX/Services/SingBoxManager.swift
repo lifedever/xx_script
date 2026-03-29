@@ -115,8 +115,37 @@ final class SingBoxManager {
         }
     }
 
+    /// Stop sing-box regardless of how it was started
+    func stopAny() async throws {
+        if isExternalProcess || !helperManager.isHelperInstalled {
+            // External process or no helper — use sudo pkill
+            try await stopViaScript()
+        } else {
+            try await stop()
+        }
+    }
+
+    /// Stop external sing-box using osascript for sudo
+    private func stopViaScript() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = [
+            "-e",
+            "do shell script \"pkill -f 'sing-box run' || true\" with administrator privileges"
+        ]
+        try process.run()
+        process.waitUntilExit()
+        if process.terminationStatus == 0 {
+            isRunning = false
+            pid = 0
+            isExternalProcess = false
+        } else {
+            throw SingBoxError.stopFailed("Failed to stop sing-box process")
+        }
+    }
+
     func restart(configPath: String) async throws {
-        try await stop()
+        try await stopAny()
         try await Task.sleep(for: .seconds(1))
         try await start(configPath: configPath)
     }
