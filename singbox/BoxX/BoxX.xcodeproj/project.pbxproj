@@ -1,0 +1,588 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
+		33BF5225C7BA62C13F7D3804 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D36E087DFEB3FE6AC5111 /* main.swift */; };
+		7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
+		8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A786DA30C59DB926BE25E5A /* Assets.xcassets */; };
+		A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14648562F958BE7DF9541A7F /* AppState.swift */; };
+		A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */; };
+		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
+		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CF8815211F5EFC9AF297825A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 86708EBC0457A50D0A386ABA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9FA8BD2374274AA6538F04CF;
+			remoteInfo = BoxX;
+		};
+		EEF22C11F5A1BECC12DE652A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 86708EBC0457A50D0A386ABA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 82F6E97450DBF35857747666;
+			remoteInfo = BoxXHelper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		14648562F958BE7DF9541A7F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		28863DF4368C71D5FFF7A186 /* BoxXHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = BoxXHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		359FAFDB5E064BD58048D440 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXApp.swift; sourceTree = "<group>"; };
+		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1F605B3DA3C289944EC8E66 /* BoxXHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxXHelper.entitlements; sourceTree = "<group>"; };
+		C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
+		C92D36E087DFEB3FE6AC5111 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoxXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
+		FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0A9A0694BCE295CB04A5E781 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9AB458E77F97DBFFAE29805E /* BoxX.app */,
+				28863DF4368C71D5FFF7A186 /* BoxXHelper */,
+				CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0E7AE0078F81DDDD35CFADD7 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		15C9EB85D466CC2681BE9634 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		40F0056BCE5BF8312CE41915 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		77EB46A4DA9505D2877110A7 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		87CC323DACF69ABBD4A9981E /* BoxXHelper */ = {
+			isa = PBXGroup;
+			children = (
+				B1F605B3DA3C289944EC8E66 /* BoxXHelper.entitlements */,
+				C92D36E087DFEB3FE6AC5111 /* main.swift */,
+			);
+			path = BoxXHelper;
+			sourceTree = "<group>";
+		};
+		89029C1F85F30E0BA85B93F0 = {
+			isa = PBXGroup;
+			children = (
+				B7B2A09ED397B4B5E6B21233 /* BoxX */,
+				87CC323DACF69ABBD4A9981E /* BoxXHelper */,
+				B6844612DBE1F081F3A6B218 /* Shared */,
+				40F0056BCE5BF8312CE41915 /* Tests */,
+				0A9A0694BCE295CB04A5E781 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A8B70330834890FBCFD372D7 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B6844612DBE1F081F3A6B218 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B7B2A09ED397B4B5E6B21233 /* BoxX */ = {
+			isa = PBXGroup;
+			children = (
+				DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */,
+				819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */,
+				359FAFDB5E064BD58048D440 /* Info.plist */,
+				15C9EB85D466CC2681BE9634 /* Helpers */,
+				77EB46A4DA9505D2877110A7 /* MenuBar */,
+				BAF9D2289787A0E79DF2F235 /* Models */,
+				D351E9ABE87E6AFF7A7F140D /* Resources */,
+				0E7AE0078F81DDDD35CFADD7 /* Services */,
+				A8B70330834890FBCFD372D7 /* Views */,
+			);
+			path = BoxX;
+			sourceTree = "<group>";
+		};
+		BAF9D2289787A0E79DF2F235 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				14648562F958BE7DF9541A7F /* AppState.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D351E9ABE87E6AFF7A7F140D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				5A786DA30C59DB926BE25E5A /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		82F6E97450DBF35857747666 /* BoxXHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F132FF95354D36B5A1F526C4 /* Build configuration list for PBXNativeTarget "BoxXHelper" */;
+			buildPhases = (
+				41B4743C07DE431C0ADCE261 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BoxXHelper;
+			packageProductDependencies = (
+			);
+			productName = BoxXHelper;
+			productReference = 28863DF4368C71D5FFF7A186 /* BoxXHelper */;
+			productType = "com.apple.product-type.tool";
+		};
+		9FA8BD2374274AA6538F04CF /* BoxX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 18DF7A99D8F92CF33A73B5AC /* Build configuration list for PBXNativeTarget "BoxX" */;
+			buildPhases = (
+				1B59DD60D261C65B7419DD95 /* Sources */,
+				DFF8BD0BE27D1EB818A50173 /* Resources */,
+				AE5854DB145D0C91C85A2D85 /* Copy Helper launchd plist */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C48352892A41B01BA757CAB /* PBXTargetDependency */,
+			);
+			name = BoxX;
+			packageProductDependencies = (
+			);
+			productName = BoxX;
+			productReference = 9AB458E77F97DBFFAE29805E /* BoxX.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CEB4AB5ABC388B3742AABC11 /* BoxXTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F4C5F874FB273BC6DF50F012 /* Build configuration list for PBXNativeTarget "BoxXTests" */;
+			buildPhases = (
+				555C8449FA8A80D19E384D1F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F7575DCE6A6314C022FD2B82 /* PBXTargetDependency */,
+			);
+			name = BoxXTests;
+			packageProductDependencies = (
+			);
+			productName = BoxXTests;
+			productReference = CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		86708EBC0457A50D0A386ABA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = D8B00D1767AC43E64C5C458A /* Build configuration list for PBXProject "BoxX" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 89029C1F85F30E0BA85B93F0;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0A9A0694BCE295CB04A5E781 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9FA8BD2374274AA6538F04CF /* BoxX */,
+				82F6E97450DBF35857747666 /* BoxXHelper */,
+				CEB4AB5ABC388B3742AABC11 /* BoxXTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DFF8BD0BE27D1EB818A50173 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AE5854DB145D0C91C85A2D85 /* Copy Helper launchd plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Helper launchd plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/BoxXHelper/launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons/com.boxx.helper.plist\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1B59DD60D261C65B7419DD95 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */,
+				A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */,
+				B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		41B4743C07DE431C0ADCE261 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */,
+				33BF5225C7BA62C13F7D3804 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		555C8449FA8A80D19E384D1F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */,
+				7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4C48352892A41B01BA757CAB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 82F6E97450DBF35857747666 /* BoxXHelper */;
+			targetProxy = EEF22C11F5A1BECC12DE652A /* PBXContainerItemProxy */;
+		};
+		F7575DCE6A6314C022FD2B82 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9FA8BD2374274AA6538F04CF /* BoxX */;
+			targetProxy = CF8815211F5EFC9AF297825A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		33CF79EEC36A87F456A7126A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		36C6A3AFCD06E451B56A2800 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BoxX.app/Contents/MacOS/BoxX";
+			};
+			name = Debug;
+		};
+		36D01FB9E751D4AD895CE80A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = BoxX/BoxX.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = BoxX/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.app;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		466125D8F83CCC25B9D30F28 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = BoxX/BoxX.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = BoxX/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.app;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		4E4ED6BF9688622AA88D0274 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BoxXHelper/BoxXHelper.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = BoxXHelper/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.helper;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		8B5206138E3F9ED9F756BA64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		9AFB6C85F832591985368704 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BoxXHelper/BoxXHelper.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = BoxXHelper/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.helper;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		BDE7D9BD17717E964E337ECE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BoxX.app/Contents/MacOS/BoxX";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		18DF7A99D8F92CF33A73B5AC /* Build configuration list for PBXNativeTarget "BoxX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				36D01FB9E751D4AD895CE80A /* Debug */,
+				466125D8F83CCC25B9D30F28 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D8B00D1767AC43E64C5C458A /* Build configuration list for PBXProject "BoxX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8B5206138E3F9ED9F756BA64 /* Debug */,
+				33CF79EEC36A87F456A7126A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F132FF95354D36B5A1F526C4 /* Build configuration list for PBXNativeTarget "BoxXHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4E4ED6BF9688622AA88D0274 /* Debug */,
+				9AFB6C85F832591985368704 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F4C5F874FB273BC6DF50F012 /* Build configuration list for PBXNativeTarget "BoxXTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				36C6A3AFCD06E451B56A2800 /* Debug */,
+				BDE7D9BD17717E964E337ECE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 86708EBC0457A50D0A386ABA /* Project object */;
+}
