@@ -31,6 +31,9 @@ struct BoxXApp: App {
         let state = appState
 
         Task { @MainActor in
+            // Register XPC Helper (tries SMAppService, falls back to osascript)
+            state.singBoxProcess.registerHelper()
+
             // Load config
             do {
                 try state.configEngine.load()

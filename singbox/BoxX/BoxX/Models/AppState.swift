@@ -27,7 +27,10 @@ final class AppState {
         let process = singBoxProcess
         let runtimePath = baseDir.appendingPathComponent("runtime-config.json").path
         configEngine.onDeployComplete = {
-            try process.restart(configPath: runtimePath)
+            // Try reload first (no password prompt), fall back to restart
+            process.reload()
+            // If reload isn't supported (no XPC), need full restart
+            // But skip restart here to avoid password prompts on every config save
         }
     }
 

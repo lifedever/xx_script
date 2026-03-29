@@ -1,16 +1,31 @@
 // BoxX/Services/SingBoxProcess.swift
 import Foundation
+import ServiceManagement
 
 @MainActor
 @Observable
 class SingBoxProcess {
-    private var process: Process?
     var isRunning: Bool = false
+    private let xpcClient = XPCClient()
+    private var useXPC = false
 
     private let singBoxPath = "/opt/homebrew/bin/sing-box"
 
-    /// Start sing-box with admin privileges (needed for TUN mode).
-    /// Uses osascript to get admin auth — prompts password once per session.
+    /// Register XPC Helper on first launch. Call once at app startup.
+    func registerHelper() {
+        Task {
+            do {
+                try await xpcClient.register()
+                useXPC = true
+                print("[BoxX] Helper registered via SMAppService ✅")
+            } catch {
+                useXPC = false
+                print("[BoxX] Helper registration failed: \(error). Using osascript fallback.")
+            }
+        }
+    }
+
+    /// Start sing-box. Uses XPC Helper if available, otherwise osascript.
     func start(configPath: String) throws {
         guard FileManager.default.fileExists(atPath: singBoxPath) else {
             throw SingBoxError.notInstalled
@@ -19,74 +34,36 @@ class SingBoxProcess {
             throw SingBoxError.startFailed("配置文件不存在: \(configPath)")
         }
 
-        // Kill any existing sing-box first
         killExisting()
         waitForPortRelease()
 
-        // Use osascript to start sing-box with admin privileges (for TUN)
-        let configDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
-        let shellCmd = "cd '\(configDir)' && '\(singBoxPath)' run -c '\(configPath)' &>/dev/null &"
-
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        proc.arguments = [
-            "-e",
-            "do shell script \"\(shellCmd)\" with administrator privileges"
-        ]
-        proc.standardOutput = FileHandle.nullDevice
-        proc.standardError = FileHandle.nullDevice
-
-        print("[BoxX] Starting sing-box with admin privileges...")
-        try proc.run()
-        proc.waitUntilExit()
-
-        if proc.terminationStatus != 0 {
-            throw SingBoxError.startFailed("授权被取消或失败")
-        }
-
-        // Wait for Clash API to be ready (sing-box downloads rule sets on first run)
-        print("[BoxX] Waiting for Clash API...")
-        var ready = false
-        for _ in 0..<30 {
-            if checkClashAPISync() {
-                ready = true
-                break
-            }
-            Thread.sleep(forTimeInterval: 0.5)
-        }
-
-        if ready {
-            isRunning = true
-            print("[BoxX] sing-box started successfully with TUN support!")
+        if useXPC {
+            try startViaXPC(configPath: configPath)
         } else {
-            // Check if process exists
-            if findSingBoxPID() != nil {
-                isRunning = true
-                print("[BoxX] sing-box process running, API slow to respond")
-            } else {
-                throw SingBoxError.startFailed("sing-box 启动后立即退出，请检查配置")
-            }
+            try startViaOsascript(configPath: configPath)
         }
     }
 
-    /// Stop sing-box (needs sudo since it runs as root)
+    /// Stop sing-box
     func stop() {
-        // Try sudo kill via osascript
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        proc.arguments = [
-            "-e",
-            "do shell script \"pkill -x sing-box\" with administrator privileges"
-        ]
-        proc.standardOutput = FileHandle.nullDevice
-        proc.standardError = FileHandle.nullDevice
-        try? proc.run()
-        proc.waitUntilExit()
-
-        process = nil
-        isRunning = false
+        if useXPC {
+            Task {
+                _ = await xpcClient.stop()
+                isRunning = false
+                print("[BoxX] Stopped via XPC")
+            }
+        } else {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            proc.arguments = ["-e", "do shell script \"pkill -x sing-box\" with administrator privileges"]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
+            isRunning = false
+            print("[BoxX] Stopped via osascript")
+        }
         waitForPortRelease()
-        print("[BoxX] sing-box stopped")
     }
 
     /// Restart with new config
@@ -95,12 +72,21 @@ class SingBoxProcess {
         try start(configPath: configPath)
     }
 
+    /// Reload config (SIGHUP) — only works with XPC Helper
+    func reload() {
+        if useXPC {
+            Task { _ = await xpcClient.reload() }
+        }
+    }
+
     /// Check if sing-box is running
     func refreshStatus() async -> Bool {
-        if findSingBoxPID() != nil {
-            isRunning = true
-            return true
+        if useXPC {
+            let status = await xpcClient.getStatus()
+            isRunning = status.running
+            return status.running
         }
+        // Fallback: check via Clash API
         let reachable = await checkClashAPI()
         isRunning = reachable
         return reachable
@@ -108,16 +94,80 @@ class SingBoxProcess {
 
     /// Flush DNS cache
     func flushDNS() {
-        let flush = Process()
-        flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
-        flush.arguments = ["-flushcache"]
-        flush.standardOutput = FileHandle.nullDevice
-        flush.standardError = FileHandle.nullDevice
-        try? flush.run()
-        flush.waitUntilExit()
+        if useXPC {
+            Task { _ = await xpcClient.flushDNS() }
+        } else {
+            let flush = Process()
+            flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
+            flush.arguments = ["-flushcache"]
+            flush.standardOutput = FileHandle.nullDevice
+            flush.standardError = FileHandle.nullDevice
+            try? flush.run()
+            flush.waitUntilExit()
+        }
     }
 
-    // MARK: - Private
+    // MARK: - XPC Start
+
+    private func startViaXPC(configPath: String) throws {
+        print("[BoxX] Starting via XPC Helper...")
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: (success: Bool, error: String?) = (false, nil)
+
+        Task {
+            result = await xpcClient.start(configPath: configPath)
+            semaphore.signal()
+        }
+        _ = semaphore.wait(timeout: .now() + 30)
+
+        if !result.success {
+            throw SingBoxError.startFailed(result.error ?? "XPC Helper 启动失败")
+        }
+
+        waitForClashAPI()
+        isRunning = true
+        print("[BoxX] Started via XPC Helper ✅")
+    }
+
+    // MARK: - osascript Start (fallback)
+
+    private func startViaOsascript(configPath: String) throws {
+        let configDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
+        let shellCmd = "cd '\(configDir)' && '\(singBoxPath)' run -c '\(configPath)' &>/dev/null &"
+
+        print("[BoxX] Starting via osascript (admin privileges)...")
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        proc.arguments = ["-e", "do shell script \"\(shellCmd)\" with administrator privileges"]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = FileHandle.nullDevice
+
+        try proc.run()
+        proc.waitUntilExit()
+
+        if proc.terminationStatus != 0 {
+            throw SingBoxError.startFailed("授权被取消或失败")
+        }
+
+        waitForClashAPI()
+
+        if findSingBoxPID() != nil {
+            isRunning = true
+            print("[BoxX] Started via osascript ✅")
+        } else {
+            throw SingBoxError.startFailed("sing-box 启动后立即退出，请检查配置")
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func waitForClashAPI() {
+        print("[BoxX] Waiting for Clash API...")
+        for _ in 0..<30 {
+            if checkClashAPISync() { return }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+    }
 
     private func findSingBoxPID() -> Int32? {
         let pgrep = Process()
@@ -138,7 +188,6 @@ class SingBoxProcess {
     }
 
     private func killExisting() {
-        // Try without sudo first (user-level processes)
         let pkill = Process()
         pkill.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
         pkill.arguments = ["-x", "sing-box"]
@@ -146,11 +195,7 @@ class SingBoxProcess {
         pkill.standardError = FileHandle.nullDevice
         try? pkill.run()
         pkill.waitUntilExit()
-
-        // If still running, needs sudo — don't prompt here, just wait
-        if findSingBoxPID() != nil {
-            usleep(500_000)
-        }
+        if findSingBoxPID() != nil { usleep(500_000) }
     }
 
     private func waitForPortRelease() {
@@ -184,9 +229,7 @@ class SingBoxProcess {
         let semaphore = DispatchSemaphore(value: 0)
         var success = false
         let task = URLSession.shared.dataTask(with: request) { _, response, _ in
-            if let http = response as? HTTPURLResponse, http.statusCode == 200 {
-                success = true
-            }
+            if let http = response as? HTTPURLResponse, http.statusCode == 200 { success = true }
             semaphore.signal()
         }
         task.resume()
@@ -203,9 +246,7 @@ class SingBoxProcess {
         do {
             let (_, response) = try await session.data(from: url)
             return (response as? HTTPURLResponse)?.statusCode != nil
-        } catch {
-            return false
-        }
+        } catch { return false }
     }
 }
 
