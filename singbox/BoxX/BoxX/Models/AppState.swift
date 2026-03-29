@@ -23,12 +23,16 @@ final class AppState {
         api = ClashAPI()
         subscriptionService = SubscriptionService(configEngine: configEngine)
 
-        // When config deploys, restart sing-box
+        // When config deploys (restartRequired=true), auto restart sing-box
         let process = singBoxProcess
-        let runtimePath = baseDir.appendingPathComponent("runtime-config.json").path
-        // Config deploy does NOT auto-restart (would prompt password every time).
-        // User manually restarts via menu when needed.
-        configEngine.onDeployComplete = nil
+        let rtPath = baseDir.appendingPathComponent("runtime-config.json").path
+        configEngine.onDeployComplete = {
+            // Only restart if sing-box is currently running
+            guard process.isRunning else { return }
+            Task {
+                try? await process.restart(configPath: rtPath)
+            }
+        }
     }
 
     /// Resolve config base directory, auto-create if needed.
