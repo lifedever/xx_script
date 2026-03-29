@@ -90,28 +90,27 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Proxy group submenus (only Selector groups)
+            // Proxy groups — categorized
             if proxyGroups.isEmpty {
                 Text(String(localized: "menu.no_proxy_groups"))
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(proxyGroups.filter { $0.type == "Selector" }) { group in
-                    Menu(group.name) {
-                        ForEach(group.displayAll, id: \.self) { node in
-                            Button {
-                                Task {
-                                    try? await api.selectProxy(group: group.name, name: node)
-                                    await refreshProxyGroups()
-                                }
-                            } label: {
-                                if group.now == node {
-                                    Label(node, systemImage: "checkmark")
-                                } else {
-                                    Text(node)
-                                }
-                            }
-                        }
-                    }
+                let selectors = proxyGroups.filter { $0.type == "Selector" }
+                let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🌍"]
+                let regions = selectors.filter { g in regionPrefixes.contains(where: { g.name.hasPrefix($0) }) }
+                let subs = selectors.filter { $0.name.hasPrefix("📦") }
+                let regionIDs = Set(regions.map(\.id))
+                let subIDs = Set(subs.map(\.id))
+                let rules = selectors.filter { !regionIDs.contains($0.id) && !subIDs.contains($0.id) }
+
+                if !rules.isEmpty {
+                    menuSection(String(localized: "proxies.section.services"), groups: rules)
+                }
+                if !regions.isEmpty {
+                    menuSection(String(localized: "proxies.section.regions"), groups: regions)
+                }
+                if !subs.isEmpty {
+                    menuSection(String(localized: "proxies.section.subscriptions"), groups: subs)
                 }
             }
 
@@ -148,6 +147,32 @@ struct MenuBarView: View {
         .task {
             await syncStatus()
         }
+    }
+
+    @ViewBuilder
+    private func menuSection(_ title: String, groups: [ProxyGroup]) -> some View {
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        ForEach(groups) { group in
+            Menu("\(group.name)  ·  \(group.now ?? "")") {
+                ForEach(group.displayAll, id: \.self) { node in
+                    Button {
+                        Task {
+                            try? await api.selectProxy(group: group.name, name: node)
+                            await refreshProxyGroups()
+                        }
+                    } label: {
+                        if group.now == node {
+                            Label(node, systemImage: "checkmark")
+                        } else {
+                            Text(node)
+                        }
+                    }
+                }
+            }
+        }
+        Divider()
     }
 
     private func syncStatus() async {
