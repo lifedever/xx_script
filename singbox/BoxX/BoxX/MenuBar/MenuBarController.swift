@@ -43,10 +43,30 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
 
-        // ── Status header ──
-        let statusTitle = appState.isRunning ? "BoxX  ● 运行中" : "BoxX  ○ 已停止"
-        let si = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
+        // ── Status header (green dot when running) ──
+        let si = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         si.isEnabled = false
+        if appState.isRunning {
+            let str = NSMutableAttributedString()
+            str.append(NSAttributedString(string: "BoxX  ", attributes: [
+                .font: NSFont.menuFont(ofSize: 14),
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]))
+            str.append(NSAttributedString(string: "●", attributes: [
+                .font: NSFont.systemFont(ofSize: 10),
+                .foregroundColor: NSColor.systemGreen,
+            ]))
+            str.append(NSAttributedString(string: " 运行中", attributes: [
+                .font: NSFont.menuFont(ofSize: 14),
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]))
+            si.attributedTitle = str
+        } else {
+            si.attributedTitle = NSAttributedString(string: "BoxX  ○ 已停止", attributes: [
+                .font: NSFont.menuFont(ofSize: 14),
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ])
+        }
         menu.addItem(si)
         menu.addItem(.separator())
 
@@ -101,6 +121,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let updateItem = NSMenuItem(title: "更新订阅", action: #selector(updateSubscriptions), keyEquivalent: "")
         updateItem.target = self
         menu.addItem(updateItem)
+
+        let copyEnvItem = NSMenuItem(title: "复制环境变量", action: #selector(copyProxyEnv), keyEquivalent: "")
+        copyEnvItem.target = self
+        menu.addItem(copyEnvItem)
 
         let openConfigItem = NSMenuItem(title: "打开配置目录", action: #selector(openConfigDir), keyEquivalent: "")
         openConfigItem.target = self
@@ -236,6 +260,16 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 _ = try? await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
             }
         }
+    }
+
+    @objc private func copyProxyEnv() {
+        let env = """
+        export https_proxy=http://127.0.0.1:7890
+        export http_proxy=http://127.0.0.1:7890
+        export all_proxy=socks5://127.0.0.1:7890
+        """
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(env, forType: .string)
     }
 
     @objc private func openConfigDir() {
