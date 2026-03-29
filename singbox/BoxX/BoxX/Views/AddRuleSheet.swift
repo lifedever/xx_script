@@ -279,7 +279,13 @@ struct AddRuleSheet: View {
         let newRule = JSONValue.object(ruleDict)
 
         var rules = appState.configEngine.config.route.rules ?? []
-        rules.append(newRule)
+        // Insert after system rules (sniff, hijack-dns, ip_is_private) but before service rules
+        // so user-defined rules have highest priority among routing rules
+        let insertIdx = rules.firstIndex(where: { rule in
+            // Find the first rule that has rule_set or domain/domain_suffix (= a routing rule, not system)
+            rule["rule_set"] != nil || rule["domain"] != nil || rule["domain_suffix"] != nil
+        }) ?? rules.count
+        rules.insert(newRule, at: insertIdx)
         appState.configEngine.config.route.rules = rules
 
         do {
