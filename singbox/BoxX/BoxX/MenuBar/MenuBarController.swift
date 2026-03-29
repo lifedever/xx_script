@@ -87,9 +87,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         opsItem.submenu = opsMenu
         menu.addItem(opsItem)
 
-        menu.addItem(.separator())
-
-        // ── Outbound mode ──
+        // ── Outbound mode (same group as 操作) ──
         let modeMenu = NSMenu()
         for mode in ["rule", "global", "direct"] {
             let label: String
