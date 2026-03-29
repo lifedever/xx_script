@@ -5,9 +5,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if shouldReallyQuit { return .terminateNow }
-        // Cmd+Q or window close: just hide windows and stay in menu bar
-        for window in NSApp.windows where window.isVisible {
-            window.close()
+        // Cmd+Q: only hide app windows (not system/internal windows like NSStatusBarWindow)
+        for window in NSApp.windows where window.isVisible && window.canBecomeMain {
+            window.orderOut(nil)
         }
         NSApp.setActivationPolicy(.accessory)
         return .terminateCancel
