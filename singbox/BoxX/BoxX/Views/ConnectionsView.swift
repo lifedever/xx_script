@@ -12,6 +12,7 @@ struct ConnectionsView: View {
     @State private var selectedID: Connection.ID?
     @State private var showAddRule = false
     @State private var addRuleConnection: Connection?
+    @State private var isPaused = false
 
     private let wsClient = ClashWebSocket()
 
@@ -29,7 +30,8 @@ struct ConnectionsView: View {
             $0.host.localizedCaseInsensitiveContains(searchText) ||
             $0.rule.localizedCaseInsensitiveContains(searchText) ||
             $0.outbound.localizedCaseInsensitiveContains(searchText) ||
-            $0.chain.localizedCaseInsensitiveContains(searchText)
+            $0.chain.localizedCaseInsensitiveContains(searchText) ||
+            $0.metadata.processPath.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -41,117 +43,17 @@ struct ConnectionsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Toolbar
-            HStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField(String(localized: "connections.search"), text: $searchText)
-                        .textFieldStyle(.plain)
-                }
-                .padding(6)
-                .background(.quaternary)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-
-                Spacer()
-
-                Text(String(format: String(localized: "connections.count"), filteredConnections.count))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text("↓ \(byteFormatter.string(fromByteCount: downloadTotal))")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.green)
-                Text("↑ \(byteFormatter.string(fromByteCount: uploadTotal))")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.blue)
-
-                Button(String(localized: "connections.close_all")) {
-                    Task { try? await appState.api.closeAllConnections() }
-                }
-                .controlSize(.small)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(.bar)
+            toolbar
 
             Divider()
 
-            // Table + Detail split
-            VSplitView {
-                // Table
-                Table(filteredConnections, selection: $selectedID, sortOrder: $sortOrder) {
-                    TableColumn(String(localized: "connections.time"), value: \.start) { conn in
-                        Text(conn.startTimeString)
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                    .width(min: 60, ideal: 70)
+            // Table + Detail split (horizontal)
+            HSplitView {
+                // Connection table
+                connectionTable
+                    .frame(minWidth: 500)
 
-                    TableColumn(String(localized: "connections.host"), value: \.host) { conn in
-                        Text(conn.host)
-                            .font(.caption)
-                            .lineLimit(1)
-                    }
-                    .width(min: 150, ideal: 220)
-
-                    TableColumn(String(localized: "connections.network")) { conn in
-                        Text(conn.network)
-                            .font(.caption2.monospaced())
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(conn.network == "UDP" ? Color.orange.opacity(0.15) : Color.blue.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                    }
-                    .width(min: 40, ideal: 50)
-
-                    TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
-                        Text(conn.rule)
-                            .font(.caption)
-                            .lineLimit(1)
-                    }
-                    .width(min: 100, ideal: 160)
-
-                    TableColumn(String(localized: "connections.outbound"), value: \.outbound)
-                        .width(min: 80, ideal: 100)
-
-                    TableColumn(String(localized: "connections.chain")) { conn in
-                        Text(conn.chain)
-                            .font(.caption)
-                            .lineLimit(1)
-                    }
-                    .width(min: 100, ideal: 150)
-
-                    TableColumn("↓") { conn in
-                        Text(byteFormatter.string(fromByteCount: conn.download))
-                            .font(.caption.monospacedDigit())
-                    }
-                    .width(min: 50, ideal: 70)
-
-                    TableColumn("↑") { conn in
-                        Text(byteFormatter.string(fromByteCount: conn.upload))
-                            .font(.caption.monospacedDigit())
-                    }
-                    .width(min: 50, ideal: 70)
-                }
-                .contextMenu(forSelectionType: Connection.ID.self) { ids in
-                    if let id = ids.first, let conn = connections.first(where: { $0.id == id }) {
-                        Button(String(localized: "connections.ctx.copy_host")) {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(conn.host, forType: .string)
-                        }
-                        Divider()
-                        Button(String(localized: "connections.ctx.add_rule")) {
-                            addRuleConnection = conn
-                            showAddRule = true
-                        }
-                        Divider()
-                        Button(String(localized: "connections.ctx.close")) {
-                            Task { try? await appState.api.closeConnection(id: conn.id) }
-                        }
-                    }
-                } primaryAction: { _ in }
-
-                // Detail panel
+                // Right-side detail panel
                 if let conn = selectedConnection {
                     ConnectionDetailPanel(
                         connection: conn,
@@ -165,6 +67,7 @@ struct ConnectionsView: View {
                         },
                         onDismiss: { selectedID = nil }
                     )
+                    .frame(minWidth: 280, idealWidth: 320, maxWidth: 400)
                 }
             }
         }
@@ -179,22 +82,198 @@ struct ConnectionsView: View {
             }
         }
         .task {
-            wsTask = Task {
-                for await snapshot in wsClient.connectConnections() {
-                    connections = snapshot.connections ?? []
-                    downloadTotal = snapshot.downloadTotal
-                    uploadTotal = snapshot.uploadTotal
-                }
-            }
+            startStreaming()
         }
         .onDisappear {
             wsTask?.cancel()
             wsClient.disconnect()
         }
     }
+
+    // MARK: - Toolbar
+
+    private var toolbar: some View {
+        HStack(spacing: 12) {
+            // Search
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(String(localized: "connections.search"), text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(6)
+            .background(.quaternary)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .frame(maxWidth: 260)
+
+            Spacer()
+
+            Text(String(format: String(localized: "connections.count"), filteredConnections.count))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("\u{2193} \(byteFormatter.string(fromByteCount: downloadTotal))")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.green)
+            Text("\u{2191} \(byteFormatter.string(fromByteCount: uploadTotal))")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.blue)
+
+            // Pause / Resume
+            Button {
+                isPaused.toggle()
+                if isPaused {
+                    wsTask?.cancel()
+                    wsClient.disconnect()
+                } else {
+                    startStreaming()
+                }
+            } label: {
+                Image(systemName: isPaused ? "play.fill" : "pause.fill")
+            }
+            .help(isPaused ? String(localized: "connections.resume") : String(localized: "connections.pause"))
+            .controlSize(.small)
+
+            // Clear
+            Button {
+                connections.removeAll()
+                selectedID = nil
+            } label: {
+                Image(systemName: "trash")
+            }
+            .help(String(localized: "connections.clear"))
+            .controlSize(.small)
+
+            // Disconnect All
+            Button(String(localized: "connections.close_all")) {
+                Task { try? await appState.api.closeAllConnections() }
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    // MARK: - Connection Table
+
+    private var connectionTable: some View {
+        Table(filteredConnections, selection: $selectedID, sortOrder: $sortOrder) {
+            TableColumn(String(localized: "connections.time"), value: \.start) { conn in
+                Text(conn.startTimeString)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .width(min: 60, ideal: 70)
+
+            TableColumn(String(localized: "connections.host"), value: \.host) { conn in
+                Text(conn.host)
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+            .width(min: 150, ideal: 220)
+
+            TableColumn(String(localized: "connections.network")) { conn in
+                Text(conn.network)
+                    .font(.caption2.monospaced())
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .foregroundStyle(conn.network == "UDP" ? Color.orange : Color.blue)
+                    .background(conn.network == "UDP" ? Color.orange.opacity(0.12) : Color.blue.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            }
+            .width(min: 40, ideal: 50)
+
+            TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
+                HStack(spacing: 3) {
+                    Text(conn.rule)
+                        .font(.caption)
+                        .lineLimit(1)
+                    if !conn.rulePayload.isEmpty {
+                        Text("(\(conn.rulePayload))")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .width(min: 100, ideal: 160)
+
+            TableColumn(String(localized: "connections.outbound"), value: \.outbound) { conn in
+                HStack(spacing: 4) {
+                    if conn.outbound == "DIRECT" {
+                        Text(conn.outbound)
+                            .font(.caption.bold())
+                    } else {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                        Text(conn.outbound)
+                            .font(.caption)
+                    }
+                }
+            }
+            .width(min: 80, ideal: 100)
+
+            TableColumn(String(localized: "connections.chain")) { conn in
+                Text(connectionChainDisplay(conn))
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+            .width(min: 100, ideal: 150)
+
+            TableColumn("\u{2193}") { conn in
+                Text(byteFormatter.string(fromByteCount: conn.download))
+                    .font(.caption.monospacedDigit())
+            }
+            .width(min: 50, ideal: 70)
+
+            TableColumn("\u{2191}") { conn in
+                Text(byteFormatter.string(fromByteCount: conn.upload))
+                    .font(.caption.monospacedDigit())
+            }
+            .width(min: 50, ideal: 70)
+        }
+        .contextMenu(forSelectionType: Connection.ID.self) { ids in
+            if let id = ids.first, let conn = connections.first(where: { $0.id == id }) {
+                Button(String(localized: "connections.ctx.copy_host")) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(conn.host, forType: .string)
+                }
+                Divider()
+                Button(String(localized: "connections.ctx.add_rule")) {
+                    addRuleConnection = conn
+                    showAddRule = true
+                }
+                Divider()
+                Button(String(localized: "connections.ctx.close")) {
+                    Task { try? await appState.api.closeConnection(id: conn.id) }
+                }
+            }
+        } primaryAction: { _ in }
+    }
+
+    // MARK: - Helpers
+
+    private func connectionChainDisplay(_ conn: Connection) -> String {
+        let reversed = conn.chains.reversed()
+        return reversed.joined(separator: " \u{2192} ")
+    }
+
+    private func startStreaming() {
+        wsTask = Task {
+            for await snapshot in wsClient.connectConnections() {
+                if !isPaused {
+                    connections = snapshot.connections ?? []
+                    downloadTotal = snapshot.downloadTotal
+                    uploadTotal = snapshot.uploadTotal
+                }
+            }
+        }
+    }
 }
 
-// MARK: - Detail Panel (resizable, closable)
+// MARK: - Detail Panel (right-side, closable)
 
 struct ConnectionDetailPanel: View {
     let connection: Connection
@@ -203,85 +282,154 @@ struct ConnectionDetailPanel: View {
     let onCloseConnection: () -> Void
     let onDismiss: () -> Void
 
-    @State private var panelHeight: CGFloat = 200
-    private let minHeight: CGFloat = 120
-    private let maxHeight: CGFloat = 500
+    private var duration: String {
+        guard let start = connection.startDate else { return "" }
+        let elapsed = Date().timeIntervalSince(start)
+        if elapsed < 60 { return String(format: "%.0fs", elapsed) }
+        if elapsed < 3600 { return String(format: "%.0fm %.0fs", (elapsed / 60).rounded(.down), elapsed.truncatingRemainder(dividingBy: 60)) }
+        return String(format: "%.0fh %.0fm", (elapsed / 3600).rounded(.down), (elapsed.truncatingRemainder(dividingBy: 3600) / 60).rounded(.down))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Drag handle + header
-            VStack(spacing: 0) {
-                // Drag bar
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.secondary.opacity(0.4))
-                    .frame(width: 36, height: 4)
-                    .padding(.top, 6)
-                    .padding(.bottom, 4)
+            // Header
+            HStack {
+                Text(String(localized: "connections.detail.title"))
+                    .font(.headline)
 
-                HStack {
-                    Text(String(localized: "connections.detail.title"))
-                        .font(.headline)
+                Spacer()
 
-                    Text(connection.host)
-                        .font(.subheadline)
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
-                        .controlSize(.small)
-                    Button(String(localized: "connections.ctx.close")) { onCloseConnection() }
-                        .controlSize(.small)
-                        .tint(.red)
-                    Button {
-                        onDismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .background(.bar)
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        let newHeight = panelHeight - value.translation.height
-                        panelHeight = min(max(newHeight, minHeight), maxHeight)
-                    }
-            )
-            .cursor(.resizeUpDown)
 
             Divider()
 
             // Content
             ScrollView {
-                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 8) {
-                    DetailGridRow(label: String(localized: "connections.host"), value: connection.host)
-                    DetailGridRow(label: "IP", value: connection.metadata.destinationIP)
-                    DetailGridRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
-                    DetailGridRow(label: String(localized: "connections.network"), value: connection.network)
-                    DetailGridRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
-                    Divider()
-                    DetailGridRow(label: String(localized: "connections.rule"), value: connection.rule)
-                    DetailGridRow(label: String(localized: "connections.outbound"), value: connection.outbound)
-                    DetailGridRow(label: String(localized: "connections.chain"), value: connection.chain)
-                    Divider()
-                    DetailGridRow(label: String(localized: "connections.detail.source"), value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
-                    DetailGridRow(label: String(localized: "connections.time"), value: connection.startTimeString)
-                    DetailGridRow(label: "↓ " + String(localized: "connections.download"), value: byteFormatter.string(fromByteCount: connection.download))
-                    DetailGridRow(label: "↑ " + String(localized: "connections.upload"), value: byteFormatter.string(fromByteCount: connection.upload))
-                    if !connection.metadata.processPath.isEmpty {
-                        DetailGridRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
+                VStack(alignment: .leading, spacing: 16) {
+                    // Host
+                    sectionHeader(String(localized: "connections.host"))
+                    Text(connection.host)
+                        .font(.body.monospaced())
+                        .textSelection(.enabled)
+
+                    // Connection info
+                    sectionHeader(String(localized: "connections.detail.connection_info"))
+                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                        DetailGridRow(label: String(localized: "connections.time"), value: connection.startTimeString)
+                        DetailGridRow(label: "IP", value: connection.metadata.destinationIP)
+                        DetailGridRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
+                        DetailGridRow(label: String(localized: "connections.network"), value: connection.network)
+                        DetailGridRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
+                        DetailGridRow(label: String(localized: "connections.detail.duration"), value: duration)
                     }
+
+                    Divider()
+
+                    // Rule match
+                    sectionHeader(String(localized: "connections.detail.rule_match"))
+                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                        DetailGridRow(label: String(localized: "connections.rule"), value: connection.rule)
+                        if !connection.rulePayload.isEmpty {
+                            DetailGridRow(label: String(localized: "connections.detail.rule_payload"), value: connection.rulePayload)
+                        }
+                    }
+
+                    Divider()
+
+                    // Outbound chain (tree view)
+                    sectionHeader(String(localized: "connections.detail.outbound_chain"))
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(connection.chains.reversed().enumerated()), id: \.offset) { index, node in
+                            HStack(spacing: 6) {
+                                if index > 0 {
+                                    ForEach(0..<index, id: \.self) { _ in
+                                        Text(" ")
+                                            .frame(width: 12)
+                                    }
+                                    Image(systemName: "arrow.turn.down.right")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                chainNodeView(node, isLast: index == connection.chains.count - 1)
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // Traffic
+                    sectionHeader(String(localized: "connections.detail.traffic"))
+                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                        DetailGridRow(label: "\u{2193} " + String(localized: "connections.download"), value: byteFormatter.string(fromByteCount: connection.download))
+                        DetailGridRow(label: "\u{2191} " + String(localized: "connections.upload"), value: byteFormatter.string(fromByteCount: connection.upload))
+                    }
+
+                    // Source
+                    if !connection.metadata.sourceIP.isEmpty {
+                        Divider()
+                        sectionHeader(String(localized: "connections.detail.source"))
+                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                            DetailGridRow(label: "IP", value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
+                            if !connection.metadata.processPath.isEmpty {
+                                DetailGridRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // Actions
+                    HStack(spacing: 12) {
+                        Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
+                            .controlSize(.small)
+                        Button(String(localized: "connections.ctx.close")) { onCloseConnection() }
+                            .controlSize(.small)
+                            .tint(.red)
+                    }
+                    .padding(.top, 4)
                 }
                 .padding()
             }
-            .frame(height: panelHeight)
             .background(.background.opacity(0.95))
+        }
+    }
+
+    @ViewBuilder
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline.bold())
+            .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private func chainNodeView(_ node: String, isLast: Bool) -> some View {
+        HStack(spacing: 4) {
+            if node == "DIRECT" {
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else if isLast {
+                Image(systemName: "globe")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+            } else {
+                Image(systemName: "server.rack")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+            Text(node)
+                .font(.caption.monospaced())
+                .fontWeight(node == "DIRECT" ? .bold : .regular)
         }
     }
 }

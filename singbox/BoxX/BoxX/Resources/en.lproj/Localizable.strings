@@ -127,6 +127,15 @@
 "connections.detail.type" = "Type";
 "connections.detail.source" = "Source";
 "connections.detail.process" = "Process";
+"connections.detail.duration" = "Duration";
+"connections.detail.rule_match" = "Rule Match";
+"connections.detail.rule_payload" = "Payload";
+"connections.detail.outbound_chain" = "Outbound Chain";
+"connections.detail.traffic" = "Traffic";
+"connections.detail.connection_info" = "Connection Info";
+"connections.pause" = "Pause";
+"connections.resume" = "Resume";
+"connections.clear" = "Clear";
 
 // Add Rule Sheet
 "addrule.title" = "Add Rule";

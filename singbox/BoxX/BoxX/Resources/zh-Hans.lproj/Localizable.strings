@@ -127,6 +127,15 @@
 "connections.detail.type" = "类型";
 "connections.detail.source" = "来源";
 "connections.detail.process" = "进程";
+"connections.detail.duration" = "时长";
+"connections.detail.rule_match" = "规则匹配";
+"connections.detail.rule_payload" = "匹配值";
+"connections.detail.outbound_chain" = "出站链路";
+"connections.detail.traffic" = "流量";
+"connections.detail.connection_info" = "连接信息";
+"connections.pause" = "暂停";
+"connections.resume" = "继续";
+"connections.clear" = "清空";
 
 // Add Rule Sheet
 "addrule.title" = "添加规则";
