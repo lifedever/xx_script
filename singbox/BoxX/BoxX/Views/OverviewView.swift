@@ -51,26 +51,14 @@ struct OverviewView: View {
                         HStack(spacing: 8) {
                             if singBoxManager.isRunning {
                                 Button {
-                                    Task {
-                                        try? await singBoxManager.stopAny()
-                                        await singBoxManager.refreshStatus()
-                                        appState.isRunning = singBoxManager.isRunning
-                                        appState.pid = singBoxManager.pid
-                                    }
+                                    Task { await doStop() }
                                 } label: {
                                     Label(String(localized: "overview.stop"), systemImage: "stop.fill")
                                 }
                                 .controlSize(.large)
 
                                 Button {
-                                    Task {
-                                        try? await singBoxManager.stopAny()
-                                        try? await Task.sleep(for: .seconds(1))
-                                        try? await singBoxManager.start(configPath: configGenerator.configPath)
-                                        await singBoxManager.refreshStatus()
-                                        appState.isRunning = singBoxManager.isRunning
-                                        appState.pid = singBoxManager.pid
-                                    }
+                                    Task { await doRestart() }
                                 } label: {
                                     Label(String(localized: "overview.restart"), systemImage: "arrow.clockwise")
                                 }
@@ -78,12 +66,7 @@ struct OverviewView: View {
                             } else {
                                 if appState.isHelperInstalled {
                                     Button {
-                                        Task {
-                                            try? await singBoxManager.start(configPath: configGenerator.configPath)
-                                            await singBoxManager.refreshStatus()
-                                            appState.isRunning = singBoxManager.isRunning
-                                            appState.pid = singBoxManager.pid
-                                        }
+                                        Task { await doStart() }
                                     } label: {
                                         Label(String(localized: "overview.start"), systemImage: "play.fill")
                                     }
@@ -97,16 +80,7 @@ struct OverviewView: View {
                             }
 
                             Button {
-                                Task {
-                                    for await _ in configGenerator.generate() {}
-                                    if singBoxManager.isRunning {
-                                        try? await singBoxManager.stopAny()
-                                        try? await Task.sleep(for: .seconds(1))
-                                        try? await singBoxManager.start(configPath: configGenerator.configPath)
-                                    }
-                                    await singBoxManager.refreshStatus()
-                                    appState.isRunning = singBoxManager.isRunning
-                                }
+                                Task { await doUpdateSubs() }
                             } label: {
                                 Label(String(localized: "overview.update_subs"), systemImage: "arrow.down.circle")
                             }
@@ -158,6 +132,42 @@ struct OverviewView: View {
             .padding()
         }
         .task {
+            await refresh()
+        }
+    }
+
+    private func doStart() async {
+        do {
+            try await singBoxManager.start(configPath: configGenerator.configPath)
+        } catch {
+            appState.showAlert("Start failed: \(error.localizedDescription)")
+        }
+        await refresh()
+    }
+
+    private func doStop() async {
+        do {
+            try await singBoxManager.stopAny()
+        } catch {
+            appState.showAlert("Stop failed: \(error.localizedDescription)")
+        }
+        await refresh()
+    }
+
+    private func doRestart() async {
+        do {
+            try await singBoxManager.restart(configPath: configGenerator.configPath)
+        } catch {
+            appState.showAlert("Restart failed: \(error.localizedDescription)")
+        }
+        await refresh()
+    }
+
+    private func doUpdateSubs() async {
+        for await _ in configGenerator.generate() {}
+        if singBoxManager.isRunning {
+            await doRestart()
+        } else {
             await refresh()
         }
     }
