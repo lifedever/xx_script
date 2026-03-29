@@ -16,14 +16,13 @@ struct AddRuleSheet: View {
 
     @State private var ruleType: String = "DOMAIN-SUFFIX"
     @State private var ruleValue: String = ""
-    @State private var target: String = "Proxy"
+    @State private var selectedOutbound: String = "Proxy"
     @State private var resultMessage: String?
     @State private var isSuccess = false
     @State private var addMode: AddRuleMode = .localRule
     @State private var selectedRuleSetTag: String = ""
 
-    private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR"]
-    private let targets = ["Proxy", "DIRECT", "AI"]
+    private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR", "PROCESS-NAME"]
 
     /// Standalone init (used from RulesView via sheet)
     init() {
@@ -49,11 +48,29 @@ struct AddRuleSheet: View {
         }
     }
 
+    /// All selector/direct outbounds from config for the target picker
+    private var availableOutbounds: [String] {
+        appState.configEngine.config.outbounds.compactMap { outbound in
+            switch outbound {
+            case .selector(let s): return s.tag
+            case .direct(let d): return d.tag
+            default: return nil
+            }
+        }
+    }
+
+    /// Custom rule set tags (direct-custom, proxy-custom, ai-custom, etc.)
+    private var customRuleSets: [String] {
+        (appState.configEngine.config.route.ruleSet ?? [])
+            .compactMap { $0["tag"]?.stringValue }
+            .filter { $0.hasSuffix("-custom") }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Title
             HStack {
-                Text(String(localized: "addrule.title"))
+                Text("添加规则")
                     .font(.headline)
                 Spacer()
                 Button { close() } label: {
@@ -77,16 +94,8 @@ struct AddRuleSheet: View {
                 }
                 .pickerStyle(.segmented)
 
-                if addMode == .ruleSetFile {
-                    Picker("目标规则集", selection: $selectedRuleSetTag) {
-                        ForEach(localRuleSets, id: \.self) { tag in
-                            Text(tag).tag(tag)
-                        }
-                    }
-                }
-
                 // Rule type picker
-                Picker(String(localized: "addrule.type"), selection: $ruleType) {
+                Picker("规则类型", selection: $ruleType) {
                     ForEach(ruleTypes, id: \.self) { type in
                         Text(type).tag(type)
                     }
@@ -95,61 +104,76 @@ struct AddRuleSheet: View {
                     autoFillValue(for: newType)
                 }
 
-                // Rule value (editable)
-                TextField(String(localized: "addrule.value"), text: $ruleValue)
+                // Rule value
+                TextField("匹配值", text: $ruleValue)
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospaced())
 
                 if addMode == .localRule {
-                    // Target picker
-                    Picker(String(localized: "addrule.target"), selection: $target) {
-                        ForEach(targets, id: \.self) { t in
-                            Label(targetLabel(t), systemImage: targetIcon(t)).tag(t)
+                    // Target outbound picker
+                    Picker("出站策略", selection: $selectedOutbound) {
+                        ForEach(availableOutbounds, id: \.self) { name in
+                            Text(name).tag(name)
                         }
                     }
-                    .pickerStyle(.radioGroup)
 
                     // Preview
                     GroupBox {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(String(localized: "addrule.preview"))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("预览: 写入 config.json route.rules")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-
-                            Text("ss/rules/\(targetFile).list")
-                                .font(.caption.monospaced())
-                            Text("  \(ruleType),\(ruleValue)")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(Color.accentColor)
-
-                            Text("clash/rules/\(targetFile).yaml")
-                                .font(.caption.monospaced())
-                            Text("  - \(ruleType),\(ruleValue)")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(Color.accentColor)
-
-                            Text("singbox/rules/\(jsonTag).json")
-                                .font(.caption.monospaced())
-                            Text("  \(jsonKey): [\"\(jsonValue)\"]")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(Color.accentColor)
+                            Text("""
+                            {
+                              "\(singboxKey)": ["\(ruleValue)"],
+                              "action": "route",
+                              "outbound": "\(selectedOutbound)"
+                            }
+                            """)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(Color.accentColor)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 } else {
-                    // Rule set file preview
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("预览")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("规则集: \(selectedRuleSetTag)")
-                                .font(.caption.monospaced())
-                            Text("  \(jsonKey): [\"\(ruleValue)\"]")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(Color.accentColor)
+                    // Rule set file picker
+                    if customRuleSets.isEmpty {
+                        Text("没有找到自定义规则集（*-custom）")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("目标规则集", selection: $selectedRuleSetTag) {
+                            ForEach(customRuleSets, id: \.self) { tag in
+                                Text(tag).tag(tag)
+                            }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        // Preview
+                        GroupBox {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("预览: 更新规则集 \(selectedRuleSetTag)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                let url = ruleSetURL(for: selectedRuleSetTag)
+                                if let url {
+                                    Text(url)
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.tertiary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+
+                                Text("  \(singboxKey): [\"\(ruleValue)\"]")
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(Color.accentColor)
+
+                                Text("注意: 需要同步更新 GitHub 仓库中的文件")
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
 
@@ -164,56 +188,66 @@ struct AddRuleSheet: View {
                 }
             }
             .formStyle(.grouped)
-            .padding(.bottom, 0)
 
             Divider()
 
             // Buttons
             HStack {
                 Spacer()
-                Button(String(localized: "addrule.cancel")) {
-                    close()
-                }
-                .keyboardShortcut(.cancelAction)
-
-                Button(String(localized: "addrule.save")) {
-                    saveRule()
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(ruleValue.isEmpty || (addMode == .ruleSetFile && selectedRuleSetTag.isEmpty))
+                Button("取消") { close() }
+                    .keyboardShortcut(.cancelAction)
+                Button("保存") { saveRule() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(ruleValue.isEmpty || (addMode == .ruleSetFile && selectedRuleSetTag.isEmpty))
             }
             .padding()
         }
-        .frame(width: 480, height: 580)
+        .frame(width: 480, height: 520)
         .onAppear {
-            // Initialize rule set tag
-            if selectedRuleSetTag.isEmpty, let first = localRuleSets.first {
+            if selectedRuleSetTag.isEmpty, let first = customRuleSets.first {
                 selectedRuleSetTag = first
             }
-            if !initialHost.isEmpty && !initialIP.isEmpty {
+            if selectedOutbound.isEmpty || !availableOutbounds.contains(selectedOutbound) {
+                selectedOutbound = availableOutbounds.first ?? "Proxy"
+            }
+            if !initialHost.isEmpty {
                 ruleType = "DOMAIN-SUFFIX"
-                ruleValue = initialDomain
+                ruleValue = initialDomain.isEmpty ? initialHost : initialDomain
             } else if !initialIP.isEmpty {
                 ruleType = "IP-CIDR"
                 ruleValue = initialIP + "/32"
-            } else if !initialHost.isEmpty {
-                ruleValue = initialHost
             }
         }
     }
 
     // MARK: - Helpers
 
+    private var singboxKey: String {
+        switch ruleType {
+        case "DOMAIN": return "domain"
+        case "DOMAIN-SUFFIX": return "domain_suffix"
+        case "DOMAIN-KEYWORD": return "domain_keyword"
+        case "IP-CIDR": return "ip_cidr"
+        case "PROCESS-NAME": return "process_name"
+        default: return "domain_suffix"
+        }
+    }
+
+    private func ruleSetURL(for tag: String) -> String? {
+        (appState.configEngine.config.route.ruleSet ?? [])
+            .first(where: { $0["tag"]?.stringValue == tag })?["url"]?.stringValue
+    }
+
     private func autoFillValue(for newType: String) {
         guard !initialHost.isEmpty || !initialIP.isEmpty else { return }
         switch newType {
         case "DOMAIN-SUFFIX":
-            ruleValue = initialDomain
+            ruleValue = initialDomain.isEmpty ? initialHost : initialDomain
         case "DOMAIN":
             ruleValue = initialHost
         case "DOMAIN-KEYWORD":
-            let parts = initialDomain.split(separator: ".")
-            ruleValue = parts.first.map(String.init) ?? initialDomain
+            let parts = (initialDomain.isEmpty ? initialHost : initialDomain).split(separator: ".")
+            ruleValue = parts.first.map(String.init) ?? initialHost
         case "IP-CIDR":
             ruleValue = initialIP.isEmpty ? initialHost : initialIP
             if !ruleValue.contains("/") { ruleValue += "/32" }
@@ -222,96 +256,61 @@ struct AddRuleSheet: View {
         }
     }
 
-    private var targetFile: String {
-        switch target {
-        case "DIRECT": return "Direct"
-        case "AI": return "Ai"
-        default: return "Proxy"
-        }
-    }
-
-    private var jsonTag: String {
-        switch target {
-        case "DIRECT": return "direct-custom"
-        case "AI": return "ai-custom"
-        default: return "proxy-custom"
-        }
-    }
-
-    private var jsonKey: String {
-        switch ruleType {
-        case "DOMAIN-SUFFIX": return "domain_suffix"
-        case "DOMAIN": return "domain"
-        case "DOMAIN-KEYWORD": return "domain_keyword"
-        case "IP-CIDR": return "ip_cidr"
-        default: return "domain_suffix"
-        }
-    }
-
-    private var jsonValue: String {
-        ruleValue
-    }
-
-    private func targetLabel(_ t: String) -> String {
-        switch t {
-        case "Proxy": return "Proxy (\(String(localized: "addrule.target.proxy")))"
-        case "DIRECT": return "DIRECT (\(String(localized: "addrule.target.direct")))"
-        case "AI": return "AI (\(String(localized: "addrule.target.ai")))"
-        default: return t
-        }
-    }
-
-    private func targetIcon(_ t: String) -> String {
-        switch t {
-        case "Proxy": return "globe"
-        case "DIRECT": return "arrow.right"
-        case "AI": return "brain"
-        default: return "circle"
-        }
-    }
-
-    private var localRuleSets: [String] {
-        (appState.configEngine.config.route.ruleSet ?? [])
-            .filter { $0["type"]?.stringValue == "local" }
-            .compactMap { $0["tag"]?.stringValue }
-    }
+    // MARK: - Save
 
     private func saveRule() {
-        if addMode == .ruleSetFile {
-            saveToRuleSetFile(tag: selectedRuleSetTag, ruleType: ruleType, value: ruleValue)
-            return
-        }
+        guard !ruleValue.isEmpty else { return }
 
-        let manager = RuleManager()
-        let result = manager.addRule(type: ruleType, value: ruleValue, target: target)
-
-        if result.errors.isEmpty {
-            isSuccess = true
-            let files = result.filesModified.joined(separator: ", ")
-            resultMessage = String(format: String(localized: "addrule.success"), files)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                close()
-            }
+        if addMode == .localRule {
+            saveAsLocalRule()
         } else {
-            isSuccess = false
-            resultMessage = result.errors.joined(separator: "\n")
+            saveToRuleSetFile()
         }
     }
 
-    private func saveToRuleSetFile(tag: String, ruleType: String, value: String) {
-        guard let ruleSetDef = (appState.configEngine.config.route.ruleSet ?? [])
-                .first(where: { $0["tag"]?.stringValue == tag }),
-              let path = ruleSetDef["path"]?.stringValue else {
+    /// Write directly to config.json route.rules
+    private func saveAsLocalRule() {
+        var ruleDict: [String: JSONValue] = [
+            singboxKey: .array([.string(ruleValue)]),
+            "action": .string("route"),
+            "outbound": .string(selectedOutbound),
+        ]
+
+        let newRule = JSONValue.object(ruleDict)
+
+        var rules = appState.configEngine.config.route.rules ?? []
+        rules.append(newRule)
+        appState.configEngine.config.route.rules = rules
+
+        do {
+            try appState.configEngine.save()
+            isSuccess = true
+            resultMessage = "已添加到 config.json route.rules → \(selectedOutbound)"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { close() }
+        } catch {
             isSuccess = false
-            resultMessage = "找不到规则集文件路径"
+            resultMessage = "保存失败: \(error.localizedDescription)"
+        }
+    }
+
+    /// Write to the local copy of a rule set JSON file (for GitHub sync)
+    private func saveToRuleSetFile() {
+        guard let ruleSetDef = (appState.configEngine.config.route.ruleSet ?? [])
+                .first(where: { $0["tag"]?.stringValue == selectedRuleSetTag }) else {
+            isSuccess = false
+            resultMessage = "找不到规则集定义"
             return
         }
 
+        // Determine file path: check for local path first, then use tag-based path in project
         let fileURL: URL
-        if path.hasPrefix("/") {
-            fileURL = URL(fileURLWithPath: path)
+        if let path = ruleSetDef["path"]?.stringValue {
+            fileURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : appState.configEngine.baseDir.appendingPathComponent(path)
         } else {
-            fileURL = appState.configEngine.baseDir.appendingPathComponent(path)
+            // For remote rule sets, write to the local project copy
+            let scriptDir = UserDefaults.standard.string(forKey: "scriptDir")
+                ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox")
+            fileURL = URL(fileURLWithPath: scriptDir).appendingPathComponent("rules/\(selectedRuleSetTag).json")
         }
 
         // Read existing rule set file
@@ -323,45 +322,29 @@ struct AddRuleSheet: View {
 
         var rules = ruleSetData["rules"] as? [[String: Any]] ?? []
 
-        // Map rule type to sing-box key
-        let key: String
-        switch ruleType {
-        case "DOMAIN": key = "domain"
-        case "DOMAIN-SUFFIX": key = "domain_suffix"
-        case "DOMAIN-KEYWORD": key = "domain_keyword"
-        case "IP-CIDR": key = "ip_cidr"
-        default: key = "domain_suffix"
-        }
-
         // Find or create the rule entry for this key
+        let key = singboxKey
         if let idx = rules.firstIndex(where: { $0[key] != nil }) {
             var existing = rules[idx][key] as? [String] ?? []
-            if !existing.contains(value) {
-                existing.append(value)
+            if !existing.contains(ruleValue) {
+                existing.append(ruleValue)
                 rules[idx][key] = existing
             }
         } else {
-            rules.append([key: [value]])
+            rules.append([key: [ruleValue]])
         }
 
         ruleSetData["rules"] = rules
 
-        // Write back
-        if let data = try? JSONSerialization.data(withJSONObject: ruleSetData, options: [.prettyPrinted, .sortedKeys]) {
-            do {
-                try data.write(to: fileURL, options: .atomic)
-                isSuccess = true
-                resultMessage = "已添加到规则集: \(tag)"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    close()
-                }
-            } catch {
-                isSuccess = false
-                resultMessage = "写入失败: \(error.localizedDescription)"
-            }
-        } else {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: ruleSetData, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: fileURL, options: .atomic)
+            isSuccess = true
+            resultMessage = "已添加到 \(selectedRuleSetTag)，记得推送到 GitHub"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { close() }
+        } catch {
             isSuccess = false
-            resultMessage = "JSON 序列化失败"
+            resultMessage = "写入失败: \(error.localizedDescription)"
         }
     }
 }
