@@ -48,6 +48,10 @@
 "services.default_outbound" = "默认出站";
 "services.include_direct" = "包含 DIRECT 选项";
 "services.exclude_hk" = "排除香港节点";
+"services.custom_rules_section" = "自定义规则列表";
+"services.rule_name" = "名称";
+"services.rule_url" = "规则列表 URL";
+"services.add_rule" = "添加";
 
 // Overview
 "overview.status" = "状态";

@@ -1,24 +1,13 @@
 import SwiftUI
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        Task { @MainActor in
-            let appState = AppState.shared
-            let manager = SingBoxManager.shared
-            await manager.refreshStatus()
-            appState.isRunning = manager.isRunning
-        }
-    }
-}
-
 @main
 struct BoxXApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let appState = AppState.shared
     private let singBoxManager = SingBoxManager.shared
     private let configGenerator = ConfigGenerator()
     private let api = ClashAPI()
     @State private var wakeObserver: WakeObserver?
+    @State private var statusTimer: Timer?
 
     var body: some Scene {
         MenuBarExtra {
@@ -28,15 +17,9 @@ struct BoxXApp: App {
                 api: api
             )
             .environment(appState)
-            .task {
-                guard wakeObserver == nil else { return }
-                let observer = WakeObserver(
-                    singBoxManager: singBoxManager,
-                    api: api,
-                    configPath: configGenerator.configPath
-                )
-                wakeObserver = observer
-                await observer.startObserving()
+            .onAppear {
+                startStatusPolling()
+                setupWakeObserver()
             }
         } label: {
             Image(systemName: appState.isRunning ? "shippingbox.fill" : "shippingbox")
@@ -60,9 +43,7 @@ struct BoxXApp: App {
                 }
                 .onDisappear {
                     let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "BoxX" && $0.title != "" }
-                    if !hasOtherWindow {
-                        NSApp.setActivationPolicy(.accessory)
-                    }
+                    if !hasOtherWindow { NSApp.setActivationPolicy(.accessory) }
                 }
         }
         .defaultSize(width: 900, height: 600)
@@ -70,15 +51,39 @@ struct BoxXApp: App {
         Window(String(localized: "menu.settings"), id: "settings") {
             SettingsView()
                 .environment(appState)
-                .onAppear {
-                    NSApp.setActivationPolicy(.regular)
-                    NSApp.activate()
-                }
+                .onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate() }
                 .onDisappear {
-                    let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "" }
-                    if !hasOtherWindow { NSApp.setActivationPolicy(.accessory) }
+                    let has = NSApp.windows.contains { $0.isVisible && $0.title != "" }
+                    if !has { NSApp.setActivationPolicy(.accessory) }
                 }
         }
         .windowResizability(.contentSize)
+    }
+
+    private func startStatusPolling() {
+        guard statusTimer == nil else { return }
+        // Initial check
+        Task { @MainActor in
+            await singBoxManager.refreshStatus()
+            appState.isRunning = singBoxManager.isRunning
+        }
+        // Poll every 5 seconds
+        statusTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            Task { @MainActor in
+                await singBoxManager.refreshStatus()
+                appState.isRunning = singBoxManager.isRunning
+            }
+        }
+    }
+
+    private func setupWakeObserver() {
+        guard wakeObserver == nil else { return }
+        let observer = WakeObserver(
+            singBoxManager: singBoxManager,
+            api: api,
+            configPath: configGenerator.configPath
+        )
+        wakeObserver = observer
+        Task { await observer.startObserving() }
     }
 }

@@ -48,6 +48,10 @@
 "services.default_outbound" = "Default Outbound";
 "services.include_direct" = "Include DIRECT option";
 "services.exclude_hk" = "Exclude Hong Kong";
+"services.custom_rules_section" = "Custom Rule Lists";
+"services.rule_name" = "Name";
+"services.rule_url" = "Rule list URL";
+"services.add_rule" = "Add";
 
 // Overview
 "overview.status" = "Status";

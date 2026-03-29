@@ -45,8 +45,9 @@ REGIONS = {
 #  type: "ruleset" = Surge/Shadowrocket 格式
 #        "domainset" = 纯域名列表
 # ============================================================
+# 内置规则列表 (指向内置出站 DIRECT/Proxy，不属于任何服务分组)
+# 服务分组的自定义规则已迁移到 services.json 的 custom_rules 字段
 CUSTOM_RULE_LISTS = [
-    ("ai-custom", "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/ss/rules/Ai.list", "🤖OpenAI", "ruleset"),
     ("direct-custom", "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/ss/rules/Direct.list", "DIRECT", "ruleset"),
     ("proxy-custom", "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/ss/rules/Proxy.list", "Proxy", "ruleset"),
 ]
@@ -455,6 +456,35 @@ def main():
         with open(SERVICES_FILE, "r", encoding="utf-8") as f:
             services_config = json.load(f)
         print(f"  📋 服务分流: {len(services_config)} 个 (从 services.json)")
+        # 下载服务自定义规则
+        for svc in services_config:
+            for cr in svc.get("custom_rules", []):
+                cr_name = cr["name"]
+                cr_url = cr["url"]
+                cr_type = cr.get("type", "ruleset")
+                json_path = os.path.join(RULES_DIR, f"{cr_name}.json")
+                try:
+                    text = fetch(cr_url)
+                    rs = parse_domainset(text) if cr_type == "domainset" else parse_ruleset(text)
+                    if not rs["rules"]:
+                        print(f"  ⚠ {cr_name}: 无有效规则，跳过")
+                        continue
+                    with open(json_path, "w", encoding="utf-8") as f:
+                        json.dump(rs, f, ensure_ascii=False)
+                    custom_rule_set_defs.append({
+                        "type": "local",
+                        "tag": cr_name,
+                        "format": "source",
+                        "path": json_path,
+                    })
+                    custom_route_rules.append({
+                        "rule_set": [cr_name],
+                        "action": "route",
+                        "outbound": svc["name"],
+                    })
+                    print(f"  ✓ {cr_name} → {svc['name']}")
+                except Exception as e:
+                    print(f"  ✗ {cr_name}: {e}")
     else:
         # Fallback: hardcoded defaults
         services_config = [

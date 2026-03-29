@@ -1,9 +1,16 @@
 import Foundation
 
+struct CustomRule: Codable, Equatable, Hashable {
+    var name: String
+    var url: String
+    var type: String  // "ruleset" or "domainset"
+}
+
 struct ServiceConfig: Identifiable, Codable, Equatable {
     var id: String { name }
     var name: String
     var geosite: [String]
+    var custom_rules: [CustomRule]?
     var `default`: String?
     var exclude_regions: [String]?
     var include_direct: Bool?

@@ -160,7 +160,7 @@ struct ServiceConfigRow: View {
                 .foregroundStyle(isLast ? Color.clear : Color.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(service.name)
                     .font(.body.bold())
 
@@ -172,6 +172,15 @@ struct ServiceConfigRow: View {
                             .padding(.vertical, 1)
                             .background(Color.accentColor.opacity(0.1))
                             .foregroundStyle(Color.accentColor)
+                            .clipShape(Capsule())
+                    }
+                    ForEach(service.custom_rules ?? [], id: \.name) { cr in
+                        Text(cr.name)
+                            .font(.caption2)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Color.orange.opacity(0.1))
+                            .foregroundStyle(Color.orange)
                             .clipShape(Capsule())
                     }
                 }
@@ -206,10 +215,13 @@ struct ServiceEditSheet: View {
     let onSave: (ServiceConfig) -> Void
 
     @State private var name: String
-    @State private var geositeText: String  // comma-separated
+    @State private var geositeText: String
+    @State private var customRules: [CustomRule]
     @State private var defaultOutbound: String
     @State private var includeDirect: Bool
     @State private var excludeHK: Bool
+    @State private var newRuleName: String = ""
+    @State private var newRuleURL: String = ""
     @Environment(\.dismiss) private var dismiss
 
     var isEditing: Bool { service != nil }
@@ -219,6 +231,7 @@ struct ServiceEditSheet: View {
         self.onSave = onSave
         _name = State(initialValue: service?.name ?? "")
         _geositeText = State(initialValue: service?.geosite.joined(separator: ", ") ?? "")
+        _customRules = State(initialValue: service?.custom_rules ?? [])
         _defaultOutbound = State(initialValue: service?.default ?? "Proxy")
         _includeDirect = State(initialValue: service?.include_direct ?? false)
         _excludeHK = State(initialValue: service?.exclude_regions?.contains("🇭🇰香港") ?? false)
@@ -230,26 +243,58 @@ struct ServiceEditSheet: View {
                 .font(.headline)
 
             Form {
-                TextField(String(localized: "services.name_field"), text: $name)
-                    .textFieldStyle(.roundedBorder)
-                    .help("如: 🤖OpenAI, 🔍Google")
+                Section {
+                    TextField(String(localized: "services.name_field"), text: $name)
+                        .textFieldStyle(.roundedBorder)
 
-                TextField(String(localized: "services.geosite_field"), text: $geositeText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced())
-                    .help("geosite 规则集名称，逗号分隔。如: openai, anthropic")
+                    TextField(String(localized: "services.geosite_field"), text: $geositeText)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.body.monospaced())
 
-                Picker(String(localized: "services.default_outbound"), selection: $defaultOutbound) {
-                    Text("Proxy").tag("Proxy")
-                    Text("DIRECT").tag("DIRECT")
-                    Text("auto").tag("auto")
+                    Picker(String(localized: "services.default_outbound"), selection: $defaultOutbound) {
+                        Text("Proxy").tag("Proxy")
+                        Text("DIRECT").tag("DIRECT")
+                        Text("auto").tag("auto")
+                    }
+
+                    Toggle(String(localized: "services.include_direct"), isOn: $includeDirect)
+                    Toggle(String(localized: "services.exclude_hk"), isOn: $excludeHK)
                 }
 
-                Toggle(String(localized: "services.include_direct"), isOn: $includeDirect)
-                    .help("是否在出站列表中包含 DIRECT 选项")
+                Section(String(localized: "services.custom_rules_section")) {
+                    ForEach(customRules, id: \.name) { rule in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(rule.name).font(.caption.bold())
+                                Text(rule.url).font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            Spacer()
+                            Button { customRules.removeAll { $0.name == rule.name } } label: {
+                                Image(systemName: "trash").foregroundStyle(.red)
+                            }.buttonStyle(.plain)
+                        }
+                    }
 
-                Toggle(String(localized: "services.exclude_hk"), isOn: $excludeHK)
-                    .help("排除香港节点（如 AI 服务不支持香港）")
+                    HStack {
+                        TextField(String(localized: "services.rule_name"), text: $newRuleName)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 100)
+                        TextField(String(localized: "services.rule_url"), text: $newRuleURL)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.caption.monospaced())
+                        Button(String(localized: "services.add_rule")) {
+                            let rule = CustomRule(
+                                name: newRuleName.trimmingCharacters(in: .whitespaces),
+                                url: newRuleURL.trimmingCharacters(in: .whitespaces),
+                                type: "ruleset"
+                            )
+                            customRules.append(rule)
+                            newRuleName = ""
+                            newRuleURL = ""
+                        }
+                        .disabled(newRuleName.isEmpty || newRuleURL.isEmpty)
+                    }
+                }
             }
             .formStyle(.grouped)
 
@@ -258,10 +303,11 @@ struct ServiceEditSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(String(localized: "subs.save")) {
-                    let geosite = geositeText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                    let geosite = geositeText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                     var svc = ServiceConfig(
                         name: name.trimmingCharacters(in: .whitespaces),
                         geosite: geosite,
+                        custom_rules: customRules.isEmpty ? nil : customRules,
                         default: defaultOutbound
                     )
                     if excludeHK { svc.exclude_regions = ["🇭🇰香港"] }
@@ -270,11 +316,11 @@ struct ServiceEditSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || geositeText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal)
         }
         .padding()
-        .frame(width: 500)
+        .frame(width: 560, height: 500)
     }
 }
