@@ -41,63 +41,53 @@ actor WakeObserver {
         // Wait for network interfaces to initialize
         try? await Task.sleep(for: .seconds(3))
 
-        // Step 1: Is sing-box process alive?
+        // Is sing-box process alive?
         let apiReachable = await api.isReachable()
         if !apiReachable {
-            // sing-box is dead or completely broken
-            // Flush DNS and try waiting a bit more
-            flushDNS()
-            try? await Task.sleep(for: .seconds(3))
-
-            // Check again
-            if await api.isReachable() {
-                await singBoxManager.refreshStatus()
-                return
-            }
-
-            // Still dead — can't auto-restart without password, just update status
+            // Process dead — update status, can't auto-restart without password
             await singBoxManager.refreshStatus()
             return
         }
 
-        // Step 2: API is reachable — flush DNS first (fixes most post-sleep issues)
+        // Process alive — try recovery without restart:
+        // 1. Flush DNS
         flushDNS()
-        try? await Task.sleep(for: .seconds(1))
 
-        // Step 3: Test external connectivity through proxy
-        let proxyWorks = await probeExternalConnectivity()
-        if proxyWorks {
-            // Everything is fine
+        // 2. Close all connections (forces TUN to rebuild)
+        try? await api.closeAllConnections()
+
+        // 3. Wait for reconnection
+        try? await Task.sleep(for: .seconds(2))
+
+        // 4. Test if external network works
+        if await probeExternalConnectivity() {
             await singBoxManager.refreshStatus()
             return
         }
 
-        // Step 4: Proxy not working — try flushing DNS again and wait longer
+        // 5. Still broken — flush DNS again + close connections + wait longer
         flushDNS()
+        try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(3))
 
-        let secondTry = await probeExternalConnectivity()
-        if secondTry {
+        if await probeExternalConnectivity() {
             await singBoxManager.refreshStatus()
             return
         }
 
-        // Step 5: Still not working — try restarting sing-box via osascript
-        // This will show a password prompt, but it's better than no network
+        // 6. Last resort — restart sing-box (will prompt for password)
         try? await singBoxManager.restart(configPath: configPath)
         await singBoxManager.refreshStatus()
     }
 
-    /// Flush DNS cache (doesn't require root on macOS)
+    /// Flush DNS cache
     private func flushDNS() {
-        // dscacheutil doesn't need root
         let flush = Process()
         flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
         flush.arguments = ["-flushcache"]
         try? flush.run()
         flush.waitUntilExit()
 
-        // killall mDNSResponder needs root, but we try anyway (may fail silently)
         let killDNS = Process()
         killDNS.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
         killDNS.arguments = ["-HUP", "mDNSResponder"]
