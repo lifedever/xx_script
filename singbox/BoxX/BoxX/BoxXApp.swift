@@ -1,12 +1,44 @@
 import SwiftUI
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    var appState: AppState?
+    var singBoxManager: SingBoxManager?
+    var api: ClashAPI?
+    var configGenerator: ConfigGenerator?
+    var wakeObserver: WakeObserver?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let appState, let singBoxManager, let api, let configGenerator else { return }
+        Task { @MainActor in
+            // Check status immediately on launch
+            await singBoxManager.refreshStatus()
+            appState.isRunning = singBoxManager.isRunning
+            appState.pid = singBoxManager.pid
+            appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
+
+            // Setup WakeObserver
+            let observer = WakeObserver(
+                singBoxManager: singBoxManager,
+                api: api,
+                configPath: configGenerator.configPath
+            )
+            self.wakeObserver = observer
+            await observer.startObserving()
+        }
+    }
+}
+
 @main
 struct BoxXApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
     @State private var singBoxManager = SingBoxManager.shared
     @State private var configGenerator = ConfigGenerator()
-    @State private var wakeObserver: WakeObserver?
     private let api = ClashAPI()
+
+    init() {
+        // Wire up delegate references (will be used in applicationDidFinishLaunching)
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -16,21 +48,12 @@ struct BoxXApp: App {
                 api: api
             )
             .environment(appState)
-            .task {
-                // Initial status check on launch
-                await singBoxManager.refreshStatus()
-                appState.isRunning = singBoxManager.isRunning
-                appState.pid = singBoxManager.pid
-                appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
-
-                // Setup WakeObserver
-                let observer = WakeObserver(
-                    singBoxManager: singBoxManager,
-                    api: api,
-                    configPath: configGenerator.configPath
-                )
-                wakeObserver = observer
-                await observer.startObserving()
+            .onAppear {
+                // Wire delegate refs on first appear (body is evaluated before didFinishLaunching)
+                appDelegate.appState = appState
+                appDelegate.singBoxManager = singBoxManager
+                appDelegate.api = api
+                appDelegate.configGenerator = configGenerator
             }
         } label: {
             Image(systemName: appState.isRunning ? "shippingbox.fill" : "shippingbox")
@@ -53,7 +76,7 @@ struct BoxXApp: App {
             }
             .onAppear {
                 NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             }
             .onDisappear {
                 NSApp.setActivationPolicy(.accessory)
