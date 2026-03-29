@@ -18,10 +18,21 @@ actor ClashAPI {
     func getProxies() async throws -> [ProxyGroup] {
         let data = try await get("/proxies")
         let response = try JSONDecoder().decode(ProxiesResponse.self, from: data)
-        return response.proxies.compactMap { (_, detail) in
+
+        // Get order from GLOBAL group's `all` field (matches config file order)
+        let globalOrder = response.proxies["GLOBAL"]?.all ?? []
+
+        let groups = response.proxies.compactMap { (_, detail) -> ProxyGroup? in
             guard detail.type == "Selector" || detail.type == "URLTest" || detail.type == "Fallback" else { return nil }
             return ProxyGroup(name: detail.name, type: detail.type, now: detail.now, all: detail.all)
-        }.sorted { $0.name < $1.name }
+        }
+
+        // Sort by GLOBAL order, unknown items at the end
+        return groups.sorted { a, b in
+            let ia = globalOrder.firstIndex(of: a.name) ?? Int.max
+            let ib = globalOrder.firstIndex(of: b.name) ?? Int.max
+            return ia < ib
+        }
     }
 
     func getProxyDetail(name: String) async throws -> ProxyDetail {
