@@ -14,11 +14,18 @@ struct MenuBarView: View {
     var body: some View {
         Group {
             // Status
-            Label(
-                appState.isRunning ? "Running (PID: \(appState.pid))" : "Stopped",
-                systemImage: appState.isRunning ? "circle.fill" : "circle"
-            )
-            .foregroundStyle(appState.isRunning ? Color.green : Color.secondary)
+            if appState.isRunning {
+                if singBoxManager.isExternalProcess {
+                    Label("Running (external)", systemImage: "circle.fill")
+                        .foregroundStyle(Color.green)
+                } else {
+                    Label("Running (PID: \(appState.pid))", systemImage: "circle.fill")
+                        .foregroundStyle(Color.green)
+                }
+            } else {
+                Label("Stopped", systemImage: "circle")
+                    .foregroundStyle(Color.secondary)
+            }
 
             Divider()
 

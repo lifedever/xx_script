@@ -25,10 +25,16 @@ struct OverviewView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(singBoxManager.isRunning ? "Running" : "Stopped")
                                 .font(.headline)
-                            if singBoxManager.isRunning && singBoxManager.pid != 0 {
-                                Text("PID: \(singBoxManager.pid)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            if singBoxManager.isRunning {
+                                if singBoxManager.isExternalProcess {
+                                    Text("External process (e.g. box start)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else if singBoxManager.pid != 0 {
+                                    Text("PID: \(singBoxManager.pid)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         Spacer()

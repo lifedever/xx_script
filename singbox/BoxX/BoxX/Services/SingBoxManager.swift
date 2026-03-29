@@ -7,24 +7,46 @@ final class SingBoxManager {
     static let shared = SingBoxManager()
 
     private let helperManager = HelperManager.shared
+    private let clashAPI = ClashAPI()
 
     var isRunning = false
     var pid: Int32 = 0
+    /// true = managed by Helper, false = externally started (e.g. box start)
+    var isExternalProcess = false
 
     func refreshStatus() async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        // 1. Try Helper first
+        let helperResult = await checkViaHelper()
+        if helperResult.running {
+            isRunning = true
+            pid = helperResult.pid
+            isExternalProcess = false
+            return
+        }
+
+        // 2. Fallback: check Clash API directly (covers `box start` scenario)
+        let apiReachable = await clashAPI.isReachable()
+        if apiReachable {
+            isRunning = true
+            pid = 0 // unknown PID for external process
+            isExternalProcess = true
+            return
+        }
+
+        // 3. Nothing running
+        isRunning = false
+        pid = 0
+        isExternalProcess = false
+    }
+
+    private func checkViaHelper() async -> (running: Bool, pid: Int32) {
+        await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Int32), Never>) in
             guard let helper = helperManager.getProxy() else {
-                self.isRunning = false
-                self.pid = 0
-                continuation.resume()
+                continuation.resume(returning: (false, 0))
                 return
             }
             helper.getStatus { running, pid in
-                Task { @MainActor in
-                    self.isRunning = running
-                    self.pid = pid
-                    continuation.resume()
-                }
+                continuation.resume(returning: (running, pid))
             }
         }
     }
