@@ -13,6 +13,7 @@
 		0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */; };
 		1765CC16E758DB82252599D4 /* FileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB438A56B425DD4201D80DC /* FileWatcher.swift */; };
 		1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */; };
+		1C6FA3717CEA6BCE3BD20626 /* RuleSetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */; };
 		1E2427A7F9419BC567A20DFB /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = CC8166B671B895FBCAA5ADBF /* Localizable.strings */; };
 		2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F312446DB749C20DF79E3D /* RuleSetManager.swift */; };
 		334B133A0825CF16ABA42884 /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B65B5EDDE76159D34C31513B /* SubscriptionService.swift */; };
@@ -21,6 +22,7 @@
 		368388499DF522127CE5843B /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8254EFC2D2594D80531A454 /* MenuBarController.swift */; };
 		39EA029175CED929C253468B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */; };
 		411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223B0D94A0BDD5B469B1C6D3 /* Rule.swift */; };
+		47453C12227D762DD0C77C18 /* RouteRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */; };
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
 		60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978990E5B126418AE87D12CB /* SingBoxConfig.swift */; };
 		633D1C59207385917825B026 /* OutboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */; };
@@ -51,7 +53,7 @@
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
 		C2DA449DAC046D928ADFB90E /* AutoGrouper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1F107044EE7E7A2AC75600 /* AutoGrouper.swift */; };
 		C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */; };
-		CA555942B8B8494999381A5F /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67DE93C42F2614F14BE4375 /* RulesView.swift */; };
+		C9A87347AF25126EEBD846AF /* BuiltinRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */; };
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
 		D5498A761A9319491C616D5A /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1528B619F372B267512D08 /* JSONValue.swift */; };
 		D6E71EB2B460AF350CA00140 /* ProxyModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */; };
@@ -108,7 +110,10 @@
 		46F312446DB749C20DF79E3D /* RuleSetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetManager.swift; sourceTree = "<group>"; };
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
 		5402AF02BFFEE79DF3A8DE7B /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetsView.swift; sourceTree = "<group>"; };
+		5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRulesView.swift; sourceTree = "<group>"; };
 		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuiltinRulesView.swift; sourceTree = "<group>"; };
 		70E1CBC5CE03DF6787AA4B06 /* SubscriptionFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionFetcher.swift; sourceTree = "<group>"; };
 		75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionModels.swift; sourceTree = "<group>"; };
 		7C95AF63924DE05973F05781 /* ClashYAMLParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashYAMLParser.swift; sourceTree = "<group>"; };
@@ -135,7 +140,6 @@
 		C92D36E087DFEB3FE6AC5111 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoxXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D66DA05B940CC40693AB69E6 /* config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = config.json; sourceTree = "<group>"; };
-		D67DE93C42F2614F14BE4375 /* RulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesView.swift; sourceTree = "<group>"; };
 		D8254EFC2D2594D80531A454 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
@@ -269,12 +273,14 @@
 			isa = PBXGroup;
 			children = (
 				B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */,
+				67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */,
 				8CAEE62A30EDCED844892451 /* ConnectionsView.swift */,
 				3233A78B55590B6DFD58E74C /* LogsView.swift */,
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
-				D67DE93C42F2614F14BE4375 /* RulesView.swift */,
+				5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */,
+				55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 				022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */,
 			);
@@ -490,6 +496,7 @@
 				C2DA449DAC046D928ADFB90E /* AutoGrouper.swift in Sources */,
 				A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */,
 				A6C70809E9CF4B3F59BB4C45 /* BuiltinRuleSet.swift in Sources */,
+				C9A87347AF25126EEBD846AF /* BuiltinRulesView.swift in Sources */,
 				CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */,
 				E90CA122DD57879F17A9FDA6 /* ClashWebSocket.swift in Sources */,
 				A599F8C2FFCE6EEF8705B6CA /* ClashYAMLParser.swift in Sources */,
@@ -515,9 +522,10 @@
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */,
+				47453C12227D762DD0C77C18 /* RouteRulesView.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
 				2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */,
-				CA555942B8B8494999381A5F /* RulesView.swift in Sources */,
+				1C6FA3717CEA6BCE3BD20626 /* RuleSetsView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */,
 				EA7D5850BAD79996E1D08848 /* SingBoxJSONParser.swift in Sources */,
