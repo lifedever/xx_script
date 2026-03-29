@@ -74,6 +74,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.boxx.tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/BoxX.app/Contents/MacOS/BoxX"
         BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   BoxX:
