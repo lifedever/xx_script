@@ -72,8 +72,29 @@ struct MenuBarView: View {
                 let subs = selectors.filter { $0.name.hasPrefix("📦") }
                 let regionIDs = Set(regions.map(\.id))
                 let subIDs = Set(subs.map(\.id))
-                let services = selectors.filter { !regionIDs.contains($0.id) && !subIDs.contains($0.id) }
+                let builtinNames: Set<String> = ["Proxy", "🐟漏网之鱼"]
+                let builtins = selectors.filter { builtinNames.contains($0.name) }
+                let services = selectors.filter { !regionIDs.contains($0.id) && !subIDs.contains($0.id) && !builtinNames.contains($0.name) }
 
+                // Proxy & catch-all at the top
+                if !builtins.isEmpty {
+                    ForEach(builtins) { group in
+                        Menu(group.name) {
+                            ForEach(group.displayAll, id: \.self) { node in
+                                Button {
+                                    Task {
+                                        try? await api.selectProxy(group: group.name, name: node)
+                                        await refreshProxyGroups()
+                                    }
+                                } label: {
+                                    if group.now == node { Label(node, systemImage: "checkmark") }
+                                    else { Text(node) }
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                }
                 if !services.isEmpty { menuSection(String(localized: "proxies.section.services"), groups: services) }
                 if !regions.isEmpty { menuSection(String(localized: "proxies.section.regions"), groups: regions) }
                 if !subs.isEmpty { menuSection(String(localized: "proxies.section.subscriptions"), groups: subs) }

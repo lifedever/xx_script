@@ -16,22 +16,22 @@ struct ServicesConfigView: View {
         VStack(spacing: 0) {
             // Service list with drag reorder
             List {
-                ForEach(services) { svc in
-                    ServiceConfigRow(service: svc)
-                        .contentShape(Rectangle())
-                        .onTapGesture(count: 2) { editingService = svc }
-                        .contextMenu {
-                            Button(String(localized: "services.edit")) { editingService = svc }
-                            Divider()
-                            Button(String(localized: "services.move_up")) { moveUp(svc) }
-                                .disabled(services.first?.name == svc.name)
-                            Button(String(localized: "services.move_down")) { moveDown(svc) }
-                                .disabled(services.last?.name == svc.name)
-                            Divider()
-                            Button(String(localized: "subs.delete"), role: .destructive) { delete(svc) }
-                        }
+                ForEach(Array(services.enumerated()), id: \.element.id) { index, svc in
+                    ServiceConfigRow(
+                        service: svc,
+                        isFirst: index == 0,
+                        isLast: index == services.count - 1,
+                        onMoveUp: { moveUp(svc) },
+                        onMoveDown: { moveDown(svc) }
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) { editingService = svc }
+                    .contextMenu {
+                        Button(String(localized: "services.edit")) { editingService = svc }
+                        Divider()
+                        Button(String(localized: "subs.delete"), role: .destructive) { delete(svc) }
+                    }
                 }
-                .onMove(perform: move)
             }
             .listStyle(.inset(alternatesRowBackgrounds: true))
 
@@ -136,12 +136,29 @@ struct ServicesConfigView: View {
 
 struct ServiceConfigRow: View {
     let service: ServiceConfig
+    let isFirst: Bool
+    let isLast: Bool
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
-                .font(.caption)
+            // Up/Down buttons
+            VStack(spacing: 2) {
+                Button { onMoveUp() } label: {
+                    Image(systemName: "chevron.up").font(.caption2)
+                }
+                .buttonStyle(.plain)
+                .disabled(isFirst)
+                .foregroundStyle(isFirst ? Color.clear : Color.secondary)
+
+                Button { onMoveDown() } label: {
+                    Image(systemName: "chevron.down").font(.caption2)
+                }
+                .buttonStyle(.plain)
+                .disabled(isLast)
+                .foregroundStyle(isLast ? Color.clear : Color.secondary)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(service.name)
