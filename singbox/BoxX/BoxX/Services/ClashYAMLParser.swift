@@ -32,7 +32,7 @@ struct ClashYAMLParser: ProxyParser {
         let lines = text.components(separatedBy: "\n")
 
         // Find the line containing "proxies:"
-        guard let proxiesIdx = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "proxies:" }) else {
+        guard let proxiesIdx = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("proxies:") }) else {
             return []
         }
 
@@ -82,7 +82,25 @@ struct ClashYAMLParser: ProxyParser {
     // MARK: - Parse a single proxy block into key-value dict
 
     private func parseProxyBlock(_ block: String) -> ParsedProxy? {
-        let dict = parseYAMLBlock(block)
+        let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Detect inline format: "  - { key: value, key: value }"
+        let afterDash: String
+        if trimmed.hasPrefix("- ") {
+            afterDash = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+        } else {
+            afterDash = trimmed
+        }
+
+        let dict: [String: JSONValue]
+        if afterDash.hasPrefix("{") && afterDash.hasSuffix("}") {
+            // Inline YAML flow mapping
+            dict = parseInlineYAML(afterDash)
+        } else {
+            // Multi-line indented format
+            dict = parseYAMLBlock(block)
+        }
+
         guard let name = stringVal(dict["name"]),
               let typeStr = stringVal(dict["type"]),
               let server = stringVal(dict["server"]),
@@ -109,6 +127,74 @@ struct ClashYAMLParser: ProxyParser {
             port: port,
             rawJSON: rawJSON
         )
+    }
+
+    // MARK: - Inline YAML flow mapping parser
+
+    /// Parse an inline YAML flow mapping like `{ key: value, key: value, nested: { k: v } }`
+    private func parseInlineYAML(_ text: String) -> [String: JSONValue] {
+        var content = text.trimmingCharacters(in: .whitespaces)
+        if content.hasPrefix("{") { content = String(content.dropFirst()) }
+        if content.hasSuffix("}") { content = String(content.dropLast()) }
+        content = content.trimmingCharacters(in: .whitespaces)
+
+        var result: [String: JSONValue] = [:]
+        let pairs = splitRespectingBraces(content)
+
+        for pair in pairs {
+            let trimmedPair = pair.trimmingCharacters(in: .whitespaces)
+            guard let colonIdx = trimmedPair.firstIndex(of: ":") else { continue }
+            let key = String(trimmedPair[..<colonIdx]).trimmingCharacters(in: .whitespaces)
+            var value = String(trimmedPair[trimmedPair.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
+
+            // Remove quotes from value
+            if (value.hasPrefix("'") && value.hasSuffix("'")) || (value.hasPrefix("\"") && value.hasSuffix("\"")) {
+                value = String(value.dropFirst().dropLast())
+            }
+
+            // Check for nested object
+            if value.hasPrefix("{") && value.hasSuffix("}") {
+                result[key] = .object(parseInlineYAML(value))
+            } else {
+                result[key] = parseScalar(value)
+            }
+        }
+        return result
+    }
+
+    /// Split string by commas, but don't split inside nested `{ }` or quotes.
+    private func splitRespectingBraces(_ text: String) -> [String] {
+        var result: [String] = []
+        var current = ""
+        var depth = 0
+        var inQuote = false
+        var quoteChar: Character = "'"
+
+        for char in text {
+            if !inQuote && (char == "'" || char == "\"") {
+                inQuote = true
+                quoteChar = char
+                current.append(char)
+            } else if inQuote && char == quoteChar {
+                inQuote = false
+                current.append(char)
+            } else if !inQuote && char == "{" {
+                depth += 1
+                current.append(char)
+            } else if !inQuote && char == "}" {
+                depth -= 1
+                current.append(char)
+            } else if !inQuote && char == "," && depth == 0 {
+                result.append(current)
+                current = ""
+            } else {
+                current.append(char)
+            }
+        }
+        if !current.trimmingCharacters(in: .whitespaces).isEmpty {
+            result.append(current)
+        }
+        return result
     }
 
     // MARK: - Minimal YAML parser (for Clash proxy blocks)

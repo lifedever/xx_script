@@ -159,6 +159,81 @@ final class ClashYAMLParserTests: XCTestCase {
         XCTAssertNotNil(vl.unknownFields["tls"])
     }
 
+    // MARK: - Inline YAML format tests
+
+    let inlineYAML = """
+    proxies:
+        - { name: '🇭🇰香港01', type: vless, server: example.com, port: 35248, uuid: test-uuid, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.example.com, reality-opts: { public-key: testpubkey, short-id: testshortid } }
+        - { name: '🇭🇰香港-SS', type: ss, server: ss.example.com, port: 36602, cipher: aes-128-gcm, password: testpassword, plugin: obfs-local, plugin-opts: { mode: http, host: example.baidu.com } }
+    """
+
+    func testParseInlineVLESS() throws {
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(inlineYAML.data(using: .utf8)!)
+        XCTAssertEqual(nodes.count, 2)
+
+        // VLESS node
+        XCTAssertEqual(nodes[0].tag, "🇭🇰香港01")
+        XCTAssertEqual(nodes[0].type, .vless)
+        XCTAssertEqual(nodes[0].server, "example.com")
+        XCTAssertEqual(nodes[0].port, 35248)
+    }
+
+    func testParseInlineSS() throws {
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(inlineYAML.data(using: .utf8)!)
+
+        // Shadowsocks node
+        XCTAssertEqual(nodes[1].tag, "🇭🇰香港-SS")
+        XCTAssertEqual(nodes[1].type, .shadowsocks)
+        XCTAssertEqual(nodes[1].server, "ss.example.com")
+        XCTAssertEqual(nodes[1].port, 36602)
+    }
+
+    func testInlineVLESSConversion() throws {
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(inlineYAML.data(using: .utf8)!)
+        let outbound = nodes[0].toOutbound()
+
+        guard case .vless(let vl) = outbound else { XCTFail("Expected vless"); return }
+        XCTAssertEqual(vl.tag, "🇭🇰香港01")
+        XCTAssertEqual(vl.server, "example.com")
+        XCTAssertEqual(vl.uuid, "test-uuid")
+        XCTAssertEqual(vl.flow, "xtls-rprx-vision")
+        // TLS with reality should be present
+        XCTAssertNotNil(vl.unknownFields["tls"])
+    }
+
+    func testInlineSSConversion() throws {
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(inlineYAML.data(using: .utf8)!)
+        let outbound = nodes[1].toOutbound()
+
+        guard case .shadowsocks(let ss) = outbound else { XCTFail("Expected shadowsocks"); return }
+        XCTAssertEqual(ss.tag, "🇭🇰香港-SS")
+        XCTAssertEqual(ss.server, "ss.example.com")
+        XCTAssertEqual(ss.method, "aes-128-gcm")
+        XCTAssertEqual(ss.password, "testpassword")
+    }
+
+    func testMixedInlineAndMultiline() throws {
+        let mixed = """
+        proxies:
+            - { name: 'Inline-Node', type: ss, server: a.com, port: 1234, cipher: aes-128-gcm, password: pw }
+          - name: "Multiline-Node"
+            type: ss
+            server: b.com
+            port: 5678
+            cipher: aes-256-gcm
+            password: pw2
+        """
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(mixed.data(using: .utf8)!)
+        XCTAssertEqual(nodes.count, 2)
+        XCTAssertEqual(nodes[0].tag, "Inline-Node")
+        XCTAssertEqual(nodes[1].tag, "Multiline-Node")
+    }
+
     func testEmptyProxiesThrows() {
         let yaml = """
         proxies:

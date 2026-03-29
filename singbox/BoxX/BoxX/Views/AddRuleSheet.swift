@@ -307,10 +307,9 @@ struct AddRuleSheet: View {
         if let path = ruleSetDef["path"]?.stringValue {
             fileURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : appState.configEngine.baseDir.appendingPathComponent(path)
         } else {
-            // For remote rule sets, write to the local project copy
-            let scriptDir = UserDefaults.standard.string(forKey: "scriptDir")
-                ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox")
-            fileURL = URL(fileURLWithPath: scriptDir).appendingPathComponent("rules/\(selectedRuleSetTag).json")
+            // For remote rule sets, write to the local rules dir inside the app's config directory
+            let rulesDir = appState.configEngine.baseDir.appendingPathComponent("rules")
+            fileURL = rulesDir.appendingPathComponent("\(selectedRuleSetTag).json")
         }
 
         // Read existing rule set file
