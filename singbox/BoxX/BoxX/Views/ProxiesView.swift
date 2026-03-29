@@ -66,31 +66,29 @@ struct ProxiesView: View {
         return result
     }
 
+    /// Flattened list of all rows for alternating background calculation
+    private var allRows: [ProxyGroup] {
+        var rows: [ProxyGroup] = []
+        rows.append(contentsOf: classified.top)
+        rows.append(contentsOf: classified.services)
+        rows.append(contentsOf: classified.regions)
+        rows.append(contentsOf: classified.subscriptions)
+        return rows
+    }
+
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             // Toolbar
-            HStack(spacing: 8) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField(String(localized: "proxies.search"), text: $searchText)
-                        .textFieldStyle(.plain)
-                }
-                .padding(6)
-                .background(.quaternary)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-
-                Button {
-                    editingGroupTag = nil
-                    showGroupEdit = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.plain)
-                .help("新建策略组")
-
+            HStack {
+                Text("策略组")
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                TextField("搜索...", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 200)
                 Button {
                     Task { await refreshGroups() }
                 } label: {
@@ -100,12 +98,23 @@ struct ProxiesView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
-                .buttonStyle(.plain)
+                .help("刷新")
                 .disabled(isRefreshing)
+                Button {
+                    testAllGroupsLatency()
+                } label: {
+                    Image(systemName: "speedometer")
+                }
+                .help("测速全部")
+                Button {
+                    editingGroupTag = nil
+                    showGroupEdit = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("新建策略组")
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(.bar)
+            .padding()
 
             Divider()
 
@@ -117,51 +126,70 @@ struct ProxiesView: View {
                 }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Top-level groups (e.g. "Proxy") - full width cards
-                        if !classified.top.isEmpty {
-                            ForEach(classified.top) { group in
-                                groupCard(for: group)
-                            }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("\(filtered.count) 个策略组")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
 
-                        // Services section
-                        if !classified.services.isEmpty {
-                            sectionHeader(
-                                String(localized: "proxies.section.services"),
-                                icon: "arrow.triangle.branch"
-                            )
-                            LazyVGrid(columns: gridColumns, spacing: 10) {
-                                ForEach(classified.services) { group in
-                                    groupCard(for: group)
-                                }
+                        if filtered.isEmpty {
+                            Text("暂无策略组")
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 20)
+                        } else {
+                            // Table header
+                            HStack(spacing: 0) {
+                                Text("名称")
+                                    .frame(width: 180, alignment: .leading)
+                                Text("类型")
+                                    .frame(width: 80, alignment: .leading)
+                                Text("当前节点")
+                                    .frame(minWidth: 200, alignment: .leading)
+                                Spacer()
+                                Text("节点数")
+                                    .frame(width: 60, alignment: .center)
+                                Text("")
+                                    .frame(width: 60)
                             }
-                        }
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
 
-                        // Regions section
-                        if !classified.regions.isEmpty {
-                            sectionHeader(
-                                String(localized: "proxies.section.regions"),
-                                icon: "globe"
-                            )
-                            LazyVGrid(columns: gridColumns, spacing: 10) {
-                                ForEach(classified.regions) { group in
-                                    groupCard(for: group)
+                            LazyVStack(spacing: 0) {
+                                // Top-level groups
+                                ForEach(classified.top) { group in
+                                    groupRow(group)
                                 }
-                            }
-                        }
 
-                        // Subscriptions section
-                        if !classified.subscriptions.isEmpty {
-                            sectionHeader(
-                                String(localized: "proxies.section.subscriptions"),
-                                icon: "shippingbox"
-                            )
-                            LazyVGrid(columns: gridColumns, spacing: 10) {
-                                ForEach(classified.subscriptions) { group in
-                                    groupCard(for: group)
+                                // Services section
+                                if !classified.services.isEmpty {
+                                    tableSectionHeader("服务分流")
+                                    ForEach(classified.services) { group in
+                                        groupRow(group)
+                                    }
+                                }
+
+                                // Regions section
+                                if !classified.regions.isEmpty {
+                                    tableSectionHeader("地区节点")
+                                    ForEach(classified.regions) { group in
+                                        groupRow(group)
+                                    }
+                                }
+
+                                // Subscriptions section
+                                if !classified.subscriptions.isEmpty {
+                                    tableSectionHeader("订阅分组")
+                                    ForEach(classified.subscriptions) { group in
+                                        groupRow(group)
+                                    }
                                 }
                             }
+                            .background(.regularMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
                     .padding()
@@ -190,49 +218,80 @@ struct ProxiesView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Table Components
 
-    private var gridColumns: [GridItem] {
-        [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+    private func tableSectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.regularMaterial.opacity(0.5))
     }
 
-    private func sectionHeader(_ title: String, icon: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
+    private func groupRow(_ group: ProxyGroup) -> some View {
+        let rowIndex = allRows.firstIndex(where: { $0.id == group.id }) ?? 0
+        return HStack(spacing: 0) {
+            // Name
+            Text(group.name)
+                .font(.body)
+                .lineLimit(1)
+                .frame(width: 180, alignment: .leading)
+
+            // Type badge
+            typeBadge(for: group)
+                .frame(width: 80, alignment: .leading)
+
+            // Current node + delay dot
+            HStack(spacing: 6) {
+                if let now = group.now, !now.isEmpty {
+                    Circle()
+                        .fill(delayDotColor(for: group))
+                        .frame(width: 6, height: 6)
+                    Text(now)
+                        .font(.body)
+                        .lineLimit(1)
+                    if let d = delays[now], d > 0 {
+                        Text("\(d)ms")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(delayColor(d))
+                    }
+                } else {
+                    Text("—")
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(minWidth: 200, alignment: .leading)
+
+            Spacer()
+
+            // Node count
+            Text("\(group.displayAll.count)")
+                .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .font(.caption)
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.top, 4)
-    }
+                .frame(width: 60, alignment: .center)
 
-    private func refreshGroups() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
-        groups = (try? await appState.api.getProxies()) ?? []
-    }
-
-    private func selectNode(group: String, node: String) {
-        Task {
-            try? await appState.api.selectProxy(group: group, name: node)
-            await refreshGroups()
-        }
-    }
-
-    private func groupCard(for group: ProxyGroup) -> some View {
-        ProxyGroupCard(
-            group: group,
-            delays: delays,
-            isTesting: testingGroups.contains(group.name),
-            showPopover: Binding(
+            // Select button
+            Button("选择") {
+                popoverGroup = group.name
+            }
+            .controlSize(.small)
+            .frame(width: 60)
+            .popover(isPresented: Binding(
                 get: { popoverGroup == group.name },
-                set: { newVal in popoverGroup = newVal ? group.name : nil }
-            ),
-            onSelect: { node in selectNode(group: group.name, node: node) },
-            onTest: { testGroupLatency(group) }
-        )
+                set: { if !$0 { popoverGroup = nil } }
+            )) {
+                NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
+                    selectNode(group: group.name, node: node)
+                    popoverGroup = nil
+                })
+                .frame(width: 280, height: 400)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
         .contextMenu {
             Button {
                 editingGroupTag = group.name
@@ -248,10 +307,70 @@ struct ProxiesView: View {
         }
     }
 
+    // MARK: - Badge & Color Helpers
+
+    private func typeBadge(for group: ProxyGroup) -> some View {
+        let text: String
+        let color: Color
+        switch group.type.lowercased() {
+        case "selector":
+            text = "select"
+            color = .blue
+        case "urltest", "url-test":
+            text = "url-test"
+            color = .green
+        case "fallback":
+            text = "fallback"
+            color = .orange
+        default:
+            text = group.type.lowercased()
+            color = .secondary
+        }
+        return Text(text)
+            .font(.caption2.monospaced())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.12))
+            .foregroundStyle(color)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private func delayDotColor(for group: ProxyGroup) -> Color {
+        guard let now = group.now, let d = delays[now], d > 0 else { return .gray }
+        return delayColor(d)
+    }
+
+    private func delayColor(_ delay: Int) -> Color {
+        if delay < 150 { return .green }
+        if delay <= 300 { return .yellow }
+        return .red
+    }
+
+    // MARK: - Actions
+
+    private func refreshGroups() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        groups = (try? await appState.api.getProxies()) ?? []
+    }
+
+    private func selectNode(group: String, node: String) {
+        Task {
+            try? await appState.api.selectProxy(group: group, name: node)
+            await refreshGroups()
+        }
+    }
+
     private func deleteGroup(_ tag: String) {
         appState.configEngine.config.outbounds.removeAll { $0.tag == tag }
         try? appState.configEngine.save(restartRequired: true)
         Task { await refreshGroups() }
+    }
+
+    private func testAllGroupsLatency() {
+        for group in groups {
+            testGroupLatency(group)
+        }
     }
 
     private func testGroupLatency(_ group: ProxyGroup) {
@@ -270,137 +389,6 @@ struct ProxiesView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Proxy Group Card
-
-private struct ProxyGroupCard: View {
-    let group: ProxyGroup
-    let delays: [String: Int]
-    let isTesting: Bool
-    @Binding var showPopover: Bool
-    let onSelect: (String) -> Void
-    let onTest: () -> Void
-
-    private var currentDelay: Int? {
-        guard let now = group.now else { return nil }
-        return delays[now]
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Top row: name + type badge
-            HStack(spacing: 8) {
-                Text(group.name)
-                    .font(.body.weight(.medium))
-                    .lineLimit(1)
-
-                Spacer()
-
-                // Type badge
-                Text(typeBadgeText)
-                    .font(.caption2)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(typeBadgeColor.opacity(0.12))
-                    .foregroundStyle(typeBadgeColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-            }
-
-            // Bottom row: current node + delay + count
-            HStack(spacing: 6) {
-                // Delay dot
-                Circle()
-                    .fill(delayDotColor)
-                    .frame(width: 6, height: 6)
-
-                if let now = group.now, !now.isEmpty {
-                    Text(now)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    if let d = currentDelay, d > 0 {
-                        Text("\(d)ms")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(delayColor(d))
-                    }
-                }
-
-                Spacer()
-
-                // Node count
-                Text("\(group.displayAll.count)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-
-                Image(systemName: "circle.grid.2x2")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-
-                // Test button
-                Button(action: onTest) {
-                    if isTesting {
-                        ProgressView().scaleEffect(0.5).frame(width: 12, height: 12)
-                    } else {
-                        Image(systemName: "speedometer")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(isTesting)
-            }
-        }
-        .padding(10)
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(.separator, lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
-        .contentShape(Rectangle())
-        .onTapGesture { showPopover.toggle() }
-        .popover(isPresented: $showPopover) {
-            NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
-                onSelect(node)
-                showPopover = false
-            })
-            .frame(width: 280, height: 400)
-        }
-    }
-
-    // MARK: - Badge Helpers
-
-    private var typeBadgeText: String {
-        switch group.type.lowercased() {
-        case "selector": return "select"
-        case "urltest", "url-test": return "url-test"
-        case "fallback": return "fallback"
-        default: return group.type.lowercased()
-        }
-    }
-
-    private var typeBadgeColor: Color {
-        switch group.type.lowercased() {
-        case "selector": return .blue
-        case "urltest", "url-test": return .green
-        case "fallback": return .orange
-        default: return .secondary
-        }
-    }
-
-    private var delayDotColor: Color {
-        guard let d = currentDelay, d > 0 else { return .gray }
-        return delayColor(d)
-    }
-
-    private func delayColor(_ delay: Int) -> Color {
-        if delay < 150 { return .green }
-        if delay <= 300 { return .yellow }
-        return .red
     }
 }
 
