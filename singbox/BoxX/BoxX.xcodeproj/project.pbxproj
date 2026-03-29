@@ -28,6 +28,7 @@
 		ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236316BA886FAF9975D7C310 /* OverviewView.swift */; };
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
+		BCC7CBEF4D62ABBF310AFF4B /* ProxyGroupCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75EDC632057ED6C92E76995F /* ProxyGroupCard.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
 		CA555942B8B8494999381A5F /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67DE93C42F2614F14BE4375 /* RulesView.swift */; };
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
@@ -72,6 +73,7 @@
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
 		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionModels.swift; sourceTree = "<group>"; };
+		75EDC632057ED6C92E76995F /* ProxyGroupCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyGroupCard.swift; sourceTree = "<group>"; };
 		7D75DB00D57E74D03D75F000 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXApp.swift; sourceTree = "<group>"; };
 		8CAEE62A30EDCED844892451 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
+				75EDC632057ED6C92E76995F /* ProxyGroupCard.swift */,
 				D67DE93C42F2614F14BE4375 /* RulesView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 			);
@@ -365,6 +368,7 @@
 				8CC9F2A705A8A9D8FAEA9926 /* MenuBarView.swift in Sources */,
 				ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */,
 				BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */,
+				BCC7CBEF4D62ABBF310AFF4B /* ProxyGroupCard.swift in Sources */,
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
