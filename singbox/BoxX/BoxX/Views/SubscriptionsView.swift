@@ -14,6 +14,7 @@ struct SubscriptionsView: View {
     @State private var editingSubscription: Subscription? = nil
     @State private var isUpdating = false
     @State private var updateResults: [String: SubscriptionUpdateStatus] = [:]
+    @State private var subscriptionInfos: [String: SubscriptionInfo] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +42,7 @@ struct SubscriptionsView: View {
                             SubscriptionCard(
                                 subscription: sub,
                                 status: updateResults[sub.name],
+                                info: subscriptionInfos[sub.name],
                                 onEdit: { editingSubscription = sub },
                                 onDelete: { deleteSubscription(sub) },
                                 onUpdate: { Task { await updateSingle(sub) } }
@@ -99,6 +101,9 @@ struct SubscriptionsView: View {
         .onAppear {
             subscriptions = Self.loadSubscriptions()
         }
+        .task {
+            await fetchAllSubscriptionInfos()
+        }
     }
 
     private func deleteSubscription(_ sub: Subscription) {
@@ -130,6 +135,16 @@ struct SubscriptionsView: View {
         try? pretty.write(to: URL(fileURLWithPath: subscriptionsFilePath))
     }
 
+    private func fetchAllSubscriptionInfos() async {
+        let fetcher = SubscriptionFetcher()
+        for sub in subscriptions {
+            guard let url = URL(string: sub.url) else { continue }
+            if let result = try? await fetcher.fetch(url: url) {
+                subscriptionInfos[sub.name] = result.info
+            }
+        }
+    }
+
     private func updateSingle(_ sub: Subscription) async {
         guard let url = URL(string: sub.url) else {
             updateResults[sub.name] = .failure("Invalid URL")
@@ -137,8 +152,11 @@ struct SubscriptionsView: View {
         }
         updateResults[sub.name] = .updating
         do {
-            let count = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
-            updateResults[sub.name] = .success(count)
+            let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+            updateResults[sub.name] = .success(result.nodeCount)
+            if let info = result.info {
+                subscriptionInfos[sub.name] = info
+            }
         } catch {
             updateResults[sub.name] = .failure(error.localizedDescription)
         }
@@ -165,8 +183,11 @@ struct SubscriptionsView: View {
             }
             updateResults[sub.name] = .updating
             do {
-                let count = try await subService.updateSubscription(name: sub.name, url: url)
-                updateResults[sub.name] = .success(count)
+                let result = try await subService.updateSubscription(name: sub.name, url: url)
+                updateResults[sub.name] = .success(result.nodeCount)
+                if let info = result.info {
+                    subscriptionInfos[sub.name] = info
+                }
             } catch {
                 updateResults[sub.name] = .failure(error.localizedDescription)
             }
@@ -195,6 +216,7 @@ enum SubscriptionUpdateStatus {
 struct SubscriptionCard: View {
     let subscription: Subscription
     let status: SubscriptionUpdateStatus?
+    let info: SubscriptionInfo?
     let onEdit: () -> Void
     let onDelete: () -> Void
     let onUpdate: () -> Void
@@ -238,6 +260,35 @@ struct SubscriptionCard: View {
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
+
+                    // Subscription info: traffic usage and expiry
+                    if let info {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ProgressView(value: info.usagePercent, total: 100)
+                                .tint(info.usagePercent > 80 ? .red : .blue)
+
+                            HStack {
+                                Text("已用 \(SubscriptionInfo.formatBytes(info.used)) / \(SubscriptionInfo.formatBytes(info.total))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("剩余 \(SubscriptionInfo.formatBytes(info.remaining))")
+                                    .font(.caption2)
+                                    .foregroundStyle(info.remaining < info.total / 10 ? .red : .green)
+                            }
+
+                            if let expire = info.expire {
+                                Text("到期: \(Self.expiryFormatter.string(from: expire))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            } else if info.total > 0 {
+                                Text("到期: 长期有效")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -257,6 +308,12 @@ struct SubscriptionCard: View {
         )
         .onHover { isHovering = $0 }
     }
+
+    private static let expiryFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
 
     @ViewBuilder
     private func statusBadge(_ status: SubscriptionUpdateStatus) -> some View {

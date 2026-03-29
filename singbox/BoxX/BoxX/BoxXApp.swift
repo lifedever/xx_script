@@ -1,7 +1,12 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    @MainActor static var shared: AppDelegate?
     var shouldReallyQuit = false
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.shared = self
+    }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if shouldReallyQuit { return .terminateNow }

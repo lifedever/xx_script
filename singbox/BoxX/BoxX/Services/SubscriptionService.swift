@@ -12,16 +12,16 @@ class SubscriptionService: @unchecked Sendable {
     }
 
     /// Fetch, parse, save, and deploy a subscription.
-    /// Returns the number of nodes parsed.
-    func updateSubscription(name: String, url: URL) async throws -> Int {
+    /// Returns the number of nodes parsed and optional subscription info (traffic/expiry).
+    func updateSubscription(name: String, url: URL) async throws -> (nodeCount: Int, info: SubscriptionInfo?) {
         // 1. Fetch
-        let data = try await fetcher.fetch(url: url)
+        let result = try await fetcher.fetch(url: url)
 
         // 2. Parse (try each parser)
-        guard let parser = parsers.first(where: { $0.canParse(data) }) else {
+        guard let parser = parsers.first(where: { $0.canParse(result.data) }) else {
             throw SubscriptionServiceError.unsupportedFormat
         }
-        let nodes = try parser.parse(data)
+        let nodes = try parser.parse(result.data)
 
         // 3. Convert ParsedProxy -> [Outbound]
         let outbounds = nodes.map { $0.toOutbound() }
@@ -41,16 +41,16 @@ class SubscriptionService: @unchecked Sendable {
         try configEngine.save()
         try await configEngine.deployRuntime()
 
-        return nodes.count
+        return (nodes.count, result.info)
     }
 
     /// Update all subscriptions.
-    func updateAll(subscriptions: [(name: String, url: URL)]) async throws -> [String: Result<Int, Error>] {
-        var results: [String: Result<Int, Error>] = [:]
+    func updateAll(subscriptions: [(name: String, url: URL)]) async throws -> [String: Result<(nodeCount: Int, info: SubscriptionInfo?), Error>] {
+        var results: [String: Result<(nodeCount: Int, info: SubscriptionInfo?), Error>] = [:]
         for sub in subscriptions {
             do {
-                let count = try await updateSubscription(name: sub.name, url: sub.url)
-                results[sub.name] = .success(count)
+                let result = try await updateSubscription(name: sub.name, url: sub.url)
+                results[sub.name] = .success(result)
             } catch {
                 results[sub.name] = .failure(error)
             }
