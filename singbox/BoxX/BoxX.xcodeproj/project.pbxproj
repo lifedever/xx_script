@@ -10,6 +10,7 @@
 		0255518187AAF67045A1E397 /* ServicesConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96305C33FEFC382F3403938A /* ServicesConfigView.swift */; };
 		025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */; };
+		069C68571727339D4CD04366 /* InboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA03BDC9BCFC3FF757537A7 /* InboundConfig.swift */; };
 		0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EFFD13A60A868D1FABC99 /* WakeObserver.swift */; };
 		0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */; };
 		1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */; };
@@ -18,32 +19,43 @@
 		39EA029175CED929C253468B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */; };
 		411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223B0D94A0BDD5B469B1C6D3 /* Rule.swift */; };
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
+		60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978990E5B126418AE87D12CB /* SingBoxConfig.swift */; };
 		60852C3CA026FF44D7AD200A /* ServiceConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84EE3620F4C56C3918C1C969 /* ServiceConfigManager.swift */; };
+		633D1C59207385917825B026 /* OutboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */; };
+		6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */; };
 		6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1938ECE20FFDCBC5DA86303 /* MainView.swift */; };
 		7491BE185917A2B7C49A4FDB /* RuleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */; };
 		756B6D09C0FD568A95FC21FF /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6156B3F16794AB2995DC2AE8 /* SubscriptionManager.swift */; };
 		7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A786DA30C59DB926BE25E5A /* Assets.xcassets */; };
+		83473B83FEE9C71B170A7B7D /* config.json in Resources */ = {isa = PBXBuildFile; fileRef = D66DA05B940CC40693AB69E6 /* config.json */; };
 		8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */; };
 		8CC9F2A705A8A9D8FAEA9926 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D75DB00D57E74D03D75F000 /* MenuBarView.swift */; };
+		9E85A43A0EFE7AD48BA748B9 /* LogConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC97FA8D4B6846EB7C901F48 /* LogConfig.swift */; };
 		A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14648562F958BE7DF9541A7F /* AppState.swift */; };
 		A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */; };
 		A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8356E67918A3E954AF83EA /* ProxyModels.swift */; };
 		AAD0AC2F8AF0311D9A05DD6F /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3233A78B55590B6DFD58E74C /* LogsView.swift */; };
 		ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236316BA886FAF9975D7C310 /* OverviewView.swift */; };
+		B67AF501AE3B8D8096D46095 /* OutboundConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2C045DE653866E54C14171 /* OutboundConfigTests.swift */; };
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
 		C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */; };
 		CA555942B8B8494999381A5F /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67DE93C42F2614F14BE4375 /* RulesView.swift */; };
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
+		D5498A761A9319491C616D5A /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1528B619F372B267512D08 /* JSONValue.swift */; };
 		D6E71EB2B460AF350CA00140 /* ProxyModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */; };
 		D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C202DBB07E3609789CAD3C7 /* SingBoxManager.swift */; };
 		DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */; };
+		E27B3A934011CD4D322519DD /* ConfigEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDCA672896DFD324138EC9E /* ConfigEngineTests.swift */; };
 		E6795C17D7CDED2E5E416334 /* ConfigGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040E1FEFB36E4C33EED1A5C3 /* ConfigGenerator.swift */; };
+		E79724C91A58535D716F7685 /* DNSConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3894A1ADD33B80A2ED9DF3 /* DNSConfig.swift */; };
 		E90CA122DD57879F17A9FDA6 /* ClashWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */; };
 		ED796EFF6EB83CE60430DA4E /* RingBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */; };
 		F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAEE62A30EDCED844892451 /* ConnectionsView.swift */; };
+		FA13DABBE1CB5BDF70828E66 /* ExperimentalConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */; };
+		FDC35FBD2B57453A57E1B704 /* JSONValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,6 +80,7 @@
 		040E1FEFB36E4C33EED1A5C3 /* ConfigGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigGenerator.swift; sourceTree = "<group>"; };
 		08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBufferTests.swift; sourceTree = "<group>"; };
 		0BD7F2BEBB0D0D08B6687582 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		0EDCA672896DFD324138EC9E /* ConfigEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigEngineTests.swift; sourceTree = "<group>"; };
 		14648562F958BE7DF9541A7F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		167EFFD13A60A868D1FABC99 /* WakeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeObserver.swift; sourceTree = "<group>"; };
 		18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
@@ -78,6 +91,7 @@
 		3233A78B55590B6DFD58E74C /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 		33FF2D74D270C7533F9221B0 /* ClashAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashAPI.swift; sourceTree = "<group>"; };
 		359FAFDB5E064BD58048D440 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		3A1528B619F372B267512D08 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
 		5402AF02BFFEE79DF3A8DE7B /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -89,22 +103,32 @@
 		8CAEE62A30EDCED844892451 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 		948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		96305C33FEFC382F3403938A /* ServicesConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicesConfigView.swift; sourceTree = "<group>"; };
+		978990E5B126418AE87D12CB /* SingBoxConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxConfig.swift; sourceTree = "<group>"; };
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleManager.swift; sourceTree = "<group>"; };
 		9F9360A996360ED7484C86E3 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
+		A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboundConfig.swift; sourceTree = "<group>"; };
+		A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalConfig.swift; sourceTree = "<group>"; };
+		AB3894A1ADD33B80A2ED9DF3 /* DNSConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSConfig.swift; sourceTree = "<group>"; };
+		AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueTests.swift; sourceTree = "<group>"; };
 		B1F605B3DA3C289944EC8E66 /* BoxXHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxXHelper.entitlements; sourceTree = "<group>"; };
 		B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddRuleSheet.swift; sourceTree = "<group>"; };
+		BC97FA8D4B6846EB7C901F48 /* LogConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogConfig.swift; sourceTree = "<group>"; };
 		C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashAPITests.swift; sourceTree = "<group>"; };
 		C92D36E087DFEB3FE6AC5111 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoxXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D66DA05B940CC40693AB69E6 /* config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = config.json; sourceTree = "<group>"; };
 		D67DE93C42F2614F14BE4375 /* RulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesView.swift; sourceTree = "<group>"; };
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
 		EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleTestView.swift; sourceTree = "<group>"; };
+		EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteConfig.swift; sourceTree = "<group>"; };
 		ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModelsTests.swift; sourceTree = "<group>"; };
 		F1938ECE20FFDCBC5DA86303 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		F5BD437B4F6F076959897C90 /* ProxiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxiesView.swift; sourceTree = "<group>"; };
+		FA2C045DE653866E54C14171 /* OutboundConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboundConfigTests.swift; sourceTree = "<group>"; };
+		FCA03BDC9BCFC3FF757537A7 /* InboundConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboundConfig.swift; sourceTree = "<group>"; };
 		FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -147,8 +171,12 @@
 			children = (
 				FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */,
 				C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */,
+				0EDCA672896DFD324138EC9E /* ConfigEngineTests.swift */,
+				AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */,
+				FA2C045DE653866E54C14171 /* OutboundConfigTests.swift */,
 				ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */,
 				08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */,
+				D973542964CC5546415F9B3C /* Fixtures */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -228,9 +256,17 @@
 			children = (
 				14648562F958BE7DF9541A7F /* AppState.swift */,
 				75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */,
+				AB3894A1ADD33B80A2ED9DF3 /* DNSConfig.swift */,
+				A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */,
+				FCA03BDC9BCFC3FF757537A7 /* InboundConfig.swift */,
+				3A1528B619F372B267512D08 /* JSONValue.swift */,
+				BC97FA8D4B6846EB7C901F48 /* LogConfig.swift */,
 				18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */,
+				A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */,
 				DC8356E67918A3E954AF83EA /* ProxyModels.swift */,
+				EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */,
 				223B0D94A0BDD5B469B1C6D3 /* Rule.swift */,
+				978990E5B126418AE87D12CB /* SingBoxConfig.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -242,6 +278,14 @@
 				CC8166B671B895FBCAA5ADBF /* Localizable.strings */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		D973542964CC5546415F9B3C /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				D66DA05B940CC40693AB69E6 /* config.json */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -289,6 +333,7 @@
 			buildConfigurationList = F4C5F874FB273BC6DF50F012 /* Build configuration list for PBXNativeTarget "BoxXTests" */;
 			buildPhases = (
 				555C8449FA8A80D19E384D1F /* Sources */,
+				44CAF425AC78E87872DB6D99 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -336,6 +381,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		44CAF425AC78E87872DB6D99 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83473B83FEE9C71B170A7B7D /* config.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DFF8BD0BE27D1EB818A50173 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -382,15 +435,22 @@
 				E6795C17D7CDED2E5E416334 /* ConfigGenerator.swift in Sources */,
 				0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */,
 				F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */,
+				E79724C91A58535D716F7685 /* DNSConfig.swift in Sources */,
+				FA13DABBE1CB5BDF70828E66 /* ExperimentalConfig.swift in Sources */,
 				B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */,
+				069C68571727339D4CD04366 /* InboundConfig.swift in Sources */,
+				D5498A761A9319491C616D5A /* JSONValue.swift in Sources */,
+				9E85A43A0EFE7AD48BA748B9 /* LogConfig.swift in Sources */,
 				1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */,
 				AAD0AC2F8AF0311D9A05DD6F /* LogsView.swift in Sources */,
 				6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */,
 				8CC9F2A705A8A9D8FAEA9926 /* MenuBarView.swift in Sources */,
+				633D1C59207385917825B026 /* OutboundConfig.swift in Sources */,
 				ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */,
 				BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */,
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
+				6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
 				7491BE185917A2B7C49A4FDB /* RuleManager.swift in Sources */,
 				05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */,
@@ -398,6 +458,7 @@
 				60852C3CA026FF44D7AD200A /* ServiceConfigManager.swift in Sources */,
 				0255518187AAF67045A1E397 /* ServicesConfigView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
+				60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */,
 				D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */,
 				756B6D09C0FD568A95FC21FF /* SubscriptionManager.swift in Sources */,
 				DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */,
@@ -420,7 +481,10 @@
 			files = (
 				C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */,
 				8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */,
+				E27B3A934011CD4D322519DD /* ConfigEngineTests.swift in Sources */,
 				7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */,
+				FDC35FBD2B57453A57E1B704 /* JSONValueTests.swift in Sources */,
+				B67AF501AE3B8D8096D46095 /* OutboundConfigTests.swift in Sources */,
 				D6E71EB2B460AF350CA00140 /* ProxyModelsTests.swift in Sources */,
 				ED796EFF6EB83CE60430DA4E /* RingBufferTests.swift in Sources */,
 			);

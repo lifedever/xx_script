@@ -1,15 +1,6 @@
 // BoxX/Models/OutboundConfig.swift
 import Foundation
 
-// MARK: - Dynamic Coding Key
-
-private struct DynamicCodingKey: CodingKey {
-    var stringValue: String
-    var intValue: Int? { nil }
-    init(stringValue: String) { self.stringValue = stringValue }
-    init?(intValue: Int) { nil }
-}
-
 // MARK: - DirectOutbound
 
 struct DirectOutbound: Codable, Equatable, Sendable {
