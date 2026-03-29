@@ -433,14 +433,6 @@ struct ConnectionDetailPanel: View {
                 Image(systemName: "arrow.right.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.green)
-            } else if isLast {
-                Image(systemName: "globe")
-                    .font(.caption)
-                    .foregroundStyle(.blue)
-            } else {
-                Image(systemName: "server.rack")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
             }
             Text(node)
                 .font(.caption.monospaced())
