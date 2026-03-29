@@ -103,6 +103,13 @@ struct RouteRulesView: View {
 
     // MARK: - Row Views
 
+    /// System rule types that cannot be deleted
+    private static let systemTypes: Set<String> = ["SNIFF", "HIJACK-DNS", "IP-PRIVATE", "REJECT", "MODE"]
+
+    private var isDeletable: (Rule) -> Bool {
+        { rule in !Self.systemTypes.contains(rule.type) }
+    }
+
     private func ruleRow(_ rule: Rule) -> some View {
         HStack(spacing: 0) {
             Text("\(rule.id + 1)")
@@ -128,6 +135,28 @@ struct RouteRulesView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(rule.id % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        .contextMenu {
+            if isDeletable(rule) {
+                Button("删除", role: .destructive) {
+                    deleteRule(at: rule.id)
+                }
+            } else {
+                Text("系统规则，不可删除")
+            }
+        }
+    }
+
+    private func deleteRule(at index: Int) {
+        var configRules = appState.configEngine.config.route.rules ?? []
+        guard index >= 0 && index < configRules.count else { return }
+        configRules.remove(at: index)
+        appState.configEngine.config.route.rules = configRules
+        do {
+            try appState.configEngine.save(restartRequired: true)
+        } catch {
+            appState.showAlert("删除失败: \(error.localizedDescription)")
+        }
+        Task { await loadRules() }
     }
 
     private func ruleTypeBadge(_ type: String) -> some View {

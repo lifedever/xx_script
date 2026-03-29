@@ -290,9 +290,7 @@ struct AddRuleSheet: View {
 
         do {
             try appState.configEngine.save(restartRequired: true)
-            isSuccess = true
-            resultMessage = "已添加到 config.json route.rules → \(selectedOutbound)"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { close() }
+            close()
         } catch {
             isSuccess = false
             resultMessage = "保存失败: \(error.localizedDescription)"
@@ -344,9 +342,7 @@ struct AddRuleSheet: View {
         do {
             let data = try JSONSerialization.data(withJSONObject: ruleSetData, options: [.prettyPrinted, .sortedKeys])
             try data.write(to: fileURL, options: .atomic)
-            isSuccess = true
-            resultMessage = "已添加到 \(selectedRuleSetTag)，记得推送到 GitHub"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { close() }
+            close()
         } catch {
             isSuccess = false
             resultMessage = "写入失败: \(error.localizedDescription)"
