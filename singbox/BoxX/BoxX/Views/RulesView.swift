@@ -8,6 +8,7 @@ struct RulesView: View {
     @State private var isLoading = true
     @State private var showAddRule = false
     @State private var enabledRuleSetIDs: Set<String> = []
+    @State private var editingRuleSet: BuiltinRuleSet?
 
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }
@@ -68,6 +69,11 @@ struct RulesView: View {
         }
         .sheet(isPresented: $showAddRule) {
             AddRuleSheet()
+        }
+        .sheet(item: $editingRuleSet) { ruleSet in
+            BuiltinRuleSetEditSheet(ruleSet: ruleSet) {
+                loadEnabledRuleSets()
+            }
         }
     }
 
@@ -239,6 +245,8 @@ struct RulesView: View {
         .background(Color(nsColor: .controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .opacity(isEnabled ? 1.0 : 0.6)
+        .contentShape(Rectangle())
+        .onTapGesture { editingRuleSet = ruleSet }
     }
 
     // MARK: - Configured Rule Sets Section
@@ -376,5 +384,162 @@ struct RulesView: View {
         isLoading = true
         defer { isLoading = false }
         rules = (try? await appState.api.getRules()) ?? []
+    }
+}
+
+// MARK: - Built-in Rule Set Edit Sheet
+
+struct BuiltinRuleSetEditSheet: View {
+    let ruleSet: BuiltinRuleSet
+    let onSave: () -> Void
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedOutbound: String
+    @State private var geositeEntries: [String]
+
+    init(ruleSet: BuiltinRuleSet, onSave: @escaping () -> Void) {
+        self.ruleSet = ruleSet
+        self.onSave = onSave
+        // Will be overridden in onAppear to read from config
+        _selectedOutbound = State(initialValue: ruleSet.defaultOutbound)
+        _geositeEntries = State(initialValue: ruleSet.geositeNames)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("编辑规则集: \(ruleSet.displayName)")
+                .font(.headline)
+
+            // Outbound picker
+            HStack {
+                Text("出站策略组")
+                Spacer()
+                Picker("", selection: $selectedOutbound) {
+                    ForEach(availableOutbounds, id: \.self) { name in
+                        Text(name).tag(name)
+                    }
+                }
+                .frame(width: 200)
+            }
+
+            // Geosite entries
+            Text("Geosite 规则")
+                .font(.subheadline)
+
+            ForEach(Array(geositeEntries.enumerated()), id: \.offset) { index, entry in
+                HStack {
+                    TextField("geosite name", text: Binding(
+                        get: { geositeEntries.indices.contains(index) ? geositeEntries[index] : "" },
+                        set: { if geositeEntries.indices.contains(index) { geositeEntries[index] = $0 } }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.body.monospaced())
+
+                    Button {
+                        geositeEntries.remove(at: index)
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Button("添加 geosite") {
+                geositeEntries.append("")
+            }
+            .controlSize(.small)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("保存") {
+                    save()
+                    onSave()
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(width: 400)
+        .onAppear {
+            // Read current outbound from config route rules
+            let geositeTags = Set(ruleSet.geositeNames.map { "geosite-\($0)" })
+            if let rules = appState.configEngine.config.route.rules {
+                for rule in rules {
+                    guard let refs = rule["rule_set"]?.arrayValue else { continue }
+                    let refTags = Set(refs.compactMap { $0.stringValue })
+                    if !refTags.isDisjoint(with: geositeTags),
+                       let outbound = rule["outbound"]?.stringValue {
+                        selectedOutbound = outbound
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    private var availableOutbounds: [String] {
+        appState.configEngine.config.outbounds.compactMap { outbound in
+            switch outbound {
+            case .selector(let s): return s.tag
+            case .direct(let d): return d.tag
+            default: return nil
+            }
+        }
+    }
+
+    private func save() {
+        let oldTags = Set(ruleSet.geositeNames.map { "geosite-\($0)" })
+        let newNames = geositeEntries.filter { !$0.isEmpty }
+        let newRuleSetTags = newNames.map { "geosite-\($0)" }
+
+        // Remove old route rule
+        appState.configEngine.config.route.rules?.removeAll { item in
+            guard let refs = item["rule_set"]?.arrayValue else { return false }
+            let refTags = Set(refs.compactMap { $0.stringValue })
+            return !refTags.isDisjoint(with: oldTags)
+        }
+
+        // Add new route rule
+        if !newRuleSetTags.isEmpty {
+            let newRule = JSONValue.object([
+                "rule_set": .array(newRuleSetTags.map { .string($0) }),
+                "action": .string("route"),
+                "outbound": .string(selectedOutbound),
+            ])
+            var rules = appState.configEngine.config.route.rules ?? []
+            rules.append(newRule)
+            appState.configEngine.config.route.rules = rules
+        }
+
+        // Remove old geosite rule_set definitions
+        appState.configEngine.config.route.ruleSet?.removeAll { item in
+            guard let tag = item["tag"]?.stringValue else { return false }
+            return oldTags.contains(tag)
+        }
+
+        // Add new geosite definitions
+        var currentRuleSets = appState.configEngine.config.route.ruleSet ?? []
+        for name in newNames {
+            let tag = "geosite-\(name)"
+            let def = JSONValue.object([
+                "type": .string("remote"),
+                "tag": .string(tag),
+                "format": .string("binary"),
+                "url": .string("https://testingcf.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-\(name).srs"),
+                "download_detour": .string("DIRECT"),
+            ])
+            if !currentRuleSets.contains(where: { $0["tag"]?.stringValue == tag }) {
+                currentRuleSets.append(def)
+            }
+        }
+        appState.configEngine.config.route.ruleSet = currentRuleSets
+
+        try? appState.configEngine.save()
     }
 }

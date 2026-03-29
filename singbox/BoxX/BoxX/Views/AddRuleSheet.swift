@@ -1,7 +1,13 @@
 import SwiftUI
 
+enum AddRuleMode: String, CaseIterable {
+    case localRule = "本地规则"
+    case ruleSetFile = "规则集文件"
+}
+
 struct AddRuleSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppState.self) private var appState
 
     private let initialHost: String
     private let initialDomain: String
@@ -13,6 +19,8 @@ struct AddRuleSheet: View {
     @State private var target: String = "Proxy"
     @State private var resultMessage: String?
     @State private var isSuccess = false
+    @State private var addMode: AddRuleMode = .localRule
+    @State private var selectedRuleSetTag: String = ""
 
     private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR"]
     private let targets = ["Proxy", "DIRECT", "AI"]
@@ -61,6 +69,22 @@ struct AddRuleSheet: View {
 
             // Form
             Form {
+                // Mode picker
+                Picker("添加方式", selection: $addMode) {
+                    ForEach(AddRuleMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                if addMode == .ruleSetFile {
+                    Picker("目标规则集", selection: $selectedRuleSetTag) {
+                        ForEach(localRuleSets, id: \.self) { tag in
+                            Text(tag).tag(tag)
+                        }
+                    }
+                }
+
                 // Rule type picker
                 Picker(String(localized: "addrule.type"), selection: $ruleType) {
                     ForEach(ruleTypes, id: \.self) { type in
@@ -76,40 +100,57 @@ struct AddRuleSheet: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospaced())
 
-                // Target picker
-                Picker(String(localized: "addrule.target"), selection: $target) {
-                    ForEach(targets, id: \.self) { t in
-                        Label(targetLabel(t), systemImage: targetIcon(t)).tag(t)
+                if addMode == .localRule {
+                    // Target picker
+                    Picker(String(localized: "addrule.target"), selection: $target) {
+                        ForEach(targets, id: \.self) { t in
+                            Label(targetLabel(t), systemImage: targetIcon(t)).tag(t)
+                        }
                     }
-                }
-                .pickerStyle(.radioGroup)
+                    .pickerStyle(.radioGroup)
 
-                // Preview
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(String(localized: "addrule.preview"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    // Preview
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(String(localized: "addrule.preview"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                        Text("ss/rules/\(targetFile).list")
-                            .font(.caption.monospaced())
-                        Text("  \(ruleType),\(ruleValue)")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(Color.accentColor)
+                            Text("ss/rules/\(targetFile).list")
+                                .font(.caption.monospaced())
+                            Text("  \(ruleType),\(ruleValue)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(Color.accentColor)
 
-                        Text("clash/rules/\(targetFile).yaml")
-                            .font(.caption.monospaced())
-                        Text("  - \(ruleType),\(ruleValue)")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(Color.accentColor)
+                            Text("clash/rules/\(targetFile).yaml")
+                                .font(.caption.monospaced())
+                            Text("  - \(ruleType),\(ruleValue)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(Color.accentColor)
 
-                        Text("singbox/rules/\(jsonTag).json")
-                            .font(.caption.monospaced())
-                        Text("  \(jsonKey): [\"\(jsonValue)\"]")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(Color.accentColor)
+                            Text("singbox/rules/\(jsonTag).json")
+                                .font(.caption.monospaced())
+                            Text("  \(jsonKey): [\"\(jsonValue)\"]")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    // Rule set file preview
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("预览")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("规则集: \(selectedRuleSetTag)")
+                                .font(.caption.monospaced())
+                            Text("  \(jsonKey): [\"\(ruleValue)\"]")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
 
                 // Result message
@@ -139,12 +180,16 @@ struct AddRuleSheet: View {
                     saveRule()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(ruleValue.isEmpty)
+                .disabled(ruleValue.isEmpty || (addMode == .ruleSetFile && selectedRuleSetTag.isEmpty))
             }
             .padding()
         }
-        .frame(width: 480, height: 520)
+        .frame(width: 480, height: 580)
         .onAppear {
+            // Initialize rule set tag
+            if selectedRuleSetTag.isEmpty, let first = localRuleSets.first {
+                selectedRuleSetTag = first
+            }
             if !initialHost.isEmpty && !initialIP.isEmpty {
                 ruleType = "DOMAIN-SUFFIX"
                 ruleValue = initialDomain
@@ -225,7 +270,18 @@ struct AddRuleSheet: View {
         }
     }
 
+    private var localRuleSets: [String] {
+        (appState.configEngine.config.route.ruleSet ?? [])
+            .filter { $0["type"]?.stringValue == "local" }
+            .compactMap { $0["tag"]?.stringValue }
+    }
+
     private func saveRule() {
+        if addMode == .ruleSetFile {
+            saveToRuleSetFile(tag: selectedRuleSetTag, ruleType: ruleType, value: ruleValue)
+            return
+        }
+
         let manager = RuleManager()
         let result = manager.addRule(type: ruleType, value: ruleValue, target: target)
 
@@ -239,6 +295,73 @@ struct AddRuleSheet: View {
         } else {
             isSuccess = false
             resultMessage = result.errors.joined(separator: "\n")
+        }
+    }
+
+    private func saveToRuleSetFile(tag: String, ruleType: String, value: String) {
+        guard let ruleSetDef = (appState.configEngine.config.route.ruleSet ?? [])
+                .first(where: { $0["tag"]?.stringValue == tag }),
+              let path = ruleSetDef["path"]?.stringValue else {
+            isSuccess = false
+            resultMessage = "找不到规则集文件路径"
+            return
+        }
+
+        let fileURL: URL
+        if path.hasPrefix("/") {
+            fileURL = URL(fileURLWithPath: path)
+        } else {
+            fileURL = appState.configEngine.baseDir.appendingPathComponent(path)
+        }
+
+        // Read existing rule set file
+        var ruleSetData: [String: Any] = ["version": 2, "rules": []]
+        if let data = try? Data(contentsOf: fileURL),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            ruleSetData = json
+        }
+
+        var rules = ruleSetData["rules"] as? [[String: Any]] ?? []
+
+        // Map rule type to sing-box key
+        let key: String
+        switch ruleType {
+        case "DOMAIN": key = "domain"
+        case "DOMAIN-SUFFIX": key = "domain_suffix"
+        case "DOMAIN-KEYWORD": key = "domain_keyword"
+        case "IP-CIDR": key = "ip_cidr"
+        default: key = "domain_suffix"
+        }
+
+        // Find or create the rule entry for this key
+        if let idx = rules.firstIndex(where: { $0[key] != nil }) {
+            var existing = rules[idx][key] as? [String] ?? []
+            if !existing.contains(value) {
+                existing.append(value)
+                rules[idx][key] = existing
+            }
+        } else {
+            rules.append([key: [value]])
+        }
+
+        ruleSetData["rules"] = rules
+
+        // Write back
+        if let data = try? JSONSerialization.data(withJSONObject: ruleSetData, options: [.prettyPrinted, .sortedKeys]) {
+            do {
+                try data.write(to: fileURL, options: .atomic)
+                isSuccess = true
+                resultMessage = "已添加到规则集: \(tag)"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    close()
+                }
+            } catch {
+                isSuccess = false
+                resultMessage = "写入失败: \(error.localizedDescription)"
+            }
+        } else {
+            isSuccess = false
+            resultMessage = "JSON 序列化失败"
         }
     }
 }

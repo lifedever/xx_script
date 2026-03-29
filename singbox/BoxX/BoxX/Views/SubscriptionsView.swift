@@ -42,7 +42,8 @@ struct SubscriptionsView: View {
                                 subscription: sub,
                                 status: updateResults[sub.name],
                                 onEdit: { editingSubscription = sub },
-                                onDelete: { deleteSubscription(sub) }
+                                onDelete: { deleteSubscription(sub) },
+                                onUpdate: { Task { await updateSingle(sub) } }
                             )
                         }
                     }
@@ -129,6 +130,27 @@ struct SubscriptionsView: View {
         try? pretty.write(to: URL(fileURLWithPath: subscriptionsFilePath))
     }
 
+    private func updateSingle(_ sub: Subscription) async {
+        guard let url = URL(string: sub.url) else {
+            updateResults[sub.name] = .failure("Invalid URL")
+            return
+        }
+        updateResults[sub.name] = .updating
+        do {
+            let count = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+            updateResults[sub.name] = .success(count)
+        } catch {
+            updateResults[sub.name] = .failure(error.localizedDescription)
+        }
+
+        if appState.isRunning {
+            _ = await appState.xpcClient.reload()
+        }
+
+        try? await Task.sleep(for: .seconds(5))
+        updateResults.removeValue(forKey: sub.name)
+    }
+
     private func saveAndUpdate() async {
         saveSubscriptions()
         isUpdating = true
@@ -175,6 +197,7 @@ struct SubscriptionCard: View {
     let status: SubscriptionUpdateStatus?
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onUpdate: () -> Void
 
     @State private var isHovering = false
 
@@ -198,6 +221,17 @@ struct SubscriptionCard: View {
                         if let status {
                             statusBadge(status)
                         }
+
+                        // Per-subscription update button
+                        Button {
+                            onUpdate()
+                        } label: {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("更新此订阅")
+                        .disabled(status != nil)
                     }
 
                     Text(subscription.url)

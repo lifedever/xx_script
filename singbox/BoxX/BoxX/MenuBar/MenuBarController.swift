@@ -118,8 +118,25 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
 
         // ── Bottom actions ──
-        let updateItem = NSMenuItem(title: "更新订阅", action: #selector(updateSubscriptions), keyEquivalent: "")
-        updateItem.target = self
+        let updateItem = NSMenuItem(title: "更新订阅", action: nil, keyEquivalent: "")
+        let updateSubmenu = NSMenu()
+
+        let updateAllItem = NSMenuItem(title: "全部更新", action: #selector(updateSubscriptions), keyEquivalent: "")
+        updateAllItem.target = self
+        updateSubmenu.addItem(updateAllItem)
+
+        let subs = SubscriptionsView.loadSubscriptions()
+        if !subs.isEmpty {
+            updateSubmenu.addItem(.separator())
+            for sub in subs {
+                let subItem = NSMenuItem(title: sub.name, action: #selector(updateSingleSubscription(_:)), keyEquivalent: "")
+                subItem.target = self
+                subItem.representedObject = sub
+                updateSubmenu.addItem(subItem)
+            }
+        }
+
+        updateItem.submenu = updateSubmenu
         menu.addItem(updateItem)
 
         let copyEnvItem = NSMenuItem(title: "复制环境变量", action: #selector(copyProxyEnv), keyEquivalent: "")
@@ -259,6 +276,14 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 guard let url = URL(string: sub.url) else { continue }
                 _ = try? await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
             }
+        }
+    }
+
+    @objc private func updateSingleSubscription(_ sender: NSMenuItem) {
+        guard let sub = sender.representedObject as? Subscription,
+              let url = URL(string: sub.url) else { return }
+        Task {
+            _ = try? await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
         }
     }
 
