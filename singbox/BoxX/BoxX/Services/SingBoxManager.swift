@@ -147,7 +147,8 @@ final class SingBoxManager {
 
     func restart(configPath: String) async throws {
         try await stopAny()
-        try await Task.sleep(for: .seconds(1))
+        // Helper waits for ports to release, but give extra buffer
+        try await Task.sleep(for: .seconds(2))
         try await start(configPath: configPath)
     }
 }
