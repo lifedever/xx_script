@@ -25,15 +25,18 @@ class SingBoxProcess {
         // Single osascript call: kill old (as root) + start new (as root)
         let launcherScript = """
         #!/bin/bash
-        # Kill existing sing-box (including root processes)
+        # Kill ALL existing sing-box processes
         pkill -x sing-box 2>/dev/null
         sleep 1
-        # Force kill if still alive
         pkill -9 -x sing-box 2>/dev/null
-        sleep 1
+        # Wait for port 7890 to be released (up to 10 seconds)
+        for i in $(seq 1 20); do
+            if ! lsof -i :7890 >/dev/null 2>&1; then break; fi
+            sleep 0.5
+        done
         # Start sing-box
         cd '\(escapedConfigDir)'
-        '\(sbPath)' run -c '\(escapedConfigPath)' &>/dev/null &
+        '\(sbPath)' run -c '\(escapedConfigPath)' >/dev/null 2>/tmp/boxx-singbox-error.log &
         """
         let launcherPath = "/tmp/boxx-launcher.sh"
 
@@ -77,7 +80,14 @@ class SingBoxProcess {
             isRunning = true
             print("[BoxX] sing-box running (API slow)")
         } else {
-            throw SingBoxError.startFailed("sing-box 启动后退出，请检查配置")
+            // Read error log for details
+            let errorLog = (try? String(contentsOfFile: "/tmp/boxx-singbox-error.log", encoding: .utf8)) ?? ""
+            let fatalLines = errorLog.components(separatedBy: "\n")
+                .filter { $0.contains("FATAL") || $0.contains("ERROR") }
+                .prefix(3)
+                .joined(separator: "\n")
+            let detail = fatalLines.isEmpty ? "sing-box 启动后退出，请检查配置" : fatalLines
+            throw SingBoxError.startFailed(detail)
         }
     }
 
