@@ -6,9 +6,9 @@
 "menu.start" = "Start sing-box";
 "menu.stop" = "Stop sing-box";
 "menu.update_subscriptions" = "Update Subscriptions";
-"menu.updating" = "Updating\u{2026}";
+"menu.updating" = "Updating…";
 "menu.open_dashboard" = "Open Dashboard";
-"menu.settings" = "Settings\u{2026}";
+"menu.settings" = "Settings…";
 "menu.quit" = "Quit BoxX";
 "menu.no_proxy_groups" = "No proxy groups";
 
@@ -31,15 +31,15 @@
 "overview.memory" = "Memory";
 
 // Proxies
-"proxies.search" = "Search groups\u{2026}";
+"proxies.search" = "Search groups…";
 "proxies.timeout" = "timeout";
 
 // Rules
-"rules.search" = "Search rules\u{2026}";
+"rules.search" = "Search rules…";
 "rules.count" = "%d rules";
 
 // Connections
-"connections.search" = "Search connections\u{2026}";
+"connections.search" = "Search connections…";
 "connections.count" = "%d connections";
 "connections.close_all" = "Close All";
 "connections.host" = "Host";
@@ -56,7 +56,7 @@
 "settings.launch_at_login" = "Launch at Login";
 "settings.paths" = "Paths";
 "settings.script_directory" = "Script Directory";
-"settings.browse" = "Browse\u{2026}";
+"settings.browse" = "Browse…";
 "settings.helper" = "Privileged Helper";
 "settings.helper.status" = "Status";
 "settings.helper.installed" = "Installed and running";
