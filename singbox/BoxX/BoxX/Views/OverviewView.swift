@@ -8,6 +8,7 @@ struct OverviewView: View {
     @Environment(AppState.self) private var appState
     @State private var snapshot: ConnectionSnapshot?
     @State private var isLoading = false
+    @State private var isOperating = false
 
     private let byteFormatter: ByteCountFormatter = {
         let f = ByteCountFormatter()
@@ -49,7 +50,10 @@ struct OverviewView: View {
 
                         // Control buttons
                         HStack(spacing: 8) {
-                            if singBoxManager.isRunning {
+                            if isOperating {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else if singBoxManager.isRunning {
                                 Button {
                                     Task { await doStop() }
                                 } label: {
@@ -137,39 +141,50 @@ struct OverviewView: View {
     }
 
     private func doStart() async {
+        isOperating = true
+        defer { isOperating = false }
         do {
             try await singBoxManager.start(configPath: configGenerator.configPath)
         } catch {
-            appState.showAlert("Start failed: \(error.localizedDescription)")
+            appState.showAlert(error.localizedDescription)
         }
         await refresh()
     }
 
     private func doStop() async {
+        isOperating = true
+        defer { isOperating = false }
         do {
             try await singBoxManager.stopAny()
         } catch {
-            appState.showAlert("Stop failed: \(error.localizedDescription)")
+            appState.showAlert(error.localizedDescription)
         }
         await refresh()
     }
 
     private func doRestart() async {
+        isOperating = true
+        defer { isOperating = false }
         do {
             try await singBoxManager.restart(configPath: configGenerator.configPath)
         } catch {
-            appState.showAlert("Restart failed: \(error.localizedDescription)")
+            appState.showAlert(error.localizedDescription)
         }
         await refresh()
     }
 
     private func doUpdateSubs() async {
+        isOperating = true
+        defer { isOperating = false }
         for await _ in configGenerator.generate() {}
         if singBoxManager.isRunning {
-            await doRestart()
-        } else {
-            await refresh()
+            do {
+                try await singBoxManager.restart(configPath: configGenerator.configPath)
+            } catch {
+                appState.showAlert(error.localizedDescription)
+            }
         }
+        await refresh()
     }
 
     private func refresh() async {

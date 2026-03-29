@@ -11,14 +11,11 @@ final class SingBoxManager {
 
     var isRunning = false
     var pid: Int32 = 0
-    /// true = managed by Helper, false = externally started (e.g. box start)
     var isExternalProcess = false
 
     func refreshStatus() async {
-        // 1. Check Clash API first (fast, always works regardless of how sing-box was started)
         let apiReachable = await clashAPI.isReachable()
         if apiReachable {
-            // 2. Try Helper to get PID (with timeout, non-blocking)
             if helperManager.isHelperInstalled {
                 let helperResult = await checkViaHelper()
                 if helperResult.running {
@@ -28,128 +25,128 @@ final class SingBoxManager {
                     return
                 }
             }
-            // API reachable but Helper not available → external process
             isRunning = true
             pid = 0
             isExternalProcess = true
             return
         }
-
-        // 3. Nothing running
         isRunning = false
         pid = 0
         isExternalProcess = false
     }
 
     private func checkViaHelper() async -> (running: Bool, pid: Int32) {
-        // Use withTaskGroup + sleep for a timeout to prevent hanging
-        await withTaskGroup(of: (Bool, Int32).self) { group in
-            group.addTask {
-                await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Int32), Never>) in
-                    guard let helper = self.helperManager.getProxyWithErrorHandler({ _ in
-                        continuation.resume(returning: (false, 0))
-                    }) else {
-                        continuation.resume(returning: (false, 0))
-                        return
-                    }
-                    helper.getStatus { running, pid in
-                        continuation.resume(returning: (running, pid))
-                    }
+        await withTimeout(seconds: 3, defaultValue: (false, 0)) {
+            await withCheckedContinuation { (cont: CheckedContinuation<(Bool, Int32), Never>) in
+                guard let helper = self.helperManager.getProxyWithErrorHandler({ _ in
+                    cont.resume(returning: (false, 0))
+                }) else {
+                    cont.resume(returning: (false, 0))
+                    return
+                }
+                helper.getStatus { running, pid in
+                    cont.resume(returning: (running, pid))
                 }
             }
-            // Timeout after 3 seconds
-            group.addTask {
-                try? await Task.sleep(for: .seconds(3))
-                return (false, 0)
-            }
-            // Return whichever finishes first
-            if let result = await group.next() {
-                group.cancelAll()
-                return result
-            }
-            return (false, 0)
         }
     }
 
     func start(configPath: String) async throws {
-        return try await withCheckedThrowingContinuation { continuation in
-            guard let helper = helperManager.getProxyWithErrorHandler({ error in
-                continuation.resume(throwing: SingBoxError.startFailed(error.localizedDescription))
-            }) else {
-                continuation.resume(throwing: SingBoxError.helperNotAvailable)
-                return
-            }
-            helper.startSingBox(configPath: configPath) { success, error in
-                if success {
-                    Task { @MainActor in
-                        self.isRunning = true
-                        await self.refreshStatus()
-                    }
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: SingBoxError.startFailed(error ?? "Unknown error"))
+        // Disconnect old XPC connection to ensure fresh connection
+        helperManager.disconnect()
+
+        let result: (Bool, String?) = await withTimeout(seconds: 10, defaultValue: (false, "XPC timeout")) {
+            await withCheckedContinuation { (cont: CheckedContinuation<(Bool, String?), Never>) in
+                guard let helper = self.helperManager.getProxyWithErrorHandler({ error in
+                    cont.resume(returning: (false, error.localizedDescription))
+                }) else {
+                    cont.resume(returning: (false, "Helper not available"))
+                    return
+                }
+                helper.startSingBox(configPath: configPath) { success, error in
+                    cont.resume(returning: (success, error))
                 }
             }
+        }
+
+        if result.0 {
+            isRunning = true
+            await refreshStatus()
+        } else {
+            throw SingBoxError.startFailed(result.1 ?? "Unknown error")
         }
     }
 
     func stop() async throws {
-        return try await withCheckedThrowingContinuation { continuation in
-            guard let helper = helperManager.getProxyWithErrorHandler({ error in
-                continuation.resume(throwing: SingBoxError.stopFailed(error.localizedDescription))
-            }) else {
-                continuation.resume(throwing: SingBoxError.helperNotAvailable)
-                return
-            }
-            helper.stopSingBox { success, error in
-                if success {
-                    Task { @MainActor in
-                        self.isRunning = false
-                        self.pid = 0
-                    }
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: SingBoxError.stopFailed(error ?? "Unknown error"))
+        helperManager.disconnect()
+
+        let result: (Bool, String?) = await withTimeout(seconds: 10, defaultValue: (false, "XPC timeout")) {
+            await withCheckedContinuation { (cont: CheckedContinuation<(Bool, String?), Never>) in
+                guard let helper = self.helperManager.getProxyWithErrorHandler({ error in
+                    cont.resume(returning: (false, error.localizedDescription))
+                }) else {
+                    cont.resume(returning: (false, "Helper not available"))
+                    return
+                }
+                helper.stopSingBox { success, error in
+                    cont.resume(returning: (success, error))
                 }
             }
+        }
+
+        if result.0 {
+            isRunning = false
+            pid = 0
+        } else {
+            throw SingBoxError.stopFailed(result.1 ?? "Unknown error")
         }
     }
 
     /// Stop sing-box regardless of how it was started
     func stopAny() async throws {
         if helperManager.isHelperInstalled {
-            // Helper installed — always use it (it runs as root, can kill any sing-box)
-            try await stop()
-        } else {
-            // No helper — fallback to sudo pkill
-            try await stopViaScript()
+            do {
+                try await stop()
+                return
+            } catch {
+                // Helper failed, fallback to script
+            }
         }
+        try await stopViaScript()
     }
 
-    /// Stop external sing-box using osascript for sudo
     private func stopViaScript() async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
             "-e",
-            "do shell script \"pkill -f 'sing-box run' || true\" with administrator privileges"
+            "do shell script \"pkill -x sing-box || true\" with administrator privileges"
         ]
         try process.run()
         process.waitUntilExit()
-        if process.terminationStatus == 0 {
-            isRunning = false
-            pid = 0
-            isExternalProcess = false
-        } else {
-            throw SingBoxError.stopFailed("Failed to stop sing-box process")
-        }
+        isRunning = false
+        pid = 0
+        isExternalProcess = false
     }
 
     func restart(configPath: String) async throws {
         try await stopAny()
-        // Helper waits for ports to release, but give extra buffer
         try await Task.sleep(for: .seconds(2))
         try await start(configPath: configPath)
+    }
+
+    /// Run an async operation with a timeout
+    private func withTimeout<T: Sendable>(seconds: Int, defaultValue: T, operation: @escaping @Sendable () async -> T) async -> T {
+        await withTaskGroup(of: T.self) { group in
+            group.addTask { await operation() }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(seconds))
+                return defaultValue
+            }
+            let result = await group.next() ?? defaultValue
+            group.cancelAll()
+            return result
+        }
     }
 }
 
