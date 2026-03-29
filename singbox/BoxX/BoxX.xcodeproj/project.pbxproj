@@ -31,6 +31,7 @@
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
+		C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */; };
 		CA555942B8B8494999381A5F /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67DE93C42F2614F14BE4375 /* RulesView.swift */; };
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
 		D6E71EB2B460AF350CA00140 /* ProxyModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */; };
@@ -85,6 +86,7 @@
 		9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleManager.swift; sourceTree = "<group>"; };
 		9F9360A996360ED7484C86E3 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
 		B1F605B3DA3C289944EC8E66 /* BoxXHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxXHelper.entitlements; sourceTree = "<group>"; };
+		B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddRuleSheet.swift; sourceTree = "<group>"; };
 		C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashAPITests.swift; sourceTree = "<group>"; };
 		C92D36E087DFEB3FE6AC5111 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 		A8B70330834890FBCFD372D7 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */,
 				8CAEE62A30EDCED844892451 /* ConnectionsView.swift */,
 				3233A78B55590B6DFD58E74C /* LogsView.swift */,
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
@@ -359,6 +362,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */,
 				A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */,
 				A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */,
 				CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */,

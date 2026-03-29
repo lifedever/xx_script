@@ -65,6 +65,24 @@
 "connections.ctx.rule_added_title" = "Rule Added";
 "connections.ctx.rule_added_msg" = "Rule: %@\nTarget: %@\n\nWritten to:\n  %@\n\nThe singbox local JSON takes effect immediately.\nRun 'Update Subscriptions' or push to GitHub for ss/clash rules to take effect.";
 "connections.ctx.rule_partial_title" = "Rule Partially Added";
+"connections.detail.title" = "Connection Detail";
+"connections.detail.port" = "Port";
+"connections.detail.type" = "Type";
+"connections.detail.source" = "Source";
+"connections.detail.process" = "Process";
+
+// Add Rule Sheet
+"addrule.title" = "Add Rule";
+"addrule.type" = "Rule Type";
+"addrule.value" = "Value";
+"addrule.target" = "Target";
+"addrule.target.proxy" = "via proxy";
+"addrule.target.direct" = "direct connect";
+"addrule.target.ai" = "AI services";
+"addrule.preview" = "Will write to:";
+"addrule.cancel" = "Cancel";
+"addrule.save" = "Save Rule";
+"addrule.success" = "Rule saved to: %@";
 
 // Logs
 "logs.auto_scroll" = "Auto-scroll";

@@ -9,9 +9,11 @@ struct ConnectionsView: View {
     @State private var searchText = ""
     @State private var wsTask: Task<Void, Never>?
     @State private var sortOrder = [KeyPathComparator(\Connection.start, order: .reverse)]
+    @State private var selectedID: Connection.ID?
+    @State private var showAddRule = false
+    @State private var addRuleConnection: Connection?
 
     private let wsClient = ClashWebSocket()
-    private let maxRows = 500
 
     private let byteFormatter: ByteCountFormatter = {
         let f = ByteCountFormatter()
@@ -21,14 +23,19 @@ struct ConnectionsView: View {
 
     var filteredConnections: [Connection] {
         let sorted = connections.sorted(using: sortOrder)
-        let prefix = Array(sorted.prefix(maxRows))
-        if searchText.isEmpty { return prefix }
-        return prefix.filter {
+        let capped = Array(sorted.prefix(500))
+        if searchText.isEmpty { return capped }
+        return capped.filter {
             $0.host.localizedCaseInsensitiveContains(searchText) ||
             $0.rule.localizedCaseInsensitiveContains(searchText) ||
             $0.outbound.localizedCaseInsensitiveContains(searchText) ||
             $0.chain.localizedCaseInsensitiveContains(searchText)
         }
+    }
+
+    var selectedConnection: Connection? {
+        guard let id = selectedID else { return nil }
+        return connections.first { $0.id == id }
     }
 
     var body: some View {
@@ -69,71 +76,101 @@ struct ConnectionsView: View {
 
             Divider()
 
-            Table(filteredConnections, sortOrder: $sortOrder) {
-                TableColumn(String(localized: "connections.time"), value: \.start) { conn in
-                    Text(conn.startTimeString)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                .width(min: 60, ideal: 70)
+            // Table + Detail split
+            VSplitView {
+                // Table
+                Table(filteredConnections, selection: $selectedID, sortOrder: $sortOrder) {
+                    TableColumn(String(localized: "connections.time"), value: \.start) { conn in
+                        Text(conn.startTimeString)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(min: 60, ideal: 70)
 
-                TableColumn(String(localized: "connections.host"), value: \.host) { conn in
-                    Text(conn.host)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .help(conn.host)
-                }
-                .width(min: 150, ideal: 220)
+                    TableColumn(String(localized: "connections.host"), value: \.host) { conn in
+                        Text(conn.host)
+                            .font(.caption)
+                            .lineLimit(1)
+                    }
+                    .width(min: 150, ideal: 220)
 
-                TableColumn(String(localized: "connections.network")) { conn in
-                    Text(conn.network)
-                        .font(.caption.monospaced())
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(conn.network == "UDP" ? Color.orange.opacity(0.15) : Color.blue.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                }
-                .width(min: 40, ideal: 50)
+                    TableColumn(String(localized: "connections.network")) { conn in
+                        Text(conn.network)
+                            .font(.caption2.monospaced())
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(conn.network == "UDP" ? Color.orange.opacity(0.15) : Color.blue.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                    .width(min: 40, ideal: 50)
 
-                TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
-                    Text(conn.rule)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .help(conn.rule)
-                }
-                .width(min: 100, ideal: 160)
+                    TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
+                        Text(conn.rule)
+                            .font(.caption)
+                            .lineLimit(1)
+                    }
+                    .width(min: 100, ideal: 160)
 
-                TableColumn(String(localized: "connections.outbound"), value: \.outbound) { conn in
-                    Text(conn.outbound)
-                        .font(.caption)
-                }
-                .width(min: 80, ideal: 110)
+                    TableColumn(String(localized: "connections.outbound"), value: \.outbound)
+                        .width(min: 80, ideal: 100)
 
-                TableColumn(String(localized: "connections.chain")) { conn in
-                    Text(conn.chain)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .help(conn.chain)
-                }
-                .width(min: 100, ideal: 160)
+                    TableColumn(String(localized: "connections.chain")) { conn in
+                        Text(conn.chain)
+                            .font(.caption)
+                            .lineLimit(1)
+                    }
+                    .width(min: 100, ideal: 150)
 
-                TableColumn("↓ " + String(localized: "connections.download")) { conn in
-                    Text(byteFormatter.string(fromByteCount: conn.download))
-                        .font(.caption.monospacedDigit())
-                }
-                .width(min: 60, ideal: 80)
+                    TableColumn("↓") { conn in
+                        Text(byteFormatter.string(fromByteCount: conn.download))
+                            .font(.caption.monospacedDigit())
+                    }
+                    .width(min: 50, ideal: 70)
 
-                TableColumn("↑ " + String(localized: "connections.upload")) { conn in
-                    Text(byteFormatter.string(fromByteCount: conn.upload))
-                        .font(.caption.monospacedDigit())
+                    TableColumn("↑") { conn in
+                        Text(byteFormatter.string(fromByteCount: conn.upload))
+                            .font(.caption.monospacedDigit())
+                    }
+                    .width(min: 50, ideal: 70)
                 }
-                .width(min: 60, ideal: 80)
+                .contextMenu(forSelectionType: Connection.ID.self) { ids in
+                    if let id = ids.first, let conn = connections.first(where: { $0.id == id }) {
+                        Button(String(localized: "connections.ctx.copy_host")) {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(conn.host, forType: .string)
+                        }
+                        Divider()
+                        Button(String(localized: "connections.ctx.add_rule")) {
+                            addRuleConnection = conn
+                            showAddRule = true
+                        }
+                        Divider()
+                        Button(String(localized: "connections.ctx.close")) {
+                            Task { try? await api.closeConnection(id: conn.id) }
+                        }
+                    }
+                } primaryAction: { _ in }
+
+                // Detail panel
+                if let conn = selectedConnection {
+                    ConnectionDetailPanel(connection: conn, byteFormatter: byteFormatter) {
+                        addRuleConnection = conn
+                        showAddRule = true
+                    } onClose: {
+                        Task { try? await api.closeConnection(id: conn.id) }
+                    }
+                }
             }
-            .contextMenu(forSelectionType: Connection.ID.self) { ids in
-                if let id = ids.first, let conn = connections.first(where: { $0.id == id }) {
-                    contextMenuItems(for: conn)
-                }
-            } primaryAction: { _ in }
+        }
+        .sheet(isPresented: $showAddRule) {
+            if let conn = addRuleConnection {
+                AddRuleSheet(
+                    host: conn.host,
+                    domain: conn.domainForRule,
+                    ip: conn.metadata.destinationIP,
+                    onDismiss: { showAddRule = false }
+                )
+            }
         }
         .task {
             wsTask = Task {
@@ -149,67 +186,68 @@ struct ConnectionsView: View {
             wsClient.disconnect()
         }
     }
+}
 
-    @ViewBuilder
-    private func contextMenuItems(for conn: Connection) -> some View {
-        let host = conn.host
-        let domain = conn.domainForRule
+// MARK: - Detail Panel
 
-        Button(String(localized: "connections.ctx.copy_host")) {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(host, forType: .string)
-        }
+struct ConnectionDetailPanel: View {
+    let connection: Connection
+    let byteFormatter: ByteCountFormatter
+    let onAddRule: () -> Void
+    let onClose: () -> Void
 
-        Divider()
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(String(localized: "connections.detail.title"))
+                            .font(.headline)
+                        Spacer()
+                        Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
+                            .controlSize(.small)
+                        Button(String(localized: "connections.ctx.close")) { onClose() }
+                            .controlSize(.small)
+                            .tint(.red)
+                    }
 
-        if !conn.metadata.host.isEmpty {
-            Menu(String(localized: "connections.ctx.add_rule")) {
-                Menu("DOMAIN-SUFFIX,\(domain)") {
-                    Button("→ Proxy") { addRule("DOMAIN-SUFFIX", value: domain, target: "Proxy") }
-                    Button("→ DIRECT") { addRule("DOMAIN-SUFFIX", value: domain, target: "DIRECT") }
-                    Button("→ AI") { addRule("DOMAIN-SUFFIX", value: domain, target: "AI") }
+                    LazyVGrid(columns: [GridItem(.fixed(100), alignment: .trailing), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 6) {
+                        DetailRow(label: String(localized: "connections.host"), value: connection.host)
+                        DetailRow(label: "IP", value: connection.metadata.destinationIP)
+                        DetailRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
+                        DetailRow(label: String(localized: "connections.network"), value: connection.network)
+                        DetailRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
+                        DetailRow(label: String(localized: "connections.rule"), value: connection.rule)
+                        DetailRow(label: String(localized: "connections.outbound"), value: connection.outbound)
+                        DetailRow(label: String(localized: "connections.chain"), value: connection.chain)
+                        DetailRow(label: String(localized: "connections.detail.source"), value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
+                        DetailRow(label: String(localized: "connections.time"), value: connection.startTimeString)
+                        DetailRow(label: "↓", value: byteFormatter.string(fromByteCount: connection.download))
+                        DetailRow(label: "↑", value: byteFormatter.string(fromByteCount: connection.upload))
+                        if !connection.metadata.processPath.isEmpty {
+                            DetailRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
+                        }
+                    }
                 }
-                Menu("DOMAIN,\(host)") {
-                    Button("→ Proxy") { addRule("DOMAIN", value: host, target: "Proxy") }
-                    Button("→ DIRECT") { addRule("DOMAIN", value: host, target: "DIRECT") }
-                    Button("→ AI") { addRule("DOMAIN", value: host, target: "AI") }
-                }
+                .padding()
             }
-        } else {
-            Menu(String(localized: "connections.ctx.add_rule")) {
-                Menu("IP-CIDR,\(host)/32") {
-                    Button("→ Proxy") { addRule("IP-CIDR", value: "\(host)/32", target: "Proxy") }
-                    Button("→ DIRECT") { addRule("IP-CIDR", value: "\(host)/32", target: "DIRECT") }
-                }
-            }
-        }
-
-        Divider()
-
-        Button(String(localized: "connections.ctx.close")) {
-            Task { try? await api.closeConnection(id: conn.id) }
+            .frame(height: 180)
+            .background(.bar)
         }
     }
+}
 
-    private func addRule(_ type: String, value: String, target: String) {
-        let ruleManager = RuleManager()
-        let result = ruleManager.addRule(type: type, value: value, target: target)
+struct DetailRow: View {
+    let label: String
+    let value: String
 
-        let alert = NSAlert()
-        if result.errors.isEmpty {
-            alert.alertStyle = .informational
-            alert.messageText = String(localized: "connections.ctx.rule_added_title")
-            let files = result.filesModified.joined(separator: "\n  ")
-            alert.informativeText = String(format: String(localized: "connections.ctx.rule_added_msg"),
-                                           "\(type),\(value)", target, files)
-        } else {
-            alert.alertStyle = .warning
-            alert.messageText = String(localized: "connections.ctx.rule_partial_title")
-            let modified = result.filesModified.isEmpty ? "None" : result.filesModified.joined(separator: ", ")
-            let errors = result.errors.joined(separator: "\n")
-            alert.informativeText = "Modified: \(modified)\nErrors:\n\(errors)"
-        }
-        alert.addButton(withTitle: String(localized: "error.ok"))
-        alert.runModal()
+    var body: some View {
+        Text(label)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        Text(value)
+            .font(.caption.monospaced())
+            .textSelection(.enabled)
     }
 }
