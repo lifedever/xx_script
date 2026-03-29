@@ -275,22 +275,21 @@ struct ProxiesView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .center)
 
-            // 编辑 + 删除 text buttons
-            HStack(spacing: 8) {
+            // 操作按钮
+            HStack(spacing: 6) {
                 Button("编辑") {
                     editingGroupTag = group.name
                     showGroupEdit = true
                 }
-                .font(.caption)
-                .buttonStyle(.plain)
-                .foregroundStyle(.blue)
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
 
                 Button("删除") {
                     deletingGroupTag = group.name
                 }
-                .font(.callout)
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .tint(.red)
             }
             .frame(width: 100, alignment: .center)
         }

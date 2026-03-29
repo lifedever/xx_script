@@ -182,22 +182,21 @@ struct RuleSetsView: View {
             }
             .frame(width: 100, alignment: .leading)
 
-            // 编辑 + 删除 + 刷新
+            // 操作按钮
             HStack(spacing: 6) {
                 Button("编辑") {
                     editingOutbound = outboundForRuleSet(tag: tag) ?? availableOutbounds.first ?? "Proxy"
                     editingRuleSetTag = tag
                 }
-                .font(.caption)
-                .buttonStyle(.plain)
-                .foregroundStyle(.blue)
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
 
                 Button("删除") {
                     deleteRuleSet(at: index, tag: tag)
                 }
-                .font(.caption)
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .tint(.red)
 
                 // Refresh status for remote
                 if let status = ruleSetUpdateStatus[tag] {
