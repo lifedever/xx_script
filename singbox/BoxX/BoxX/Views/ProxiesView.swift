@@ -355,7 +355,33 @@ struct ProxiesView: View {
     private func refreshGroups() async {
         isRefreshing = true
         defer { isRefreshing = false }
-        groups = (try? await appState.api.getProxies()) ?? []
+
+        let apiGroups = (try? await appState.api.getProxies()) ?? []
+        let apiMap = Dictionary(apiGroups.map { ($0.name, $0) }, uniquingKeysWith: { $1 })
+
+        // Merge: ConfigEngine groups (source of truth) + Clash API runtime state
+        var result: [ProxyGroup] = []
+        for outbound in appState.configEngine.config.outbounds {
+            switch outbound {
+            case .selector(let s):
+                if let api = apiMap[s.tag] {
+                    result.append(api)
+                } else {
+                    result.append(ProxyGroup(name: s.tag, type: "Selector", now: s.default, all: s.outbounds))
+                }
+            case .urltest(let u):
+                if let api = apiMap[u.tag] {
+                    result.append(api)
+                } else {
+                    result.append(ProxyGroup(name: u.tag, type: "URLTest", now: nil, all: u.outbounds))
+                }
+            default: break
+            }
+        }
+        for api in apiGroups where !result.contains(where: { $0.name == api.name }) {
+            result.append(api)
+        }
+        groups = result
     }
 
     private func selectNode(group: String, node: String) {
