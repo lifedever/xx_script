@@ -1,0 +1,76 @@
+// Menu Bar
+"menu.status.running" = "Running";
+"menu.status.running.pid" = "Running (PID: %d)";
+"menu.status.running.external" = "Running (external)";
+"menu.status.stopped" = "Stopped";
+"menu.start" = "Start sing-box";
+"menu.stop" = "Stop sing-box";
+"menu.update_subscriptions" = "Update Subscriptions";
+"menu.updating" = "Updating\u{2026}";
+"menu.open_dashboard" = "Open Dashboard";
+"menu.settings" = "Settings\u{2026}";
+"menu.quit" = "Quit BoxX";
+"menu.no_proxy_groups" = "No proxy groups";
+
+// Sidebar
+"sidebar.overview" = "Overview";
+"sidebar.proxies" = "Proxies";
+"sidebar.rules" = "Rules";
+"sidebar.connections" = "Connections";
+"sidebar.logs" = "Logs";
+
+// Overview
+"overview.status" = "Status";
+"overview.running" = "Running";
+"overview.stopped" = "Stopped";
+"overview.pid" = "PID: %d";
+"overview.external_process" = "External process (e.g. box start)";
+"overview.connections" = "Connections";
+"overview.download" = "Download";
+"overview.upload" = "Upload";
+"overview.memory" = "Memory";
+
+// Proxies
+"proxies.search" = "Search groups\u{2026}";
+"proxies.timeout" = "timeout";
+
+// Rules
+"rules.search" = "Search rules\u{2026}";
+"rules.count" = "%d rules";
+
+// Connections
+"connections.search" = "Search connections\u{2026}";
+"connections.count" = "%d connections";
+"connections.close_all" = "Close All";
+"connections.host" = "Host";
+"connections.rule" = "Rule";
+"connections.outbound" = "Outbound";
+"connections.chain" = "Chain";
+
+// Logs
+"logs.auto_scroll" = "Auto-scroll";
+"logs.clear" = "Clear";
+
+// Settings
+"settings.general" = "General";
+"settings.launch_at_login" = "Launch at Login";
+"settings.paths" = "Paths";
+"settings.script_directory" = "Script Directory";
+"settings.browse" = "Browse\u{2026}";
+"settings.helper" = "Privileged Helper";
+"settings.helper.status" = "Status";
+"settings.helper.installed" = "Installed and running";
+"settings.helper.not_installed" = "Not installed";
+"settings.helper.install" = "Install Helper";
+"settings.helper.reinstall" = "Reinstall Helper";
+
+// Errors
+"error.title" = "Error";
+"error.ok" = "OK";
+
+// App Menu
+"appmenu.about" = "About BoxX";
+"appmenu.quit" = "Quit BoxX";
+"windowmenu.minimize" = "Minimize";
+"windowmenu.zoom" = "Zoom";
+"windowmenu.close" = "Close";

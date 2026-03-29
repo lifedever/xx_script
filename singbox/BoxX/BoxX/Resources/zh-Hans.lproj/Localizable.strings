@@ -1,0 +1,76 @@
+// Menu Bar
+"menu.status.running" = "\u8fd0\u884c\u4e2d";
+"menu.status.running.pid" = "\u8fd0\u884c\u4e2d (PID: %d)";
+"menu.status.running.external" = "\u8fd0\u884c\u4e2d (\u5916\u90e8\u542f\u52a8)";
+"menu.status.stopped" = "\u5df2\u505c\u6b62";
+"menu.start" = "\u542f\u52a8 sing-box";
+"menu.stop" = "\u505c\u6b62 sing-box";
+"menu.update_subscriptions" = "\u66f4\u65b0\u8ba2\u9605";
+"menu.updating" = "\u66f4\u65b0\u4e2d\u2026";
+"menu.open_dashboard" = "\u6253\u5f00\u9762\u677f";
+"menu.settings" = "\u8bbe\u7f6e\u2026";
+"menu.quit" = "\u9000\u51fa BoxX";
+"menu.no_proxy_groups" = "\u65e0\u4ee3\u7406\u7ec4";
+
+// Sidebar
+"sidebar.overview" = "\u6982\u89c8";
+"sidebar.proxies" = "\u4ee3\u7406";
+"sidebar.rules" = "\u89c4\u5219";
+"sidebar.connections" = "\u8fde\u63a5";
+"sidebar.logs" = "\u65e5\u5fd7";
+
+// Overview
+"overview.status" = "\u72b6\u6001";
+"overview.running" = "\u8fd0\u884c\u4e2d";
+"overview.stopped" = "\u5df2\u505c\u6b62";
+"overview.pid" = "PID: %d";
+"overview.external_process" = "\u5916\u90e8\u8fdb\u7a0b (\u5982 box start)";
+"overview.connections" = "\u8fde\u63a5\u6570";
+"overview.download" = "\u4e0b\u8f7d";
+"overview.upload" = "\u4e0a\u4f20";
+"overview.memory" = "\u5185\u5b58";
+
+// Proxies
+"proxies.search" = "\u641c\u7d22\u5206\u7ec4\u2026";
+"proxies.timeout" = "\u8d85\u65f6";
+
+// Rules
+"rules.search" = "\u641c\u7d22\u89c4\u5219\u2026";
+"rules.count" = "%d \u6761\u89c4\u5219";
+
+// Connections
+"connections.search" = "\u641c\u7d22\u8fde\u63a5\u2026";
+"connections.count" = "%d \u4e2a\u8fde\u63a5";
+"connections.close_all" = "\u5168\u90e8\u5173\u95ed";
+"connections.host" = "\u4e3b\u673a";
+"connections.rule" = "\u89c4\u5219";
+"connections.outbound" = "\u51fa\u7ad9";
+"connections.chain" = "\u94fe\u8def";
+
+// Logs
+"logs.auto_scroll" = "\u81ea\u52a8\u6eda\u52a8";
+"logs.clear" = "\u6e05\u7a7a";
+
+// Settings
+"settings.general" = "\u901a\u7528";
+"settings.launch_at_login" = "\u5f00\u673a\u542f\u52a8";
+"settings.paths" = "\u8def\u5f84";
+"settings.script_directory" = "\u811a\u672c\u76ee\u5f55";
+"settings.browse" = "\u6d4f\u89c8\u2026";
+"settings.helper" = "\u7279\u6743\u52a9\u624b";
+"settings.helper.status" = "\u72b6\u6001";
+"settings.helper.installed" = "\u5df2\u5b89\u88c5";
+"settings.helper.not_installed" = "\u672a\u5b89\u88c5";
+"settings.helper.install" = "\u5b89\u88c5\u52a9\u624b";
+"settings.helper.reinstall" = "\u91cd\u65b0\u5b89\u88c5\u52a9\u624b";
+
+// Errors
+"error.title" = "\u9519\u8bef";
+"error.ok" = "\u786e\u5b9a";
+
+// App Menu
+"appmenu.about" = "\u5173\u4e8e BoxX";
+"appmenu.quit" = "\u9000\u51fa BoxX";
+"windowmenu.minimize" = "\u6700\u5c0f\u5316";
+"windowmenu.zoom" = "\u7f29\u653e";
+"windowmenu.close" = "\u5173\u95ed";

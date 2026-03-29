@@ -35,11 +35,11 @@ struct LogsView: View {
 
                 Spacer()
 
-                Toggle("Auto-scroll", isOn: $autoScroll)
+                Toggle(String(localized: "logs.auto_scroll"), isOn: $autoScroll)
                     .toggleStyle(.checkbox)
                     .controlSize(.small)
 
-                Button("Clear") {
+                Button(String(localized: "logs.clear")) {
                     ringBuffer.removeAll()
                     logEntries = []
                 }

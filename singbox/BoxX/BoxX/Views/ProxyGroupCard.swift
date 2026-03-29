@@ -148,7 +148,7 @@ struct ProxyGroupCard: View {
 
     @ViewBuilder
     private func delayText(_ delay: Int) -> some View {
-        Text(delay == 0 ? "timeout" : "\(delay) ms")
+        Text(delay == 0 ? String(localized: "proxies.timeout") : "\(delay) ms")
             .font(.caption.monospacedDigit())
             .foregroundStyle(delay == 0 ? .red : delay < 150 ? .green : delay < 400 ? .yellow : .orange)
     }

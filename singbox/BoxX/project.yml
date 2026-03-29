@@ -5,6 +5,7 @@ options:
     macOS: "14.0"
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
+  defaultLocalizations: [en, zh-Hans]
 
 settings:
   base:

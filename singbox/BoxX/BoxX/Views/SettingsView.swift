@@ -15,20 +15,20 @@ struct SettingsView: View {
     var body: some View {
         Form {
             // General
-            Section("General") {
-                Toggle("Launch at Login", isOn: $launchAtLogin)
+            Section(String(localized: "settings.general")) {
+                Toggle(String(localized: "settings.launch_at_login"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
                         setLaunchAtLogin(enabled: newValue)
                     }
             }
 
             // Paths
-            Section("Paths") {
-                LabeledContent("Script Directory") {
+            Section(String(localized: "settings.paths")) {
+                LabeledContent(String(localized: "settings.script_directory")) {
                     HStack {
                         TextField("Path to xx_script singbox directory", text: $scriptDir)
                             .textFieldStyle(.roundedBorder)
-                        Button("Browse…") {
+                        Button(String(localized: "settings.browse")) {
                             browseScriptDir()
                         }
                     }
@@ -36,8 +36,8 @@ struct SettingsView: View {
             }
 
             // Privileged Helper
-            Section("Privileged Helper") {
-                LabeledContent("Status") {
+            Section(String(localized: "settings.helper")) {
+                LabeledContent(String(localized: "settings.helper.status")) {
                     HStack {
                         Circle()
                             .fill(helperInstalled ? Color.green : Color.red)
@@ -48,7 +48,7 @@ struct SettingsView: View {
                 }
 
                 HStack {
-                    Button(helperInstalled ? "Reinstall Helper" : "Install Helper") {
+                    Button(helperInstalled ? String(localized: "settings.helper.reinstall") : String(localized: "settings.helper.install")) {
                         Task { await installHelper() }
                     }
                     .disabled(isInstallingHelper)
@@ -114,7 +114,9 @@ struct SettingsView: View {
 
     private func refreshHelperStatus() {
         helperInstalled = helperManager.isHelperInstalled
-        helperStatusMessage = helperInstalled ? "Installed and running" : "Not installed"
+        helperStatusMessage = helperInstalled
+            ? String(localized: "settings.helper.installed")
+            : String(localized: "settings.helper.not_installed")
     }
 
     private func installHelper() async {

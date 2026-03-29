@@ -34,10 +34,10 @@ struct ConnectionsView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search connections…", text: $searchText)
+                TextField(String(localized: "connections.search"), text: $searchText)
                     .textFieldStyle(.plain)
                 Spacer()
-                Text("\(filteredConnections.count) connections")
+                Text(String(format: String(localized: "connections.count"), filteredConnections.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("↓ \(byteFormatter.string(fromByteCount: downloadTotal))")
@@ -46,7 +46,7 @@ struct ConnectionsView: View {
                 Text("↑ \(byteFormatter.string(fromByteCount: uploadTotal))")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.blue)
-                Button("Close All") {
+                Button(String(localized: "connections.close_all")) {
                     Task { try? await api.closeAllConnections() }
                 }
                 .buttonStyle(.bordered)
@@ -59,13 +59,13 @@ struct ConnectionsView: View {
             Divider()
 
             Table(filteredConnections) {
-                TableColumn("Host", value: \.host)
+                TableColumn(String(localized: "connections.host"), value: \.host)
                     .width(min: 150, ideal: 200)
-                TableColumn("Rule", value: \.rule)
+                TableColumn(String(localized: "connections.rule"), value: \.rule)
                     .width(min: 80, ideal: 120)
-                TableColumn("Outbound", value: \.outbound)
+                TableColumn(String(localized: "connections.outbound"), value: \.outbound)
                     .width(min: 80, ideal: 120)
-                TableColumn("Chain", value: \.chain)
+                TableColumn(String(localized: "connections.chain"), value: \.chain)
                     .width(min: 100, ideal: 150)
                 TableColumn("Download") { conn in
                     Text(byteFormatter.string(fromByteCount: conn.download))

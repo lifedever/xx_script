@@ -1,13 +1,23 @@
 import SwiftUI
 
 enum SidebarItem: String, CaseIterable, Identifiable {
-    case overview = "Overview"
-    case proxies = "Proxies"
-    case rules = "Rules"
-    case connections = "Connections"
-    case logs = "Logs"
+    case overview
+    case proxies
+    case rules
+    case connections
+    case logs
 
     var id: String { rawValue }
+
+    var localizedTitle: String {
+        switch self {
+        case .overview: return String(localized: "sidebar.overview")
+        case .proxies: return String(localized: "sidebar.proxies")
+        case .rules: return String(localized: "sidebar.rules")
+        case .connections: return String(localized: "sidebar.connections")
+        case .logs: return String(localized: "sidebar.logs")
+        }
+    }
 
     var icon: String {
         switch self {
@@ -30,7 +40,7 @@ struct MainView: View {
     var body: some View {
         NavigationSplitView {
             List(SidebarItem.allCases, selection: $selectedItem) { item in
-                Label(item.rawValue, systemImage: item.icon)
+                Label(item.localizedTitle, systemImage: item.icon)
                     .tag(item)
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
@@ -39,19 +49,19 @@ struct MainView: View {
                 switch item {
                 case .overview:
                     OverviewView(api: api, singBoxManager: singBoxManager)
-                        .navigationTitle("Overview")
+                        .navigationTitle(String(localized: "sidebar.overview"))
                 case .proxies:
                     ProxiesView(api: api)
-                        .navigationTitle("Proxies")
+                        .navigationTitle(String(localized: "sidebar.proxies"))
                 case .rules:
                     RulesView(api: api)
-                        .navigationTitle("Rules")
+                        .navigationTitle(String(localized: "sidebar.rules"))
                 case .connections:
                     ConnectionsView(api: api)
-                        .navigationTitle("Connections")
+                        .navigationTitle(String(localized: "sidebar.connections"))
                 case .logs:
                     LogsView()
-                        .navigationTitle("Logs")
+                        .navigationTitle(String(localized: "sidebar.logs"))
                 }
             } else {
                 Text("Select a section")

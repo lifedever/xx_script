@@ -23,15 +23,15 @@ struct OverviewView: View {
                             .foregroundStyle(singBoxManager.isRunning ? Color.green : Color.secondary)
                             .font(.system(size: 14))
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(singBoxManager.isRunning ? "Running" : "Stopped")
+                            Text(singBoxManager.isRunning ? String(localized: "overview.running") : String(localized: "overview.stopped"))
                                 .font(.headline)
                             if singBoxManager.isRunning {
                                 if singBoxManager.isExternalProcess {
-                                    Text("External process (e.g. box start)")
+                                    Text(String(localized: "overview.external_process"))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 } else if singBoxManager.pid != 0 {
-                                    Text("PID: \(singBoxManager.pid)")
+                                    Text(String(format: String(localized: "overview.pid"), singBoxManager.pid))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -41,29 +41,29 @@ struct OverviewView: View {
                     }
                     .padding(4)
                 } label: {
-                    Label("Status", systemImage: "server.rack")
+                    Label(String(localized: "overview.status"), systemImage: "server.rack")
                 }
 
                 // Stats Grid
                 if let snap = snapshot {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         StatCard(
-                            title: "Connections",
+                            title: String(localized: "overview.connections"),
                             value: "\(snap.connections?.count ?? 0)",
                             icon: "link"
                         )
                         StatCard(
-                            title: "Download",
+                            title: String(localized: "overview.download"),
                             value: byteFormatter.string(fromByteCount: snap.downloadTotal),
                             icon: "arrow.down.circle"
                         )
                         StatCard(
-                            title: "Upload",
+                            title: String(localized: "overview.upload"),
                             value: byteFormatter.string(fromByteCount: snap.uploadTotal),
                             icon: "arrow.up.circle"
                         )
                         StatCard(
-                            title: "Memory",
+                            title: String(localized: "overview.memory"),
                             value: snap.memory.map { byteFormatter.string(fromByteCount: $0) } ?? "N/A",
                             icon: "memorychip"
                         )

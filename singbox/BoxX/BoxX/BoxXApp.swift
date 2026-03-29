@@ -42,16 +42,39 @@ struct BoxXApp: App {
                 configGenerator: configGenerator
             )
             .environment(appState)
-            .alert("Error", isPresented: Binding(
+            .alert(String(localized: "error.title"), isPresented: Binding(
                 get: { appState.showError },
                 set: { appState.showError = $0 }
             )) {
-                Button("OK", role: .cancel) { appState.showError = false }
+                Button(String(localized: "error.ok"), role: .cancel) { appState.showError = false }
             } message: {
                 Text(appState.errorMessage ?? "An unknown error occurred.")
             }
+            .onAppear {
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            .onDisappear {
+                NSApp.setActivationPolicy(.accessory)
+            }
         }
         .defaultSize(width: 900, height: 600)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(String(localized: "appmenu.about")) {
+                    NSApp.orderFrontStandardAboutPanel(nil)
+                }
+            }
+            CommandGroup(replacing: .appTermination) {
+                Button(String(localized: "appmenu.quit")) {
+                    NSApplication.shared.terminate(nil)
+                }
+                .keyboardShortcut("q")
+            }
+            CommandGroup(replacing: .windowList) {
+                EmptyView()
+            }
+        }
 
         Settings {
             SettingsView()

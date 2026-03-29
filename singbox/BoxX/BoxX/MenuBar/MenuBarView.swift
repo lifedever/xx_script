@@ -16,14 +16,14 @@ struct MenuBarView: View {
             // Status
             if appState.isRunning {
                 if singBoxManager.isExternalProcess {
-                    Label("Running (external)", systemImage: "circle.fill")
+                    Label(String(localized: "menu.status.running.external"), systemImage: "circle.fill")
                         .foregroundStyle(Color.green)
                 } else {
-                    Label("Running (PID: \(appState.pid))", systemImage: "circle.fill")
+                    Label(String(format: String(localized: "menu.status.running.pid"), appState.pid), systemImage: "circle.fill")
                         .foregroundStyle(Color.green)
                 }
             } else {
-                Label("Stopped", systemImage: "circle")
+                Label(String(localized: "menu.status.stopped"), systemImage: "circle")
                     .foregroundStyle(Color.secondary)
             }
 
@@ -31,7 +31,7 @@ struct MenuBarView: View {
 
             // Start / Stop
             if appState.isRunning {
-                Button("Stop sing-box") {
+                Button(String(localized: "menu.stop")) {
                     Task {
                         do {
                             try await singBoxManager.stop()
@@ -44,7 +44,7 @@ struct MenuBarView: View {
                     }
                 }
             } else {
-                Button("Start sing-box") {
+                Button(String(localized: "menu.start")) {
                     Task {
                         do {
                             try await singBoxManager.start(configPath: configGenerator.configPath)
@@ -59,7 +59,7 @@ struct MenuBarView: View {
             }
 
             // Update Subscriptions
-            Button(isUpdatingSubscriptions ? "Updating…" : "Update Subscriptions") {
+            Button(isUpdatingSubscriptions ? String(localized: "menu.updating") : String(localized: "menu.update_subscriptions")) {
                 guard !isUpdatingSubscriptions else { return }
                 isUpdatingSubscriptions = true
                 Task {
@@ -75,7 +75,7 @@ struct MenuBarView: View {
 
             // Proxy group submenus (only Selector groups)
             if proxyGroups.isEmpty {
-                Text("No proxy groups")
+                Text(String(localized: "menu.no_proxy_groups"))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(proxyGroups.filter { $0.type == "Selector" }) { group in
@@ -102,13 +102,13 @@ struct MenuBarView: View {
             Divider()
 
             // Open Dashboard
-            Button("Open Dashboard") {
+            Button(String(localized: "menu.open_dashboard")) {
                 openWindow(id: "main")
                 NSApp.activate()
             }
 
             // Settings
-            Button("Settings…") {
+            Button(String(localized: "menu.settings")) {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 NSApp.activate()
             }
@@ -116,7 +116,7 @@ struct MenuBarView: View {
             Divider()
 
             // Quit
-            Button("Quit BoxX") {
+            Button(String(localized: "menu.quit")) {
                 NSApplication.shared.terminate(nil)
             }
         }

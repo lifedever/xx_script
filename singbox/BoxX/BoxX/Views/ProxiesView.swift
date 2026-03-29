@@ -22,7 +22,7 @@ struct ProxiesView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search groups…", text: $searchText)
+                TextField(String(localized: "proxies.search"), text: $searchText)
                     .textFieldStyle(.plain)
                 Spacer()
                 Button {

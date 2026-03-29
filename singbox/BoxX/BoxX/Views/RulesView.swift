@@ -22,10 +22,10 @@ struct RulesView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search rules…", text: $searchText)
+                TextField(String(localized: "rules.search"), text: $searchText)
                     .textFieldStyle(.plain)
                 Spacer()
-                Text("\(filteredRules.count) rules")
+                Text(String(format: String(localized: "rules.count"), filteredRules.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
