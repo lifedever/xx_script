@@ -118,13 +118,23 @@ struct SubscriptionsView: View {
     // MARK: - File I/O (shared with MenuBarView)
 
     static var subscriptionsFilePath: String {
-        let scriptDir = UserDefaults.standard.string(forKey: "scriptDir")
-            ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox")
-        return scriptDir + "/subscriptions.json"
+        let baseDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("BoxX")
+        // Ensure directory exists
+        try? FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
+        return baseDir.appendingPathComponent("subscriptions.json").path
     }
 
     static func loadSubscriptions() -> [Subscription] {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: subscriptionsFilePath)) else { return [] }
+        let newPath = subscriptionsFilePath
+        // Migrate from old path if needed (one-time v1 -> v2 migration)
+        if !FileManager.default.fileExists(atPath: newPath) {
+            let oldPath = NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox/subscriptions.json"
+            if FileManager.default.fileExists(atPath: oldPath) {
+                try? FileManager.default.copyItem(atPath: oldPath, toPath: newPath)
+            }
+        }
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: newPath)) else { return [] }
         return (try? JSONDecoder().decode([Subscription].self, from: data)) ?? []
     }
 

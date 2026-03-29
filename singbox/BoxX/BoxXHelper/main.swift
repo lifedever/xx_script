@@ -35,7 +35,7 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
 
     func startSingBox(configPath: String, withReply reply: @escaping (Bool, String?) -> Void) {
         serialQueue.async { [self] in
-            guard (configPath.contains("/singbox/") || configPath.hasPrefix("/tmp/boxx/") || configPath.contains("/Library/Application Support/BoxX/")) && configPath.hasSuffix(".json") else {
+            guard (configPath.hasPrefix("/tmp/boxx/") || configPath.contains("/Library/Application Support/BoxX/")) && configPath.hasSuffix(".json") else {
                 reply(false, "Invalid config path")
                 return
             }

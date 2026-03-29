@@ -241,4 +241,82 @@ final class ClashYAMLParserTests: XCTestCase {
         let parser = ClashYAMLParser()
         XCTAssertThrowsError(try parser.parse(yaml.data(using: .utf8)!))
     }
+
+    // MARK: - Real subscription data patterns
+
+    /// Test parsing nodes with unquoted colons in names (e.g. "套餐到期：长期有效")
+    func testParseInlineUnquotedColonInName() throws {
+        let yaml = """
+        proxies:
+            - { name: 套餐到期：长期有效, type: vless, server: example.com, port: 443, uuid: test-uuid, tls: true, servername: example.com }
+            - { name: 剩余流量：980.32 GB, type: vless, server: example2.com, port: 443, uuid: test-uuid2, tls: true, servername: example2.com }
+        """
+        let parser = ClashYAMLParser()
+        // These are info nodes, not real proxies. The parser should either
+        // parse them (they have valid type/server/port) or skip them.
+        // As long as it doesn't crash, the behavior is acceptable.
+        let nodes = try parser.parse(yaml.data(using: .utf8)!)
+        // Both have valid fields so they should parse
+        XCTAssertEqual(nodes.count, 2)
+    }
+
+    /// Test parsing nodes with single-quoted names containing full-width colons
+    func testParseInlineQuotedColonInName() throws {
+        let yaml = """
+        proxies:
+            - { name: '🇭🇰香港高速01|BGP|流媒体', type: vless, server: aws-link1.example.com, port: 35248, uuid: abc-123, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.example.com, reality-opts: { public-key: pk123, short-id: sid456 } }
+            - { name: '🇸🇬新加坡高速01|BGP', type: vless, server: sg.example.com, port: 35249, uuid: def-456, tls: true, servername: sg.example.com }
+        """
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(yaml.data(using: .utf8)!)
+        XCTAssertEqual(nodes.count, 2)
+        XCTAssertEqual(nodes[0].tag, "🇭🇰香港高速01|BGP|流媒体")
+        XCTAssertEqual(nodes[0].port, 35248)
+        XCTAssertEqual(nodes[1].tag, "🇸🇬新加坡高速01|BGP")
+        XCTAssertEqual(nodes[1].port, 35249)
+    }
+
+    /// Test that a realistic mixed subscription (info lines + real proxies) parses correctly
+    func testRealisticSubscription() throws {
+        let yaml = """
+        proxies:
+            - { name: 套餐到期：长期有效, type: vless, server: placeholder.com, port: 1, uuid: 00000000-0000-0000-0000-000000000000, tls: true, servername: placeholder.com }
+            - { name: 剩余流量：980.32 GB, type: vless, server: placeholder.com, port: 1, uuid: 00000000-0000-0000-0000-000000000000, tls: true, servername: placeholder.com }
+            - { name: '🇭🇰香港高速01|BGP|流媒体', type: vless, server: hk.example.com, port: 35248, uuid: real-uuid-1, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.example.com, reality-opts: { public-key: pubkey1, short-id: shortid1 } }
+            - { name: '🇯🇵日本高速01|BGP|流媒体', type: vless, server: jp.example.com, port: 35249, uuid: real-uuid-2, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.example.com, reality-opts: { public-key: pubkey2, short-id: shortid2 } }
+            - { name: '🇭🇰香港-SS', type: ss, server: ss.example.com, port: 36602, cipher: aes-128-gcm, password: testpwd, plugin: obfs-local, plugin-opts: { mode: http, host: example.baidu.com } }
+        """
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(yaml.data(using: .utf8)!)
+        // All 5 lines have valid type/server/port, so all should parse
+        XCTAssertEqual(nodes.count, 5)
+        // Verify the real proxy nodes
+        XCTAssertEqual(nodes[2].tag, "🇭🇰香港高速01|BGP|流媒体")
+        XCTAssertEqual(nodes[2].type, .vless)
+        XCTAssertEqual(nodes[2].port, 35248)
+        XCTAssertEqual(nodes[3].tag, "🇯🇵日本高速01|BGP|流媒体")
+        XCTAssertEqual(nodes[3].type, .vless)
+        XCTAssertEqual(nodes[4].tag, "🇭🇰香港-SS")
+        XCTAssertEqual(nodes[4].type, .shadowsocks)
+    }
+
+    /// Test that VLESS conversion produces valid sing-box JSON with reality opts
+    func testRealisticVLESSConversion() throws {
+        let yaml = """
+        proxies:
+            - { name: '🇭🇰香港01', type: vless, server: hk.example.com, port: 35248, uuid: real-uuid, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.example.com, reality-opts: { public-key: pubkey, short-id: shortid } }
+        """
+        let parser = ClashYAMLParser()
+        let nodes = try parser.parse(yaml.data(using: .utf8)!)
+        XCTAssertEqual(nodes.count, 1)
+        let outbound = nodes[0].toOutbound()
+        guard case .vless(let vl) = outbound else { XCTFail("Expected vless"); return }
+        XCTAssertEqual(vl.tag, "🇭🇰香港01")
+        XCTAssertEqual(vl.server, "hk.example.com")
+        XCTAssertEqual(vl.serverPort, 35248)
+        XCTAssertEqual(vl.uuid, "real-uuid")
+        XCTAssertEqual(vl.flow, "xtls-rprx-vision")
+        // TLS with reality should be in unknownFields
+        XCTAssertNotNil(vl.unknownFields["tls"])
+    }
 }
