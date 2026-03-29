@@ -16,7 +16,6 @@ struct RouteRulesView: View {
         let id: Int  // config index
     }
     @State private var editItem: EditItem?
-    @State private var deletingRuleIndex: Int?
 
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }
@@ -116,17 +115,17 @@ struct RouteRulesView: View {
             AddRuleSheet(editingIndex: item.id)
                 .onDisappear { Task { await loadRules() } }
         }
-        .alert("确认删除", isPresented: .init(
+        .confirmationDialog("确认删除", isPresented: .init(
             get: { deletingRuleIndex != nil },
             set: { if !$0 { deletingRuleIndex = nil } }
-        )) {
-            Button("取消", role: .cancel) { deletingRuleIndex = nil }
+        ), titleVisibility: .visible) {
             Button("删除", role: .destructive) {
                 if let idx = deletingRuleIndex { deleteRule(at: idx) }
                 deletingRuleIndex = nil
             }
+            Button("取消", role: .cancel) { deletingRuleIndex = nil }
         } message: {
-            Text("确定要删除这条规则吗？")
+            Text("确定要删除这条规则吗？此操作不可撤销。")
         }
     }
 
@@ -225,15 +224,10 @@ struct RouteRulesView: View {
         }
         .contextMenu {
             if !isSystem {
-                Button {
-                    editingRuleIndex = rule.id
-                    showAddRule = true
-                } label: {
+                Button { editItem = EditItem(id: rule.id) } label: {
                     Label("编辑", systemImage: "pencil")
                 }
-                Button("删除", role: .destructive) {
-                    deleteRule(at: rule.id)
-                }
+                Button("删除", role: .destructive) { deletingRuleIndex = rule.id }
             } else {
                 Text("系统规则，不可编辑")
             }
