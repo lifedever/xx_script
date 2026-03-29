@@ -68,6 +68,22 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             ])
         }
         menu.addItem(si)
+
+        // ── Start / Stop / Restart ──
+        if appState.isRunning {
+            let stopItem = NSMenuItem(title: "停止", action: #selector(stopSingBox), keyEquivalent: "")
+            stopItem.target = self
+            menu.addItem(stopItem)
+
+            let restartItem = NSMenuItem(title: "重启", action: #selector(restartSingBox), keyEquivalent: "")
+            restartItem.target = self
+            menu.addItem(restartItem)
+        } else {
+            let startItem = NSMenuItem(title: "启动", action: #selector(startSingBox), keyEquivalent: "")
+            startItem.target = self
+            menu.addItem(startItem)
+        }
+
         menu.addItem(.separator())
 
         // ── Outbound mode ──
@@ -242,6 +258,36 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     // MARK: - Actions
+
+    @objc private func startSingBox() {
+        Task {
+            try? await appState.configEngine.deployRuntime()
+            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+            _ = await appState.xpcClient.start(configPath: runtimePath)
+            StatusPoller.shared.nudge(appState: appState)
+            await fetchAndRebuild()
+        }
+    }
+
+    @objc private func stopSingBox() {
+        Task {
+            _ = await appState.xpcClient.stop()
+            StatusPoller.shared.nudge(appState: appState)
+            await fetchAndRebuild()
+        }
+    }
+
+    @objc private func restartSingBox() {
+        Task {
+            _ = await appState.xpcClient.stop()
+            try? await Task.sleep(for: .seconds(1))
+            try? await appState.configEngine.deployRuntime()
+            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+            _ = await appState.xpcClient.start(configPath: runtimePath)
+            StatusPoller.shared.nudge(appState: appState)
+            await fetchAndRebuild()
+        }
+    }
 
     @objc private func switchMode(_ sender: NSMenuItem) {
         guard let mode = sender.representedObject as? String else { return }
