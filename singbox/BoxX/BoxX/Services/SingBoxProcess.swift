@@ -20,17 +20,30 @@ class SingBoxProcess {
         await runOnBackground { self.killExistingSync() }
         await runOnBackground { self.waitForPortReleaseSync() }
 
-        // Start via osascript on background thread (blocks until password entered)
+        // Start via osascript on background thread
+        // Escape paths for shell: replace ' with '\''
         let sbPath = singBoxPath
-        let configDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
-        let shellCmd = "cd '\(configDir)' && '\(sbPath)' run -c '\(configPath)' &>/dev/null &"
+        let escapedConfigPath = configPath.replacingOccurrences(of: "'", with: "'\\''")
+        let escapedConfigDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
+            .replacingOccurrences(of: "'", with: "'\\''")
+
+        // Write a temp launcher script to avoid shell quoting issues in osascript
+        let launcherScript = """
+        #!/bin/bash
+        cd '\(escapedConfigDir)'
+        '\(sbPath)' run -c '\(escapedConfigPath)' &>/dev/null &
+        echo $!
+        """
+        let launcherPath = "/tmp/boxx-launcher.sh"
+        try launcherScript.write(toFile: launcherPath, atomically: true, encoding: .utf8)
+        FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcherPath)
 
         print("[BoxX] Starting sing-box with admin privileges...")
 
         let exitCode = await runOnBackground { () -> Int32 in
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-            proc.arguments = ["-e", "do shell script \"\(shellCmd)\" with administrator privileges"]
+            proc.arguments = ["-e", "do shell script \"/tmp/boxx-launcher.sh\" with administrator privileges"]
             proc.standardOutput = FileHandle.nullDevice
             proc.standardError = FileHandle.nullDevice
             try? proc.run()
@@ -66,13 +79,20 @@ class SingBoxProcess {
     func stop() async {
         print("[BoxX] Stopping sing-box...")
         await runOnBackground {
-            let proc = Process()
-            proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-            proc.arguments = ["-e", "do shell script \"pkill -x sing-box\" with administrator privileges"]
-            proc.standardOutput = FileHandle.nullDevice
-            proc.standardError = FileHandle.nullDevice
-            try? proc.run()
-            proc.waitUntilExit()
+            // Try user-level kill first (no password prompt)
+            self.killExistingSync()
+            Thread.sleep(forTimeInterval: 1)
+
+            // If still running (root process), use osascript
+            if self.findSingBoxPID() != nil {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                proc.arguments = ["-e", "do shell script \"pkill -x sing-box\" with administrator privileges"]
+                proc.standardOutput = FileHandle.nullDevice
+                proc.standardError = FileHandle.nullDevice
+                try? proc.run()
+                proc.waitUntilExit()
+            }
             self.waitForPortReleaseSync()
         }
         isRunning = false
