@@ -164,7 +164,7 @@ struct SubscriptionsView: View {
         }
 
         if appState.isRunning {
-            _ = await appState.xpcClient.reload()
+            // sing-box restart is handled by ConfigEngine.onDeployComplete
         }
 
         try? await Task.sleep(for: .seconds(5))
@@ -196,7 +196,7 @@ struct SubscriptionsView: View {
         }
 
         if appState.isRunning {
-            _ = await appState.xpcClient.reload()
+            // sing-box restart is handled by ConfigEngine.onDeployComplete
         }
 
         // Clear success status after a delay

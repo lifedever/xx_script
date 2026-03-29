@@ -39,7 +39,7 @@ class SubscriptionService: @unchecked Sendable {
 
         // 6. Save config and deploy
         try configEngine.save()
-        try await configEngine.deployRuntime()
+        try configEngine.deployRuntime()
 
         return (nodes.count, result.info)
     }

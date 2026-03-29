@@ -481,7 +481,73 @@ struct RulesView: View {
     private func loadRules() async {
         isLoading = true
         defer { isLoading = false }
-        rules = (try? await appState.api.getRules()) ?? []
+        // Show rules from App's config (source of truth) instead of Clash API
+        let configRules = appState.configEngine.config.route.rules ?? []
+        rules = configRules.enumerated().map { (index, rule) in
+            Rule(
+                id: index,
+                type: Self.extractRuleType(from: rule),
+                payload: Self.extractRulePayload(from: rule),
+                proxy: rule["outbound"]?.stringValue ?? rule["action"]?.stringValue ?? "—"
+            )
+        }
+    }
+
+    /// Extract rule type from a JSONValue rule object
+    private static func extractRuleType(from rule: JSONValue) -> String {
+        let typeKeys: [(key: String, label: String)] = [
+            ("domain_suffix", "DOMAIN-SUFFIX"),
+            ("domain", "DOMAIN"),
+            ("domain_keyword", "DOMAIN-KEYWORD"),
+            ("domain_regex", "DOMAIN-REGEX"),
+            ("ip_cidr", "IP-CIDR"),
+            ("source_ip_cidr", "SRC-IP-CIDR"),
+            ("rule_set", "RULE-SET"),
+            ("process_name", "PROCESS-NAME"),
+            ("process_path", "PROCESS-PATH"),
+            ("protocol", "PROTOCOL"),
+            ("port", "PORT"),
+            ("source_port", "SRC-PORT"),
+            ("network", "NETWORK"),
+            ("ip_is_private", "IP-PRIVATE"),
+            ("clash_mode", "MODE"),
+        ]
+        for (key, label) in typeKeys {
+            if rule[key] != nil { return label }
+        }
+        // Check for action-only rules (sniff, hijack-dns, etc.)
+        if let action = rule["action"]?.stringValue, rule["outbound"] == nil {
+            return action.uppercased()
+        }
+        return "UNKNOWN"
+    }
+
+    /// Extract match payload from a JSONValue rule object
+    private static func extractRulePayload(from rule: JSONValue) -> String {
+        let matchKeys = [
+            "domain_suffix", "domain", "domain_keyword", "domain_regex",
+            "ip_cidr", "source_ip_cidr", "rule_set", "process_name",
+            "process_path", "protocol", "port", "source_port", "network",
+        ]
+        for key in matchKeys {
+            if let val = rule[key] {
+                switch val {
+                case .string(let s):
+                    return s
+                case .array(let arr):
+                    let items = arr.compactMap { $0.stringValue }
+                    if items.count <= 3 {
+                        return items.joined(separator: ", ")
+                    }
+                    return "\(items.prefix(3).joined(separator: ", ")) (+\(items.count - 3))"
+                case .bool(let b):
+                    return String(b)
+                default:
+                    break
+                }
+            }
+        }
+        return "—"
     }
 }
 

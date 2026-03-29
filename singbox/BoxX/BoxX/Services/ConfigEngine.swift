@@ -20,8 +20,8 @@ class ConfigEngine: @unchecked Sendable {
     private var watcherObserver: NSObjectProtocol?
 
     /// Called after deployRuntime writes runtime-config.json.
-    /// App sets this to call XPCClient.reload().
-    var onDeployComplete: (() async -> Void)?
+    /// App sets this to restart sing-box via SingBoxProcess.
+    var onDeployComplete: (() throws -> Void)?
 
     init(baseDir: URL) {
         self.config = SingBoxConfig(inbounds: [], outbounds: [], route: RouteConfig())
@@ -50,7 +50,7 @@ class ConfigEngine: @unchecked Sendable {
 
     // MARK: - Save
 
-    func save() throws {
+    func save(restartRequired: Bool = true) throws {
         // Mtime conflict check: if file was externally modified since last load, reload first
         if let currentMtime = try? FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date,
            let lastMtime, currentMtime > lastMtime {
@@ -62,9 +62,9 @@ class ConfigEngine: @unchecked Sendable {
         try data.write(to: configURL, options: .atomic)
         lastMtime = try FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date
 
-        // Auto-deploy runtime config and reload sing-box
-        Task {
-            try? await deployRuntime()
+        // Auto-deploy runtime config and restart sing-box when structure changes
+        if restartRequired {
+            try? deployRuntime()
         }
     }
 
@@ -77,13 +77,13 @@ class ConfigEngine: @unchecked Sendable {
         return runtime
     }
 
-    func deployRuntime() async throws {
+    func deployRuntime() throws {
         let runtime = buildRuntimeConfig()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(runtime)
         try data.write(to: runtimeURL, options: .atomic)
-        await onDeployComplete?()
+        try onDeployComplete?()
     }
 
     // MARK: - Proxy File Management

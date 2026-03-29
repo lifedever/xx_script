@@ -221,10 +221,12 @@ struct OverviewView: View {
 
     private func doStart() async {
         isOperating = true; defer { isOperating = false }
-        let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-        let result = await appState.xpcClient.start(configPath: runtimePath)
-        if !result.success, let err = result.error {
-            appState.showAlert(err)
+        do {
+            try appState.configEngine.deployRuntime()
+            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+            try appState.singBoxProcess.start(configPath: runtimePath)
+        } catch {
+            appState.showAlert(error.localizedDescription)
         }
         StatusPoller.shared.nudge(appState: appState)
         await refresh()
@@ -232,22 +234,19 @@ struct OverviewView: View {
 
     private func doStop() async {
         isOperating = true; defer { isOperating = false }
-        let result = await appState.xpcClient.stop()
-        if !result.success, let err = result.error {
-            appState.showAlert(err)
-        }
+        appState.singBoxProcess.stop()
         StatusPoller.shared.nudge(appState: appState)
         await refresh()
     }
 
     private func doRestart() async {
         isOperating = true; defer { isOperating = false }
-        _ = await appState.xpcClient.stop()
-        try? await Task.sleep(for: .seconds(1))
-        let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-        let result = await appState.xpcClient.start(configPath: runtimePath)
-        if !result.success, let err = result.error {
-            appState.showAlert(err)
+        do {
+            try appState.configEngine.deployRuntime()
+            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+            try appState.singBoxProcess.restart(configPath: runtimePath)
+        } catch {
+            appState.showAlert(error.localizedDescription)
         }
         StatusPoller.shared.nudge(appState: appState)
         await refresh()

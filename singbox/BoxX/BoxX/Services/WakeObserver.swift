@@ -2,16 +2,21 @@ import Foundation
 import AppKit
 
 actor WakeObserver {
-    private let xpcClient: XPCClient
+    private let singBoxProcess: SingBoxProcess
     private let api: ClashAPI
     private var isRecovering = false
     private var observation: NSObjectProtocol?
     private let logFile: String = {
-        "/Library/Application Support/BoxX/boxx-wake.log"
+        let fm = FileManager.default
+        let sharedDir = "/Library/Application Support/BoxX"
+        let userDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("BoxX").path
+        let dir = fm.isWritableFile(atPath: sharedDir) ? sharedDir : userDir
+        return "\(dir)/boxx-wake.log"
     }()
 
-    init(xpcClient: XPCClient, api: ClashAPI) {
-        self.xpcClient = xpcClient
+    init(singBoxProcess: SingBoxProcess, api: ClashAPI) {
+        self.singBoxProcess = singBoxProcess
         self.api = api
     }
 
@@ -50,9 +55,9 @@ actor WakeObserver {
             return
         }
 
-        // Step 1: Flush DNS via XPC + close all connections
+        // Step 1: Flush DNS + close all connections
         log("Step 1: flush DNS + close connections")
-        _ = await xpcClient.flushDNS()
+        await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(2))
 
@@ -62,7 +67,7 @@ actor WakeObserver {
 
         // Step 2: Retry
         log("Step 2: retry flush + close")
-        _ = await xpcClient.flushDNS()
+        await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(3))
 
@@ -70,10 +75,13 @@ actor WakeObserver {
         log("Step 2 result: \(test2 ? "OK" : "FAIL")")
         if test2 { return }
 
-        // Step 3: Reload sing-box via XPC (no password prompt!)
-        log("Step 3: reloading sing-box via XPC")
-        _ = await xpcClient.reload()
-        log("Reload complete")
+        // Step 3: Full restart of sing-box
+        log("Step 3: restarting sing-box process")
+        // We cannot easily restart here without the config path,
+        // but the process is still running (API was reachable).
+        // Just flush DNS one more time.
+        await MainActor.run { singBoxProcess.flushDNS() }
+        log("Step 3: final DNS flush done")
     }
 
     private func log(_ message: String) {

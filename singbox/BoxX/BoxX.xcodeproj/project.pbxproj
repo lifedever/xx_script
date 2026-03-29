@@ -17,6 +17,7 @@
 		2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F312446DB749C20DF79E3D /* RuleSetManager.swift */; };
 		334B133A0825CF16ABA42884 /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B65B5EDDE76159D34C31513B /* SubscriptionService.swift */; };
 		33BF5225C7BA62C13F7D3804 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D36E087DFEB3FE6AC5111 /* main.swift */; };
+		36277799D5F3B4516B837900 /* SingBoxProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48921823F47E8A8BA52DDAB /* SingBoxProcess.swift */; };
 		368388499DF522127CE5843B /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8254EFC2D2594D80531A454 /* MenuBarController.swift */; };
 		39EA029175CED929C253468B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */; };
 		411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223B0D94A0BDD5B469B1C6D3 /* Rule.swift */; };
@@ -142,6 +143,7 @@
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
 		DE353F21CA0E9C04DF5D59DE /* AutoGrouperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoGrouperTests.swift; sourceTree = "<group>"; };
 		E43674654CE4FEB3AE5A3CDD /* BuiltinRuleSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuiltinRuleSet.swift; sourceTree = "<group>"; };
+		E48921823F47E8A8BA52DDAB /* SingBoxProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxProcess.swift; sourceTree = "<group>"; };
 		E773F3A6B33BEDE219ED24CB /* SingBoxJSONParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxJSONParserTests.swift; sourceTree = "<group>"; };
 		EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteConfig.swift; sourceTree = "<group>"; };
 		ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModelsTests.swift; sourceTree = "<group>"; };
@@ -186,6 +188,7 @@
 				9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */,
 				46F312446DB749C20DF79E3D /* RuleSetManager.swift */,
 				3E933712F9588A4920A916AD /* SingBoxJSONParser.swift */,
+				E48921823F47E8A8BA52DDAB /* SingBoxProcess.swift */,
 				70E1CBC5CE03DF6787AA4B06 /* SubscriptionFetcher.swift */,
 				B65B5EDDE76159D34C31513B /* SubscriptionService.swift */,
 				167EFFD13A60A868D1FABC99 /* WakeObserver.swift */,
@@ -522,6 +525,7 @@
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */,
 				EA7D5850BAD79996E1D08848 /* SingBoxJSONParser.swift in Sources */,
+				36277799D5F3B4516B837900 /* SingBoxProcess.swift in Sources */,
 				FCEDFA3F770C35008D856FA3 /* SubscriptionFetcher.swift in Sources */,
 				334B133A0825CF16ABA42884 /* SubscriptionService.swift in Sources */,
 				DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */,

@@ -38,14 +38,8 @@ struct BoxXApp: App {
                 state.showAlert("Failed to load config: \(error.localizedDescription)")
             }
 
-            // Initial status check: XPC first, fallback to Clash API
-            // This detects sing-box started by box.sh or other means
-            let xpcStatus = await state.xpcClient.getStatus()
-            if xpcStatus.running {
-                state.isRunning = true
-            } else {
-                state.isRunning = await state.api.isReachable()
-            }
+            // Initial status check: see if sing-box is already running
+            state.isRunning = await state.singBoxProcess.refreshStatus()
 
             // Create AppKit menu bar (NSStatusItem + NSMenu for Surge-style layout)
             MenuBarHolder.shared.controller = MenuBarController(appState: state)
@@ -57,7 +51,7 @@ struct BoxXApp: App {
             state.configEngine.startWatching()
 
             // Setup wake observer
-            let observer = WakeObserver(xpcClient: state.xpcClient, api: state.api)
+            let observer = WakeObserver(singBoxProcess: state.singBoxProcess, api: state.api)
             await observer.startObserving()
         }
     }
@@ -91,8 +85,7 @@ struct BoxXApp: App {
                 if appState.isRunning {
                     Button("停止") {
                         Task {
-                            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                            _ = await appState.xpcClient.stop()
+                            appState.singBoxProcess.stop()
                             StatusPoller.shared.nudge(appState: appState)
                         }
                     }
@@ -100,10 +93,13 @@ struct BoxXApp: App {
 
                     Button("重启") {
                         Task {
-                            _ = await appState.xpcClient.stop()
-                            try? await Task.sleep(for: .seconds(1))
-                            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                            _ = await appState.xpcClient.start(configPath: runtimePath)
+                            do {
+                                try appState.configEngine.deployRuntime()
+                                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                                try appState.singBoxProcess.restart(configPath: runtimePath)
+                            } catch {
+                                appState.showAlert(error.localizedDescription)
+                            }
                             StatusPoller.shared.nudge(appState: appState)
                         }
                     }
@@ -111,9 +107,13 @@ struct BoxXApp: App {
                 } else {
                     Button("启动") {
                         Task {
-                            try? await appState.configEngine.deployRuntime()
-                            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                            _ = await appState.xpcClient.start(configPath: runtimePath)
+                            do {
+                                try appState.configEngine.deployRuntime()
+                                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                                try appState.singBoxProcess.start(configPath: runtimePath)
+                            } catch {
+                                appState.showAlert(error.localizedDescription)
+                            }
                             StatusPoller.shared.nudge(appState: appState)
                         }
                     }
@@ -158,14 +158,9 @@ final class StatusPoller {
         }
     }
 
-    /// Check running status: try XPC first, fallback to Clash API reachability.
-    /// This ensures compatibility with box.sh-started sing-box instances.
+    /// Check running status via SingBoxProcess (managed process or Clash API fallback)
     private func checkStatus(appState: AppState) async -> Bool {
-        let xpcStatus = await appState.xpcClient.getStatus()
-        if xpcStatus.running { return true }
-        // Fallback: if XPC helper isn't running or doesn't know about the process,
-        // check if Clash API is reachable (box.sh or manually started sing-box)
-        return await appState.api.isReachable()
+        return await appState.singBoxProcess.refreshStatus()
     }
 
     /// Call this after any operation that changes state (start/stop/restart/wake)

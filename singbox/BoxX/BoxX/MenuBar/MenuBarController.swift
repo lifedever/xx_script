@@ -268,9 +268,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func startSingBox() {
         Task {
-            try? await appState.configEngine.deployRuntime()
-            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-            _ = await appState.xpcClient.start(configPath: runtimePath)
+            do {
+                try appState.configEngine.deployRuntime()
+                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                try appState.singBoxProcess.start(configPath: runtimePath)
+            } catch {
+                appState.showAlert(error.localizedDescription)
+            }
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
         }
@@ -278,7 +282,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func stopSingBox() {
         Task {
-            _ = await appState.xpcClient.stop()
+            appState.singBoxProcess.stop()
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
         }
@@ -286,11 +290,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func restartSingBox() {
         Task {
-            _ = await appState.xpcClient.stop()
-            try? await Task.sleep(for: .seconds(1))
-            try? await appState.configEngine.deployRuntime()
-            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-            _ = await appState.xpcClient.start(configPath: runtimePath)
+            do {
+                try appState.configEngine.deployRuntime()
+                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                try appState.singBoxProcess.restart(configPath: runtimePath)
+            } catch {
+                appState.showAlert(error.localizedDescription)
+            }
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
         }
@@ -315,7 +321,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 if case .selector(var selector) = appState.configEngine.config.outbounds[idx] {
                     selector.`default` = nodeName
                     appState.configEngine.config.outbounds[idx] = .selector(selector)
-                    try? appState.configEngine.save()
+                    try? appState.configEngine.save(restartRequired: false)
                 }
             }
             await fetchAndRebuild()

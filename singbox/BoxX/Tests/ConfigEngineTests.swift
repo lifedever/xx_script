@@ -282,7 +282,7 @@ final class ConfigEngineLoadSaveTests: XCTestCase {
         let nodes: [Outbound] = [.vmess(VMessOutbound(tag: "N1", server: "s.com", serverPort: 1, uuid: "u"))]
         try engine.saveProxies(name: "Sub1", nodes: nodes)
 
-        try await engine.deployRuntime()
+        try engine.deployRuntime()
 
         // Verify runtime-config.json was created
         let runtimePath = tempDir.appendingPathComponent("runtime-config.json")

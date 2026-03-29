@@ -12,20 +12,26 @@ final class AppState {
 
     // v2: core services
     let configEngine: ConfigEngine
-    let xpcClient: XPCClient
+    let singBoxProcess: SingBoxProcess
     let api: ClashAPI
     let subscriptionService: SubscriptionService
+
+    // Keep XPCClient around but unused for now
+    let xpcClient: XPCClient
 
     private init() {
         let baseDir = Self.resolveBaseDir()
         configEngine = ConfigEngine(baseDir: baseDir)
+        singBoxProcess = SingBoxProcess()
         xpcClient = XPCClient()
         api = ClashAPI()
         subscriptionService = SubscriptionService(configEngine: configEngine)
 
-        // Wire ConfigEngine deploy callback to XPC reload
-        configEngine.onDeployComplete = { [xpcClient] in
-            _ = await xpcClient.reload()
+        // When config deploys, restart sing-box
+        let process = singBoxProcess
+        let runtimePath = baseDir.appendingPathComponent("runtime-config.json").path
+        configEngine.onDeployComplete = {
+            try process.restart(configPath: runtimePath)
         }
     }
 
