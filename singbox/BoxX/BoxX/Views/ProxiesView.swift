@@ -10,29 +10,17 @@ struct ProxiesView: View {
     @State private var isRefreshing = false
     @State private var expandedGroup: String?
 
-    // Categorize groups
-    private var serviceGroups: [ProxyGroup] {
-        let serviceNames: Set<String> = ["Proxy", "OpenAI", "Google", "YouTube", "Netflix",
-                                          "Disney", "TikTok", "Microsoft", "Notion", "Apple"]
-        return filtered.filter { g in
-            serviceNames.contains(where: { g.name.contains($0) })
-        }
+    // MARK: - Group Classification
+
+    private struct ClassifiedGroups {
+        var top: [ProxyGroup] = []
+        var services: [ProxyGroup] = []
+        var regions: [ProxyGroup] = []
+        var subscriptions: [ProxyGroup] = []
     }
 
-    private var regionGroups: [ProxyGroup] {
-        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🌍"]
-        return filtered.filter { g in
-            regionPrefixes.contains(where: { g.name.hasPrefix($0) })
-        }
-    }
-
-    private var subscriptionGroups: [ProxyGroup] {
-        return filtered.filter { $0.name.hasPrefix("📦") }
-    }
-
-    private var otherGroups: [ProxyGroup] {
-        let known = Set(serviceGroups.map(\.id) + regionGroups.map(\.id) + subscriptionGroups.map(\.id))
-        return filtered.filter { !known.contains($0.id) }
+    private var classified: ClassifiedGroups {
+        classifyGroups(filtered)
     }
 
     private var filtered: [ProxyGroup] {
@@ -40,6 +28,42 @@ struct ProxiesView: View {
         if searchText.isEmpty { return selectors }
         return selectors.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
+
+    private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
+        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix",
+                                          "Disney", "TikTok", "Microsoft", "Notion",
+                                          "Apple", "Telegram", "Spotify", "Twitter",
+                                          "GitHub", "Steam", "Twitch", "Claude",
+                                          "Gemini", "ChatGPT"]
+        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇹🇼", "🌍"]
+        let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾"]
+
+        var result = ClassifiedGroups()
+        var classified = Set<String>()
+
+        for group in groups {
+            if group.name.hasPrefix("📦") {
+                result.subscriptions.append(group)
+                classified.insert(group.id)
+            } else if regionPrefixes.contains(where: { group.name.hasPrefix($0) })
+                        || regionNames.contains(where: { group.name.contains($0) }) {
+                result.regions.append(group)
+                classified.insert(group.id)
+            } else if serviceNames.contains(where: { group.name.contains($0) }) {
+                result.services.append(group)
+                classified.insert(group.id)
+            }
+        }
+
+        // Everything else goes to top (like "Proxy")
+        for group in groups where !classified.contains(group.id) {
+            result.top.append(group)
+        }
+
+        return result
+    }
+
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 0) {
@@ -81,54 +105,83 @@ struct ProxiesView: View {
                 }
             } else {
                 ScrollView {
-                    VStack(spacing: 16) {
-                        if !serviceGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.services"),
-                                icon: "arrow.triangle.branch",
-                                groups: serviceGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
-                            )
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Top-level groups (e.g. "Proxy") - full width cards
+                        if !classified.top.isEmpty {
+                            ForEach(classified.top) { group in
+                                ProxyGroupCard(
+                                    group: group,
+                                    delays: delays,
+                                    isTesting: testingGroups.contains(group.name),
+                                    isExpanded: expandedGroup == group.name,
+                                    onToggle: { toggleExpand(group.name) },
+                                    onSelect: { node in selectNode(group: group.name, node: node) },
+                                    onTest: { testGroupLatency(group) }
+                                )
+                            }
                         }
-                        if !regionGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.regions"),
-                                icon: "globe",
-                                groups: regionGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
+
+                        // Services section
+                        if !classified.services.isEmpty {
+                            sectionHeader(
+                                String(localized: "proxies.section.services"),
+                                icon: "arrow.triangle.branch"
                             )
+                            LazyVGrid(columns: gridColumns, spacing: 10) {
+                                ForEach(classified.services) { group in
+                                    ProxyGroupCard(
+                                        group: group,
+                                        delays: delays,
+                                        isTesting: testingGroups.contains(group.name),
+                                        isExpanded: expandedGroup == group.name,
+                                        onToggle: { toggleExpand(group.name) },
+                                        onSelect: { node in selectNode(group: group.name, node: node) },
+                                        onTest: { testGroupLatency(group) }
+                                    )
+                                }
+                            }
                         }
-                        if !subscriptionGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.subscriptions"),
-                                icon: "shippingbox",
-                                groups: subscriptionGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
+
+                        // Regions section
+                        if !classified.regions.isEmpty {
+                            sectionHeader(
+                                String(localized: "proxies.section.regions"),
+                                icon: "globe"
                             )
+                            LazyVGrid(columns: gridColumns, spacing: 10) {
+                                ForEach(classified.regions) { group in
+                                    ProxyGroupCard(
+                                        group: group,
+                                        delays: delays,
+                                        isTesting: testingGroups.contains(group.name),
+                                        isExpanded: expandedGroup == group.name,
+                                        onToggle: { toggleExpand(group.name) },
+                                        onSelect: { node in selectNode(group: group.name, node: node) },
+                                        onTest: { testGroupLatency(group) }
+                                    )
+                                }
+                            }
                         }
-                        if !otherGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.other"),
-                                icon: "ellipsis.circle",
-                                groups: otherGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
+
+                        // Subscriptions section
+                        if !classified.subscriptions.isEmpty {
+                            sectionHeader(
+                                String(localized: "proxies.section.subscriptions"),
+                                icon: "shippingbox"
                             )
+                            LazyVGrid(columns: gridColumns, spacing: 10) {
+                                ForEach(classified.subscriptions) { group in
+                                    ProxyGroupCard(
+                                        group: group,
+                                        delays: delays,
+                                        isTesting: testingGroups.contains(group.name),
+                                        isExpanded: expandedGroup == group.name,
+                                        onToggle: { toggleExpand(group.name) },
+                                        onSelect: { node in selectNode(group: group.name, node: node) },
+                                        onTest: { testGroupLatency(group) }
+                                    )
+                                }
+                            }
                         }
                     }
                     .padding()
@@ -137,6 +190,30 @@ struct ProxiesView: View {
         }
         .task {
             await refreshGroups()
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var gridColumns: [GridItem] {
+        [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+    }
+
+    private func sectionHeader(_ title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .foregroundStyle(.secondary)
+                .font(.caption)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.top, 4)
+    }
+
+    private func toggleExpand(_ name: String) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            expandedGroup = expandedGroup == name ? nil : name
         }
     }
 
@@ -153,7 +230,7 @@ struct ProxiesView: View {
         }
     }
 
-    private func testGroupLatency(group: ProxyGroup) {
+    private func testGroupLatency(_ group: ProxyGroup) {
         Task {
             testingGroups.insert(group.name)
             defer { testingGroups.remove(group.name) }
@@ -172,60 +249,9 @@ struct ProxiesView: View {
     }
 }
 
-// MARK: - Section
+// MARK: - Proxy Group Card
 
-struct ProxySection: View {
-    let title: String
-    let icon: String
-    let groups: [ProxyGroup]
-    let delays: [String: Int]
-    let testingGroups: Set<String>
-    @Binding var expandedGroup: String?
-    let onSelect: (String, String) -> Void
-    let onTest: (ProxyGroup) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Section header
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 6)
-
-            // Groups
-            VStack(spacing: 1) {
-                ForEach(groups) { group in
-                    ProxyGroupRow(
-                        group: group,
-                        delays: delays,
-                        isTesting: testingGroups.contains(group.name),
-                        isExpanded: expandedGroup == group.name,
-                        onToggle: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                expandedGroup = expandedGroup == group.name ? nil : group.name
-                            }
-                        },
-                        onSelect: { node in onSelect(group.name, node) },
-                        onTest: { onTest(group) }
-                    )
-                }
-            }
-            .background(.background)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator, lineWidth: 0.5))
-        }
-    }
-}
-
-// MARK: - Group Row
-
-struct ProxyGroupRow: View {
+private struct ProxyGroupCard: View {
     let group: ProxyGroup
     let delays: [String: Int]
     let isTesting: Bool
@@ -234,90 +260,158 @@ struct ProxyGroupRow: View {
     let onSelect: (String) -> Void
     let onTest: () -> Void
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // Main row
-            HStack(spacing: 10) {
-                // Expand arrow
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+    private var currentDelay: Int? {
+        guard let now = group.now else { return nil }
+        return delays[now]
+    }
 
-                // Group name
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Card header
+            cardHeader
+                .contentShape(Rectangle())
+                .onTapGesture { onToggle() }
+
+            // Expanded node list
+            if isExpanded {
+                Divider()
+                expandedNodeList
+            }
+        }
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(.separator, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private var cardHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Top row: name + type badge
+            HStack(spacing: 8) {
                 Text(group.name)
-                    .font(.body)
+                    .font(.body.weight(.medium))
                     .lineLimit(1)
 
                 Spacer()
 
-                // Current selection + delay
+                // Type badge
+                Text(typeBadgeText)
+                    .font(.caption2)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(typeBadgeColor.opacity(0.12))
+                    .foregroundStyle(typeBadgeColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            }
+
+            // Bottom row: current node + delay + count
+            HStack(spacing: 6) {
+                // Delay dot
+                Circle()
+                    .fill(delayDotColor)
+                    .frame(width: 6, height: 6)
+
                 if let now = group.now, !now.isEmpty {
-                    HStack(spacing: 6) {
-                        if let d = delays[now], d > 0 {
-                            DelayBadge(delay: d)
-                        }
-                        Text(now)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                    Text(now)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    if let d = currentDelay, d > 0 {
+                        Text("\(d)ms")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(delayColor(d))
                     }
                 }
+
+                Spacer()
+
+                // Node count
+                Text("\(group.displayAll.count)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
+                Image(systemName: "circle.grid.2x2")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
 
                 // Test button
                 Button(action: onTest) {
                     if isTesting {
-                        ProgressView().scaleEffect(0.5).frame(width: 14, height: 14)
+                        ProgressView().scaleEffect(0.5).frame(width: 12, height: 12)
                     } else {
                         Image(systemName: "speedometer")
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
                 .buttonStyle(.plain)
                 .disabled(isTesting)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-            .onTapGesture { onToggle() }
+        }
+        .padding(10)
+    }
 
-            // Expanded nodes
-            if isExpanded {
-                Divider().padding(.leading, 12)
+    private var expandedNodeList: some View {
+        VStack(spacing: 0) {
+            ForEach(group.displayAll, id: \.self) { node in
+                HStack(spacing: 8) {
+                    Image(systemName: group.now == node ? "checkmark.circle.fill" : "circle")
+                        .font(.caption)
+                        .foregroundStyle(group.now == node ? Color.accentColor : Color.secondary.opacity(0.4))
 
-                VStack(spacing: 0) {
-                    ForEach(group.displayAll, id: \.self) { node in
-                        HStack(spacing: 8) {
-                            Image(systemName: group.now == node ? "checkmark.circle.fill" : "circle")
-                                .font(.caption)
-                                .foregroundStyle(group.now == node ? Color.accentColor : Color.secondary.opacity(0.4))
+                    Text(node)
+                        .font(.caption)
+                        .lineLimit(1)
 
-                            Text(node)
-                                .font(.subheadline)
-                                .lineLimit(1)
+                    Spacer()
 
-                            Spacer()
-
-                            if let d = delays[node] {
-                                DelayBadge(delay: d)
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .contentShape(Rectangle())
-                        .background(group.now == node ? Color.accentColor.opacity(0.06) : Color.clear)
-                        .onTapGesture { onSelect(node) }
+                    if let d = delays[node] {
+                        DelayBadge(delay: d)
                     }
                 }
-                .padding(.bottom, 4)
-            }
-
-            // Separator between groups
-            if !isExpanded {
-                Divider().padding(.leading, 32)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+                .background(group.now == node ? Color.accentColor.opacity(0.06) : Color.clear)
+                .onTapGesture { onSelect(node) }
             }
         }
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - Badge Helpers
+
+    private var typeBadgeText: String {
+        switch group.type.lowercased() {
+        case "selector": return "select"
+        case "urltest", "url-test": return "url-test"
+        case "fallback": return "fallback"
+        default: return group.type.lowercased()
+        }
+    }
+
+    private var typeBadgeColor: Color {
+        switch group.type.lowercased() {
+        case "selector": return .blue
+        case "urltest", "url-test": return .green
+        case "fallback": return .orange
+        default: return .secondary
+        }
+    }
+
+    private var delayDotColor: Color {
+        guard let d = currentDelay, d > 0 else { return .gray }
+        return delayColor(d)
+    }
+
+    private func delayColor(_ delay: Int) -> Color {
+        if delay < 150 { return .green }
+        if delay <= 300 { return .yellow }
+        return .red
     }
 }
 
@@ -338,8 +432,8 @@ struct DelayBadge: View {
 
     private var color: Color {
         if delay <= 0 { return .red }
-        if delay < 200 { return .green }
-        if delay < 500 { return .yellow }
+        if delay < 150 { return .green }
+        if delay <= 300 { return .yellow }
         return .orange
     }
 }
