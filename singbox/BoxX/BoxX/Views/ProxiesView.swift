@@ -288,7 +288,7 @@ struct ProxiesView: View {
                 Button("删除") {
                     deletingGroupTag = group.name
                 }
-                .font(.caption)
+                .font(.callout)
                 .buttonStyle(.plain)
                 .foregroundStyle(.red)
             }

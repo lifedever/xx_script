@@ -147,74 +147,60 @@ struct OverviewView: View {
                 }
 
                 // MARK: - Proxy info
-                dashboardCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("代理信息")
-                            .font(.subheadline.bold())
+                HStack(spacing: 12) {
+                    infoCard(icon: "network", iconColor: .blue, title: "HTTP/SOCKS", value: "127.0.0.1:7890")
+                    infoCard(icon: "antenna.radiowaves.left.and.right", iconColor: .purple, title: "Clash API",
+                             value: appState.configEngine.config.experimental?.clashApi?.externalController ?? "127.0.0.1:9091")
+                }
 
-                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 6) {
-                            GridRow {
-                                Text("HTTP/SOCKS 代理")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                Text("127.0.0.1:7890")
-                                    .font(.body.monospaced())
+                HStack(spacing: 12) {
+                    // Config directory
+                    dashboardCard {
+                        HStack(spacing: 10) {
+                            Image(systemName: "folder.fill")
+                                .font(.title2).foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("配置目录").font(.caption).foregroundStyle(.secondary)
+                                Text(appState.configEngine.baseDir.path)
+                                    .font(.callout.monospaced())
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
                                     .textSelection(.enabled)
                             }
-                            GridRow {
-                                Text("Clash API")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                Text(appState.configEngine.config.experimental?.clashApi?.externalController ?? "127.0.0.1:9091")
-                                    .font(.body.monospaced())
-                                    .textSelection(.enabled)
-                            }
-                            GridRow {
-                                Text("sing-box 路径")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                Text("/opt/homebrew/bin/sing-box")
-                                    .font(.body.monospaced())
-                                    .textSelection(.enabled)
-                            }
-                            GridRow {
-                                Text("配置目录")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                HStack {
-                                    Text(appState.configEngine.baseDir.path)
-                                        .font(.body.monospaced())
-                                        .textSelection(.enabled)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                    Button {
-                                        NSWorkspace.shared.open(appState.configEngine.baseDir)
-                                    } label: {
-                                        Image(systemName: "folder")
-                                            .font(.caption)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .foregroundStyle(.blue)
-                                }
-                            }
-                            GridRow {
-                                Text("环境变量")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                HStack {
-                                    Text("export https_proxy=http://127.0.0.1:7890")
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                    Button("复制") {
-                                        let env = """
-                                        export https_proxy=http://127.0.0.1:7890
-                                        export http_proxy=http://127.0.0.1:7890
-                                        export all_proxy=socks5://127.0.0.1:7890
-                                        """
-                                        NSPasteboard.general.clearContents()
-                                        NSPasteboard.general.setString(env, forType: .string)
-                                    }
+                            Spacer()
+                            Button {
+                                NSWorkspace.shared.open(appState.configEngine.baseDir)
+                            } label: {
+                                Text("打开")
                                     .font(.caption)
-                                    .buttonStyle(.plain)
-                                    .foregroundStyle(.blue)
-                                }
                             }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+
+                    // Env copy
+                    dashboardCard {
+                        HStack(spacing: 10) {
+                            Image(systemName: "terminal.fill")
+                                .font(.title2).foregroundStyle(.green)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("环境变量").font(.caption).foregroundStyle(.secondary)
+                                Text("https_proxy / http_proxy / all_proxy")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button {
+                                let env = "export https_proxy=http://127.0.0.1:7890\nexport http_proxy=http://127.0.0.1:7890\nexport all_proxy=socks5://127.0.0.1:7890"
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(env, forType: .string)
+                            } label: {
+                                Text("复制")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                         }
                     }
                 }
@@ -236,6 +222,23 @@ struct OverviewView: View {
             .padding(12)
             .frame(maxWidth: .infinity)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func infoCard(icon: String, iconColor: Color, title: String, value: String) -> some View {
+        dashboardCard {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.title2).foregroundStyle(iconColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.caption).foregroundStyle(.secondary)
+                    Text(value)
+                        .font(.title3.monospaced().bold())
+                        .textSelection(.enabled)
+                }
+                Spacer()
+            }
+        }
     }
 
     private func speedString(_ bytesPerSecond: Int64) -> String {

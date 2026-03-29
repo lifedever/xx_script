@@ -182,7 +182,7 @@ struct RouteRulesView: View {
                     Button("删除") {
                         deleteRule(at: rule.id)
                     }
-                    .font(.caption)
+                    .font(.callout)
                     .buttonStyle(.plain)
                     .foregroundStyle(.red)
                 }
