@@ -9,6 +9,7 @@ struct RulesView: View {
     @State private var showAddRule = false
     @State private var enabledRuleSetIDs: Set<String> = []
     @State private var editingRuleSet: BuiltinRuleSet?
+    @State private var editingRuleSetTag: String?
     @State private var ruleSetUpdateStatus: [String: RuleSetUpdateStatus] = [:]
 
     enum RuleSetUpdateStatus {
@@ -262,16 +263,14 @@ struct RulesView: View {
     private var configuredRuleSetsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("已配置规则集")
-                        .font(.headline)
-                    Text("当前 config.json 中的规则集定义")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("已配置规则集")
+                    .font(.headline)
+                let ruleSets = appState.configEngine.config.route.ruleSet ?? []
+                Text("\(ruleSets.count) 个规则集")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Spacer()
-                let hasRemote = (appState.configEngine.config.route.ruleSet ?? [])
-                    .contains { $0["type"]?.stringValue == "remote" }
+                let hasRemote = ruleSets.contains { $0["type"]?.stringValue == "remote" }
                 if hasRemote {
                     Button {
                         Task { await updateAllRemoteRuleSets() }
@@ -293,90 +292,100 @@ struct RulesView: View {
                 Text("暂无规则集")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
+                    .padding(.vertical, 20)
             } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12),
-                ], spacing: 8) {
-                    ForEach(Array(ruleSets.enumerated()), id: \.offset) { _, ruleSet in
-                        configuredRuleSetCard(ruleSet)
+                // Table header
+                HStack(spacing: 0) {
+                    Text("#")
+                        .frame(width: 30, alignment: .leading)
+                    Text("标签")
+                        .frame(width: 180, alignment: .leading)
+                    Text("类型")
+                        .frame(width: 70, alignment: .leading)
+                    Text("URL/路径")
+                        .frame(minWidth: 160, alignment: .leading)
+                    Spacer()
+                    Text("格式")
+                        .frame(width: 60, alignment: .leading)
+                    Text("出站")
+                        .frame(width: 120, alignment: .leading)
+                    Text("")
+                        .frame(width: 30)
+                }
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(ruleSets.enumerated()), id: \.offset) { index, ruleSet in
+                        configuredRuleSetRow(index: index, ruleSet: ruleSet)
                     }
                 }
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
     }
 
-    private func configuredRuleSetCard(_ ruleSet: JSONValue) -> some View {
+    private func configuredRuleSetRow(index: Int, ruleSet: JSONValue) -> some View {
         let tag = ruleSet["tag"]?.stringValue ?? "unknown"
         let type = ruleSet["type"]?.stringValue ?? "unknown"
         let format = ruleSet["format"]?.stringValue ?? ""
         let url = ruleSet["url"]?.stringValue
         let path = ruleSet["path"]?.stringValue
         let isRemote = type == "remote"
+        let location = url ?? path ?? "—"
 
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(tag)
-                    .font(.callout.bold())
-                    .lineLimit(1)
-                Spacer()
-                if isRemote, let url = url {
-                    let isUpdating: Bool = {
-                        if case .updating = ruleSetUpdateStatus[tag] { return true }
-                        return false
-                    }()
-                    Button {
-                        Task { await updateRuleSet(tag: tag, url: url) }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.caption2)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .disabled(isUpdating)
-                    .help("更新规则集")
-                }
-                Text(type)
-                    .font(.caption2)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(type == "local" ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
-                    .foregroundStyle(type == "local" ? Color.green : Color.blue)
-                    .clipShape(Capsule())
-            }
+        return HStack(spacing: 0) {
+            // # column
+            Text("\(index + 1)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 30, alignment: .leading)
 
-            if let url = url {
-                Text(url)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            } else if let path = path {
-                Text(path)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
+            // Tag column
+            Text(tag)
+                .font(.body.monospaced())
+                .lineLimit(1)
+                .frame(width: 180, alignment: .leading)
 
-            if !format.isEmpty {
-                Text(format)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
+            // Type badge column
+            Text(type)
+                .font(.caption2.monospaced())
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(type == "local" ? Color.green.opacity(0.12) : Color.blue.opacity(0.12))
+                .foregroundStyle(type == "local" ? Color.green : Color.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(width: 70, alignment: .leading)
 
-            // Outbound routing
-            if let currentOutbound = outboundForRuleSet(tag: tag) {
-                HStack {
-                    Text("出站:")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+            // URL/Path column
+            Text(location)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(minWidth: 160, alignment: .leading)
+                .help(location)
 
+            Spacer()
+
+            // Format column
+            Text(format)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(width: 60, alignment: .leading)
+
+            // Outbound column (double-click to edit)
+            Group {
+                if editingRuleSetTag == tag {
                     Picker("", selection: Binding(
-                        get: { currentOutbound },
-                        set: { newValue in changeOutbound(forRuleSetTag: tag, to: newValue) }
+                        get: { outboundForRuleSet(tag: tag) ?? "Proxy" },
+                        set: { newValue in
+                            changeOutbound(forRuleSetTag: tag, to: newValue)
+                            editingRuleSetTag = nil
+                        }
                     )) {
                         ForEach(availableOutbounds, id: \.self) { name in
                             Text(name).tag(name)
@@ -384,40 +393,58 @@ struct RulesView: View {
                     }
                     .labelsHidden()
                     .controlSize(.small)
-                    .frame(maxWidth: 140)
+                } else {
+                    Text(outboundForRuleSet(tag: tag) ?? "未关联")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(outboundForRuleSet(tag: tag) != nil ? .primary : .tertiary)
+                        .onTapGesture(count: 2) { editingRuleSetTag = tag }
                 }
-            } else {
-                Text("未关联")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
+            .frame(width: 120, alignment: .leading)
 
-            // Update status indicator
-            if let status = ruleSetUpdateStatus[tag] {
-                switch status {
-                case .updating:
-                    HStack(spacing: 4) {
+            // Refresh / status column
+            Group {
+                if let status = ruleSetUpdateStatus[tag] {
+                    switch status {
+                    case .updating:
                         ProgressView().controlSize(.small)
-                        Text("更新中...").font(.caption2).foregroundStyle(.secondary)
+                    case .success:
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    case .failed:
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                    case .idle:
+                        ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
                     }
-                case .success:
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption)
-                        Text("已更新").font(.caption2).foregroundStyle(.green)
-                    }
-                case .failed(let error):
-                    HStack(spacing: 4) {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
-                        Text(error).font(.caption2).foregroundStyle(.red).lineLimit(1)
-                    }
-                case .idle:
-                    EmptyView()
+                } else {
+                    ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
                 }
             }
+            .frame(width: 30)
         }
-        .padding(8)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(index % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+    }
+
+    @ViewBuilder
+    private func ruleSetRefreshButton(tag: String, url: String?, isRemote: Bool) -> some View {
+        if isRemote, let url = url {
+            Button {
+                Task { await updateRuleSet(tag: tag, url: url) }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption2)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("更新规则集")
+        } else {
+            EmptyView()
+        }
     }
 
     // MARK: - Outbound Helpers
