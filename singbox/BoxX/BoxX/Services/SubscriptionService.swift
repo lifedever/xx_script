@@ -37,9 +37,8 @@ class SubscriptionService: @unchecked Sendable {
             nodeTags: outbounds.map { $0.tag }
         )
 
-        // 6. Save config and deploy
-        try configEngine.save()
-        try configEngine.deployRuntime()
+        // 6. Save config (restartRequired: true triggers deployRuntime + restart)
+        try configEngine.save(restartRequired: true)
 
         return (nodes.count, result.info)
     }

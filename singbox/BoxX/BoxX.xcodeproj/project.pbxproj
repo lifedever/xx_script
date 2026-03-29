@@ -27,7 +27,6 @@
 		6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */; };
 		6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1938ECE20FFDCBC5DA86303 /* MainView.swift */; };
 		6D2EBC2502369E291AE320B5 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292DC1809C61C3195C3C227 /* DataModels.swift */; };
-		7491BE185917A2B7C49A4FDB /* RuleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */; };
 		7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A786DA30C59DB926BE25E5A /* Assets.xcassets */; };
 		83473B83FEE9C71B170A7B7D /* config.json in Resources */ = {isa = PBXBuildFile; fileRef = D66DA05B940CC40693AB69E6 /* config.json */; };
@@ -120,7 +119,6 @@
 		97686E1935EF18A1381BBA97 /* SwiftData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftData.framework; path = System/Library/Frameworks/SwiftData.framework; sourceTree = SDKROOT; };
 		978990E5B126418AE87D12CB /* SingBoxConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxConfig.swift; sourceTree = "<group>"; };
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleManager.swift; sourceTree = "<group>"; };
 		9F9360A996360ED7484C86E3 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
 		A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboundConfig.swift; sourceTree = "<group>"; };
 		A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalConfig.swift; sourceTree = "<group>"; };
@@ -185,7 +183,6 @@
 				7C95AF63924DE05973F05781 /* ClashYAMLParser.swift */,
 				C5825098AE2B49A633D0A58A /* ConfigEngine.swift */,
 				3DB438A56B425DD4201D80DC /* FileWatcher.swift */,
-				9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */,
 				46F312446DB749C20DF79E3D /* RuleSetManager.swift */,
 				3E933712F9588A4920A916AD /* SingBoxJSONParser.swift */,
 				E48921823F47E8A8BA52DDAB /* SingBoxProcess.swift */,
@@ -519,7 +516,6 @@
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
-				7491BE185917A2B7C49A4FDB /* RuleManager.swift in Sources */,
 				2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */,
 				CA555942B8B8494999381A5F /* RulesView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,

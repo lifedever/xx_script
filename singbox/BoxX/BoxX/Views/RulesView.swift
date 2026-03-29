@@ -454,7 +454,11 @@ struct RulesView: View {
         currentRules.append(ruleSet.routeRule)
         appState.configEngine.config.route.rules = currentRules
 
-        try? appState.configEngine.save()
+        do {
+            try appState.configEngine.save(restartRequired: true)
+        } catch {
+            appState.showAlert("保存失败: \(error.localizedDescription)")
+        }
     }
 
     private func removeRuleSetFromConfig(_ ruleSet: BuiltinRuleSet) {
@@ -473,7 +477,11 @@ struct RulesView: View {
             return !refTags.isDisjoint(with: tagsToRemove)
         }
 
-        try? appState.configEngine.save()
+        do {
+            try appState.configEngine.save(restartRequired: true)
+        } catch {
+            appState.showAlert("保存失败: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Data Loading
@@ -704,6 +712,10 @@ struct BuiltinRuleSetEditSheet: View {
         }
         appState.configEngine.config.route.ruleSet = currentRuleSets
 
-        try? appState.configEngine.save()
+        do {
+            try appState.configEngine.save(restartRequired: true)
+        } catch {
+            appState.showAlert("保存失败: \(error.localizedDescription)")
+        }
     }
 }

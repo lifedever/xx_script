@@ -319,4 +319,61 @@ final class ClashYAMLParserTests: XCTestCase {
         // TLS with reality should be in unknownFields
         XCTAssertNotNil(vl.unknownFields["tls"])
     }
+
+    // MARK: - End-to-end subscription data test
+
+    /// Test with exact real-world inline YAML data format (from issue #1)
+    func testRealWorldInlineYAMLSubscription() throws {
+        let yaml = """
+        proxies:
+            - { name: '🇭🇰香港高速01|BGP|流媒体', type: vless, server: aws-link1.liangxin1.xyz, port: 35248, uuid: 13f15b9b-763b-4982-bfb6-8f1dbe1f3c06, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.lamer.com.hk, reality-opts: { public-key: IGsSxC0wgn7wLy0NM0QN_yOREDKT_814Y_3_rbgDoTc, short-id: c8c0f951 } }
+            - { name: '🇯🇵日本高速01|BGP|流媒体', type: vless, server: aws-link1.liangxin1.xyz, port: 35249, uuid: 13f15b9b-763b-4982-bfb6-8f1dbe1f3c06, udp: true, tls: true, skip-cert-verify: false, flow: xtls-rprx-vision, client-fingerprint: chrome, servername: www.lamer.com.hk, reality-opts: { public-key: IGsSxC0wgn7wLy0NM0QN_yOREDKT_814Y_3_rbgDoTc, short-id: c8c0f951 } }
+            - { name: '🇭🇰香港-SS', type: ss, server: hk-ss.example.com, port: 36602, cipher: aes-128-gcm, password: Ntk2ODA2YjQ0, plugin: obfs-local, plugin-opts: { mode: http, host: cdn.baidu.com } }
+            - { name: '🇺🇸美国-Trojan', type: trojan, server: us.example.com, port: 443, password: trojan-pwd-123, sni: us.example.com, skip-cert-verify: false }
+            - { name: '🇸🇬新加坡-HY2', type: hysteria2, server: sg.example.com, port: 443, password: hy2-pwd, sni: sg.example.com }
+        """
+        let parser = ClashYAMLParser()
+
+        // Verify can parse
+        XCTAssertTrue(parser.canParse(yaml.data(using: .utf8)!))
+
+        // Parse all nodes
+        let nodes = try parser.parse(yaml.data(using: .utf8)!)
+        XCTAssertEqual(nodes.count, 5, "Should parse all 5 proxy nodes")
+
+        // Verify VLESS with reality
+        XCTAssertEqual(nodes[0].tag, "🇭🇰香港高速01|BGP|流媒体")
+        XCTAssertEqual(nodes[0].type, .vless)
+        XCTAssertEqual(nodes[0].server, "aws-link1.liangxin1.xyz")
+        XCTAssertEqual(nodes[0].port, 35248)
+
+        let vlessOutbound = nodes[0].toOutbound()
+        guard case .vless(let vl) = vlessOutbound else { XCTFail("Expected vless outbound"); return }
+        XCTAssertEqual(vl.uuid, "13f15b9b-763b-4982-bfb6-8f1dbe1f3c06")
+        XCTAssertEqual(vl.flow, "xtls-rprx-vision")
+        XCTAssertNotNil(vl.unknownFields["tls"], "TLS config should be present")
+
+        // Verify second VLESS
+        XCTAssertEqual(nodes[1].tag, "🇯🇵日本高速01|BGP|流媒体")
+        XCTAssertEqual(nodes[1].port, 35249)
+
+        // Verify SS with obfs plugin
+        let ssOutbound = nodes[2].toOutbound()
+        guard case .shadowsocks(let ss) = ssOutbound else { XCTFail("Expected shadowsocks"); return }
+        XCTAssertEqual(ss.method, "aes-128-gcm")
+        XCTAssertEqual(ss.password, "Ntk2ODA2YjQ0")
+
+        // Verify Trojan
+        XCTAssertEqual(nodes[3].type, .trojan)
+        let trojanOutbound = nodes[3].toOutbound()
+        guard case .trojan(let t) = trojanOutbound else { XCTFail("Expected trojan"); return }
+        XCTAssertEqual(t.password, "trojan-pwd-123")
+        XCTAssertNotNil(t.unknownFields["tls"])
+
+        // Verify Hysteria2
+        XCTAssertEqual(nodes[4].type, .hysteria2)
+        let hy2Outbound = nodes[4].toOutbound()
+        guard case .hysteria2(let h) = hy2Outbound else { XCTFail("Expected hysteria2"); return }
+        XCTAssertEqual(h.password, "hy2-pwd")
+    }
 }

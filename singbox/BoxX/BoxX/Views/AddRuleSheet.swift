@@ -289,7 +289,7 @@ struct AddRuleSheet: View {
         appState.configEngine.config.route.rules = rules
 
         do {
-            try appState.configEngine.save()
+            try appState.configEngine.save(restartRequired: true)
             isSuccess = true
             resultMessage = "已添加到 config.json route.rules → \(selectedOutbound)"
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { close() }
