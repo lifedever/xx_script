@@ -78,6 +78,41 @@ struct BoxXApp: App {
                 }
         }
         .defaultSize(width: 900, height: 600)
+        .commands {
+            CommandMenu("操作") {
+                if appState.isRunning {
+                    Button("停止") {
+                        Task {
+                            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                            _ = await appState.xpcClient.stop()
+                            StatusPoller.shared.nudge(appState: appState)
+                        }
+                    }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+
+                    Button("重启") {
+                        Task {
+                            _ = await appState.xpcClient.stop()
+                            try? await Task.sleep(for: .seconds(1))
+                            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                            _ = await appState.xpcClient.start(configPath: runtimePath)
+                            StatusPoller.shared.nudge(appState: appState)
+                        }
+                    }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+                } else {
+                    Button("启动") {
+                        Task {
+                            try? await appState.configEngine.deployRuntime()
+                            let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                            _ = await appState.xpcClient.start(configPath: runtimePath)
+                            StatusPoller.shared.nudge(appState: appState)
+                        }
+                    }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+                }
+            }
+        }
 
         Window(String(localized: "menu.settings"), id: "settings") {
             SettingsView()
