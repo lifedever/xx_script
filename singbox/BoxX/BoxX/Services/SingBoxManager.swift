@@ -15,20 +15,22 @@ final class SingBoxManager {
     var isExternalProcess = false
 
     func refreshStatus() async {
-        // 1. Try Helper first
-        let helperResult = await checkViaHelper()
-        if helperResult.running {
-            isRunning = true
-            pid = helperResult.pid
-            isExternalProcess = false
-            return
-        }
-
-        // 2. Fallback: check Clash API directly (covers `box start` scenario)
+        // 1. Check Clash API first (fast, always works regardless of how sing-box was started)
         let apiReachable = await clashAPI.isReachable()
         if apiReachable {
+            // 2. Try Helper to get PID (with timeout, non-blocking)
+            if helperManager.isHelperInstalled {
+                let helperResult = await checkViaHelper()
+                if helperResult.running {
+                    isRunning = true
+                    pid = helperResult.pid
+                    isExternalProcess = false
+                    return
+                }
+            }
+            // API reachable but Helper not available → external process
             isRunning = true
-            pid = 0 // unknown PID for external process
+            pid = 0
             isExternalProcess = true
             return
         }
@@ -40,14 +42,32 @@ final class SingBoxManager {
     }
 
     private func checkViaHelper() async -> (running: Bool, pid: Int32) {
-        await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Int32), Never>) in
-            guard let helper = helperManager.getProxy() else {
-                continuation.resume(returning: (false, 0))
-                return
+        // Use withTaskGroup + sleep for a timeout to prevent hanging
+        await withTaskGroup(of: (Bool, Int32).self) { group in
+            group.addTask {
+                await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Int32), Never>) in
+                    guard let helper = self.helperManager.getProxyWithErrorHandler({ _ in
+                        continuation.resume(returning: (false, 0))
+                    }) else {
+                        continuation.resume(returning: (false, 0))
+                        return
+                    }
+                    helper.getStatus { running, pid in
+                        continuation.resume(returning: (running, pid))
+                    }
+                }
             }
-            helper.getStatus { running, pid in
-                continuation.resume(returning: (running, pid))
+            // Timeout after 3 seconds
+            group.addTask {
+                try? await Task.sleep(for: .seconds(3))
+                return (false, 0)
             }
+            // Return whichever finishes first
+            if let result = await group.next() {
+                group.cancelAll()
+                return result
+            }
+            return (false, 0)
         }
     }
 
