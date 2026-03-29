@@ -1,38 +1,30 @@
 import SwiftUI
 
 struct ProxiesView: View {
-    let api: ClashAPI
+    @Environment(AppState.self) private var appState
 
     @State private var groups: [ProxyGroup] = []
     @State private var delays: [String: Int] = [:]
     @State private var testingGroups: Set<String> = []
     @State private var searchText = ""
     @State private var isRefreshing = false
-    @State private var expandedGroup: String?
+    @State private var popoverGroup: String?
+    @State private var showGroupEdit = false
+    @State private var editingGroupTag: String?
+    @State private var deletingGroupTag: String?
+    @State private var selectedGroup: String?
 
-    // Categorize groups
-    private var serviceGroups: [ProxyGroup] {
-        let serviceNames: Set<String> = ["Proxy", "OpenAI", "Google", "YouTube", "Netflix",
-                                          "Disney", "TikTok", "Microsoft", "Notion", "Apple"]
-        return filtered.filter { g in
-            serviceNames.contains(where: { g.name.contains($0) })
-        }
+    // MARK: - Group Classification
+
+    private struct ClassifiedGroups {
+        var top: [ProxyGroup] = []
+        var services: [ProxyGroup] = []
+        var regions: [ProxyGroup] = []
+        var subscriptions: [ProxyGroup] = []
     }
 
-    private var regionGroups: [ProxyGroup] {
-        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🌍"]
-        return filtered.filter { g in
-            regionPrefixes.contains(where: { g.name.hasPrefix($0) })
-        }
-    }
-
-    private var subscriptionGroups: [ProxyGroup] {
-        return filtered.filter { $0.name.hasPrefix("📦") }
-    }
-
-    private var otherGroups: [ProxyGroup] {
-        let known = Set(serviceGroups.map(\.id) + regionGroups.map(\.id) + subscriptionGroups.map(\.id))
-        return filtered.filter { !known.contains($0.id) }
+    private var classified: ClassifiedGroups {
+        classifyGroups(filtered)
     }
 
     private var filtered: [ProxyGroup] {
@@ -41,20 +33,63 @@ struct ProxiesView: View {
         return selectors.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack(spacing: 8) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField(String(localized: "proxies.search"), text: $searchText)
-                        .textFieldStyle(.plain)
-                }
-                .padding(6)
-                .background(.quaternary)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+    private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
+        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix",
+                                          "Disney", "TikTok", "Microsoft", "Notion",
+                                          "Apple", "Telegram", "Spotify", "Twitter",
+                                          "GitHub", "Steam", "Twitch", "Claude",
+                                          "Gemini", "ChatGPT"]
+        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇹🇼", "🌍"]
+        let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾"]
 
+        var result = ClassifiedGroups()
+        var classified = Set<String>()
+
+        for group in groups {
+            if group.name.hasPrefix("📦") {
+                result.subscriptions.append(group)
+                classified.insert(group.id)
+            } else if regionPrefixes.contains(where: { group.name.hasPrefix($0) })
+                        || regionNames.contains(where: { group.name.contains($0) }) {
+                result.regions.append(group)
+                classified.insert(group.id)
+            } else if serviceNames.contains(where: { group.name.contains($0) }) {
+                result.services.append(group)
+                classified.insert(group.id)
+            }
+        }
+
+        // Everything else goes to top (like "Proxy")
+        for group in groups where !classified.contains(group.id) {
+            result.top.append(group)
+        }
+
+        return result
+    }
+
+    /// Flattened list of all rows for alternating background calculation
+    private var allRows: [ProxyGroup] {
+        var rows: [ProxyGroup] = []
+        rows.append(contentsOf: classified.top)
+        rows.append(contentsOf: classified.services)
+        rows.append(contentsOf: classified.regions)
+        rows.append(contentsOf: classified.subscriptions)
+        return rows
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Toolbar
+            HStack {
+                Text("策略组")
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                TextField("搜索...", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 200)
                 Button {
                     Task { await refreshGroups() }
                 } label: {
@@ -64,12 +99,23 @@ struct ProxiesView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
-                .buttonStyle(.plain)
+                .help("刷新")
                 .disabled(isRefreshing)
+                Button {
+                    testAllGroupsLatency()
+                } label: {
+                    Image(systemName: "speedometer")
+                }
+                .help("测速全部")
+                Button {
+                    editingGroupTag = nil
+                    showGroupEdit = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("新建策略组")
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(.bar)
+            .padding()
 
             Divider()
 
@@ -81,54 +127,70 @@ struct ProxiesView: View {
                 }
             } else {
                 ScrollView {
-                    VStack(spacing: 16) {
-                        if !serviceGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.services"),
-                                icon: "arrow.triangle.branch",
-                                groups: serviceGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
-                            )
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("\(filtered.count) 个策略组")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        if !regionGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.regions"),
-                                icon: "globe",
-                                groups: regionGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
-                            )
-                        }
-                        if !subscriptionGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.subscriptions"),
-                                icon: "shippingbox",
-                                groups: subscriptionGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
-                            )
-                        }
-                        if !otherGroups.isEmpty {
-                            ProxySection(
-                                title: String(localized: "proxies.section.other"),
-                                icon: "ellipsis.circle",
-                                groups: otherGroups,
-                                delays: delays,
-                                testingGroups: testingGroups,
-                                expandedGroup: $expandedGroup,
-                                onSelect: selectNode,
-                                onTest: testGroupLatency
-                            )
+
+                        if filtered.isEmpty {
+                            Text("暂无策略组")
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 20)
+                        } else {
+                            // Table header
+                            HStack(spacing: 0) {
+                                Text("名称")
+                                    .frame(width: 180, alignment: .leading)
+                                Text("类型")
+                                    .frame(width: 80, alignment: .leading)
+                                Text("当前节点")
+                                    .frame(minWidth: 200, alignment: .leading)
+                                Spacer()
+                                Text("节点数")
+                                    .frame(width: 60, alignment: .center)
+                                Text("操作")
+                                    .frame(width: 100, alignment: .center)
+                            }
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+
+                            LazyVStack(spacing: 0) {
+                                // Top-level groups
+                                ForEach(classified.top) { group in
+                                    groupRow(group)
+                                }
+
+                                // Services section
+                                if !classified.services.isEmpty {
+                                    tableSectionHeader("服务分流")
+                                    ForEach(classified.services) { group in
+                                        groupRow(group)
+                                    }
+                                }
+
+                                // Regions section
+                                if !classified.regions.isEmpty {
+                                    tableSectionHeader("地区节点")
+                                    ForEach(classified.regions) { group in
+                                        groupRow(group)
+                                    }
+                                }
+
+                                // Subscriptions section
+                                if !classified.subscriptions.isEmpty {
+                                    tableSectionHeader("订阅分组")
+                                    ForEach(classified.subscriptions) { group in
+                                        groupRow(group)
+                                    }
+                                }
+                            }
+                            .background(.regularMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
                     .padding()
@@ -138,30 +200,216 @@ struct ProxiesView: View {
         .task {
             await refreshGroups()
         }
+        .sheet(isPresented: $showGroupEdit) {
+            ProxyGroupEditSheet(existingTag: editingGroupTag)
+        }
+        .alert("确认删除", isPresented: .init(
+            get: { deletingGroupTag != nil },
+            set: { if !$0 { deletingGroupTag = nil } }
+        )) {
+            Button("取消", role: .cancel) { deletingGroupTag = nil }
+            Button("删除", role: .destructive) {
+                if let tag = deletingGroupTag {
+                    deleteGroup(tag)
+                }
+                deletingGroupTag = nil
+            }
+        } message: {
+            Text("确定要删除策略组「\(deletingGroupTag ?? "")」吗？")
+        }
     }
+
+    // MARK: - Table Components
+
+    private func tableSectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.regularMaterial.opacity(0.5))
+    }
+
+    private func groupRow(_ group: ProxyGroup) -> some View {
+        let rowIndex = allRows.firstIndex(where: { $0.id == group.id }) ?? 0
+        let isSelected = selectedGroup == group.name
+
+        return HStack(spacing: 0) {
+            // Name
+            Text(group.name)
+                .font(.body)
+                .lineLimit(1)
+                .frame(width: 180, alignment: .leading)
+
+            // Type badge
+            typeBadge(for: group)
+                .frame(width: 80, alignment: .leading)
+
+            // Current node + delay (read-only display)
+            HStack(spacing: 6) {
+                if let now = group.now, !now.isEmpty {
+                    Circle()
+                        .fill(delayDotColor(for: group))
+                        .frame(width: 6, height: 6)
+                    Text(now)
+                        .font(.body)
+                        .lineLimit(1)
+                    if let d = delays[now], d > 0 {
+                        Text("\(d)ms")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(delayColor(d))
+                    }
+                } else {
+                    Text("—")
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(minWidth: 200, alignment: .leading)
+
+            Spacer()
+
+            // Node count
+            Text("\(group.displayAll.count)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 60, alignment: .center)
+
+            // 操作按钮
+            HStack(spacing: 6) {
+                Button("编辑") {
+                    editingGroupTag = group.name
+                    showGroupEdit = true
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Button("删除") {
+                    deletingGroupTag = group.name
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(.red)
+            }
+            .frame(width: 120, alignment: .center)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(
+            isSelected
+                ? AnyShapeStyle(Color.accentColor.opacity(0.15))
+                : (rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedGroup = (selectedGroup == group.name) ? nil : group.name
+        }
+        .contextMenu {
+            Button("编辑") { editingGroupTag = group.name; showGroupEdit = true }
+            Button("删除", role: .destructive) { deletingGroupTag = group.name }
+        }
+    }
+
+    // MARK: - Badge & Color Helpers
+
+    private func typeBadge(for group: ProxyGroup) -> some View {
+        let text: String
+        let color: Color
+        switch group.type.lowercased() {
+        case "selector":
+            text = "select"
+            color = .blue
+        case "urltest", "url-test":
+            text = "url-test"
+            color = .green
+        case "fallback":
+            text = "fallback"
+            color = .orange
+        default:
+            text = group.type.lowercased()
+            color = .secondary
+        }
+        return Text(text)
+            .font(.caption2.monospaced())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.12))
+            .foregroundStyle(color)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private func delayDotColor(for group: ProxyGroup) -> Color {
+        guard let now = group.now, let d = delays[now], d > 0 else { return .gray }
+        return delayColor(d)
+    }
+
+    private func delayColor(_ delay: Int) -> Color {
+        if delay < 150 { return .green }
+        if delay <= 300 { return .yellow }
+        return .red
+    }
+
+    // MARK: - Actions
 
     private func refreshGroups() async {
         isRefreshing = true
         defer { isRefreshing = false }
-        groups = (try? await api.getProxies()) ?? []
+
+        let apiGroups = (try? await appState.api.getProxies()) ?? []
+        let apiMap = Dictionary(apiGroups.map { ($0.name, $0) }, uniquingKeysWith: { $1 })
+
+        // Merge: ConfigEngine groups (source of truth) + Clash API runtime state
+        var result: [ProxyGroup] = []
+        for outbound in appState.configEngine.config.outbounds {
+            switch outbound {
+            case .selector(let s):
+                if let api = apiMap[s.tag] {
+                    result.append(api)
+                } else {
+                    result.append(ProxyGroup(name: s.tag, type: "Selector", now: s.default, all: s.outbounds))
+                }
+            case .urltest(let u):
+                if let api = apiMap[u.tag] {
+                    result.append(api)
+                } else {
+                    result.append(ProxyGroup(name: u.tag, type: "URLTest", now: nil, all: u.outbounds))
+                }
+            default: break
+            }
+        }
+        for api in apiGroups where !result.contains(where: { $0.name == api.name }) {
+            result.append(api)
+        }
+        groups = result
     }
 
     private func selectNode(group: String, node: String) {
         Task {
-            try? await api.selectProxy(group: group, name: node)
+            try? await appState.api.selectProxy(group: group, name: node)
             await refreshGroups()
         }
     }
 
-    private func testGroupLatency(group: ProxyGroup) {
+    private func deleteGroup(_ tag: String) {
+        appState.configEngine.config.outbounds.removeAll { $0.tag == tag }
+        try? appState.configEngine.save(restartRequired: true)
+        Task { await refreshGroups() }
+    }
+
+    private func testAllGroupsLatency() {
+        for group in groups {
+            testGroupLatency(group)
+        }
+    }
+
+    private func testGroupLatency(_ group: ProxyGroup) {
         Task {
             testingGroups.insert(group.name)
             defer { testingGroups.remove(group.name) }
             await withTaskGroup(of: (String, Int).self) { taskGroup in
                 for node in group.displayAll {
                     taskGroup.addTask {
-                        ((try? await api.getDelay(name: node)) ?? 0, 0).0
-                        let d = (try? await api.getDelay(name: node)) ?? 0
+                        let d = (try? await appState.api.getDelay(name: node)) ?? 0
                         return (node, d)
                     }
                 }
@@ -173,150 +421,77 @@ struct ProxiesView: View {
     }
 }
 
-// MARK: - Section
+// MARK: - Node Selection Popover
 
-struct ProxySection: View {
-    let title: String
-    let icon: String
-    let groups: [ProxyGroup]
-    let delays: [String: Int]
-    let testingGroups: Set<String>
-    @Binding var expandedGroup: String?
-    let onSelect: (String, String) -> Void
-    let onTest: (ProxyGroup) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Section header
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 6)
-
-            // Groups
-            VStack(spacing: 1) {
-                ForEach(groups) { group in
-                    ProxyGroupRow(
-                        group: group,
-                        delays: delays,
-                        isTesting: testingGroups.contains(group.name),
-                        isExpanded: expandedGroup == group.name,
-                        onToggle: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                expandedGroup = expandedGroup == group.name ? nil : group.name
-                            }
-                        },
-                        onSelect: { node in onSelect(group.name, node) },
-                        onTest: { onTest(group) }
-                    )
-                }
-            }
-            .background(.background)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator, lineWidth: 0.5))
-        }
-    }
-}
-
-// MARK: - Group Row
-
-struct ProxyGroupRow: View {
+private struct NodeSelectionPopover: View {
     let group: ProxyGroup
     let delays: [String: Int]
-    let isTesting: Bool
-    let isExpanded: Bool
-    let onToggle: () -> Void
     let onSelect: (String) -> Void
-    let onTest: () -> Void
+    @State private var searchText = ""
+
+    var filteredNodes: [String] {
+        if searchText.isEmpty { return group.displayAll }
+        return group.displayAll.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Main row
-            HStack(spacing: 10) {
-                // Expand arrow
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-
-                // Group name
-                Text(group.name)
-                    .font(.body)
-                    .lineLimit(1)
-
+            // Header with group name
+            HStack {
+                Text(group.name).font(.headline)
                 Spacer()
-
-                // Current selection + delay
-                if let now = group.now, !now.isEmpty {
-                    HStack(spacing: 6) {
-                        if let d = delays[now], d > 0 {
-                            DelayBadge(delay: d)
-                        }
-                        Text(now)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-
-                // Test button
-                Button(action: onTest) {
-                    if isTesting {
-                        ProgressView().scaleEffect(0.5).frame(width: 14, height: 14)
-                    } else {
-                        Image(systemName: "speedometer")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(isTesting)
+                Text(group.type.lowercased())
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.15))
+                    .clipShape(Capsule())
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-            .onTapGesture { onToggle() }
+            .padding(.horizontal)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
 
-            // Expanded nodes
-            if isExpanded {
-                Divider().padding(.leading, 12)
+            // Search
+            TextField("搜索节点...", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
 
-                VStack(spacing: 0) {
-                    ForEach(group.displayAll, id: \.self) { node in
-                        HStack(spacing: 8) {
-                            Image(systemName: group.now == node ? "checkmark.circle.fill" : "circle")
-                                .font(.caption)
-                                .foregroundStyle(group.now == node ? Color.accentColor : Color.secondary.opacity(0.4))
+            Divider()
 
-                            Text(node)
-                                .font(.subheadline)
-                                .lineLimit(1)
-
-                            Spacer()
-
-                            if let d = delays[node] {
-                                DelayBadge(delay: d)
+            // Node list
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(filteredNodes, id: \.self) { node in
+                        Button {
+                            onSelect(node)
+                        } label: {
+                            HStack(spacing: 8) {
+                                if node == group.now {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.blue)
+                                        .font(.caption)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .foregroundStyle(.quaternary)
+                                        .font(.caption)
+                                }
+                                Text(node)
+                                    .font(.body)
+                                    .lineLimit(1)
+                                Spacer()
+                                if let d = delays[node], d > 0 {
+                                    DelayBadge(delay: d)
+                                }
                             }
+                            .padding(.horizontal)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .contentShape(Rectangle())
-                        .background(group.now == node ? Color.accentColor.opacity(0.06) : Color.clear)
-                        .onTapGesture { onSelect(node) }
+                        .buttonStyle(.plain)
+                        .background(node == group.now ? Color.accentColor.opacity(0.08) : Color.clear)
                     }
                 }
-                .padding(.bottom, 4)
-            }
-
-            // Separator between groups
-            if !isExpanded {
-                Divider().padding(.leading, 32)
             }
         }
     }
@@ -339,9 +514,8 @@ struct DelayBadge: View {
 
     private var color: Color {
         if delay <= 0 { return .red }
-        if delay < 200 { return .green }
-        if delay < 500 { return .yellow }
+        if delay < 150 { return .green }
+        if delay <= 300 { return .yellow }
         return .orange
     }
 }
-

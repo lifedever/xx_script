@@ -1,17 +1,20 @@
 import SwiftUI
 
+struct Subscription: Identifiable, Codable {
+    var id: String { name }
+    var name: String
+    var url: String
+}
+
 struct SubscriptionsView: View {
-    let configGenerator: ConfigGenerator
-    let singBoxManager: SingBoxManager
+    @Environment(AppState.self) private var appState
 
     @State private var subscriptions: [Subscription] = []
     @State private var showAddSheet = false
     @State private var editingSubscription: Subscription? = nil
     @State private var isUpdating = false
-    @State private var updateLog: [String] = []
-    @State private var updateStatus: String? = nil
-
-    private let manager = SubscriptionManager()
+    @State private var updateResults: [String: SubscriptionUpdateStatus] = [:]
+    @State private var subscriptionInfos: [String: SubscriptionInfo] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,8 +41,11 @@ struct SubscriptionsView: View {
                         ForEach(subscriptions) { sub in
                             SubscriptionCard(
                                 subscription: sub,
+                                status: updateResults[sub.name],
+                                info: subscriptionInfos[sub.name],
                                 onEdit: { editingSubscription = sub },
-                                onDelete: { deleteSubscription(sub) }
+                                onDelete: { deleteSubscription(sub) },
+                                onUpdate: { Task { await updateSingle(sub) } }
                             )
                         }
                     }
@@ -65,11 +71,6 @@ struct SubscriptionsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        if let status = updateStatus {
-                            Label(status, systemImage: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.green)
-                        }
                         Button {
                             Task { await saveAndUpdate() }
                         } label: {
@@ -81,43 +82,6 @@ struct SubscriptionsView: View {
                 }
                 .padding()
                 .background(.bar)
-
-                // Update log
-                if !updateLog.isEmpty {
-                    Divider()
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack {
-                            Text(String(localized: "subs.progress_title"))
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button {
-                                updateLog.removeAll()
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
-
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 1) {
-                                ForEach(updateLog.indices, id: \.self) { i in
-                                    Text(updateLog[i])
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                        }
-                        .frame(height: 120)
-                    }
-                    .background(.bar)
-                }
             }
         }
         .sheet(isPresented: $showAddSheet) {
@@ -135,7 +99,10 @@ struct SubscriptionsView: View {
             }
         }
         .onAppear {
-            subscriptions = manager.load()
+            subscriptions = Self.loadSubscriptions()
+        }
+        .task {
+            await fetchAllSubscriptionInfos()
         }
     }
 
@@ -145,38 +112,116 @@ struct SubscriptionsView: View {
     }
 
     private func saveSubscriptions() {
-        try? manager.save(subscriptions)
+        Self.saveSubscriptions(subscriptions)
+    }
+
+    // MARK: - File I/O (shared with MenuBarView)
+
+    static var subscriptionsFilePath: String {
+        let baseDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("BoxX")
+        // Ensure directory exists
+        try? FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
+        return baseDir.appendingPathComponent("subscriptions.json").path
+    }
+
+    static func loadSubscriptions() -> [Subscription] {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: subscriptionsFilePath)) else { return [] }
+        return (try? JSONDecoder().decode([Subscription].self, from: data)) ?? []
+    }
+
+    static func saveSubscriptions(_ subs: [Subscription]) {
+        guard let data = try? JSONEncoder().encode(subs),
+              let json = try? JSONSerialization.jsonObject(with: data),
+              let pretty = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]) else { return }
+        try? pretty.write(to: URL(fileURLWithPath: subscriptionsFilePath))
+    }
+
+    private func fetchAllSubscriptionInfos() async {
+        let fetcher = SubscriptionFetcher()
+        for sub in subscriptions {
+            guard let url = URL(string: sub.url) else { continue }
+            if let result = try? await fetcher.fetch(url: url) {
+                subscriptionInfos[sub.name] = result.info
+            }
+        }
+    }
+
+    private func updateSingle(_ sub: Subscription) async {
+        guard let url = URL(string: sub.url) else {
+            updateResults[sub.name] = .failure("Invalid URL")
+            return
+        }
+        updateResults[sub.name] = .updating
+        do {
+            let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+            updateResults[sub.name] = .success(result.nodeCount)
+            if let info = result.info {
+                subscriptionInfos[sub.name] = info
+            }
+        } catch {
+            updateResults[sub.name] = .failure(error.localizedDescription)
+        }
+
+        if appState.isRunning {
+            // sing-box restart is handled by ConfigEngine.onDeployComplete
+        }
+
+        try? await Task.sleep(for: .seconds(5))
+        updateResults.removeValue(forKey: sub.name)
     }
 
     private func saveAndUpdate() async {
         saveSubscriptions()
         isUpdating = true
-        updateStatus = nil
-        updateLog.removeAll()
+        updateResults.removeAll()
         defer { isUpdating = false }
 
-        for await line in configGenerator.generate() {
-            updateLog.append(line)
+        let subService = appState.subscriptionService
+        for sub in subscriptions {
+            guard let url = URL(string: sub.url) else {
+                updateResults[sub.name] = .failure("Invalid URL")
+                continue
+            }
+            updateResults[sub.name] = .updating
+            do {
+                let result = try await subService.updateSubscription(name: sub.name, url: url)
+                updateResults[sub.name] = .success(result.nodeCount)
+                if let info = result.info {
+                    subscriptionInfos[sub.name] = info
+                }
+            } catch {
+                updateResults[sub.name] = .failure(error.localizedDescription)
+            }
         }
 
-        if singBoxManager.isRunning {
-            updateLog.append("Restarting sing-box...")
-            try? await singBoxManager.restart(configPath: configGenerator.configPath)
-            updateLog.append("Done.")
+        if appState.isRunning {
+            // sing-box restart is handled by ConfigEngine.onDeployComplete
         }
 
-        updateStatus = String(localized: "subs.update_complete")
+        // Clear success status after a delay
         try? await Task.sleep(for: .seconds(5))
-        updateStatus = nil
+        updateResults.removeAll()
     }
+}
+
+// MARK: - Update Status
+
+enum SubscriptionUpdateStatus {
+    case updating
+    case success(Int)
+    case failure(String)
 }
 
 // MARK: - Subscription Card
 
 struct SubscriptionCard: View {
     let subscription: Subscription
+    let status: SubscriptionUpdateStatus?
+    let info: SubscriptionInfo?
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onUpdate: () -> Void
 
     @State private var isHovering = false
 
@@ -190,16 +235,65 @@ struct SubscriptionCard: View {
                     .padding(.top, 2)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(subscription.name)
-                        .font(.body.bold())
+                    HStack {
+                        Text(subscription.name)
+                            .font(.body.bold())
+
+                        Spacer()
+
+                        // Status indicator
+                        if let status {
+                            statusBadge(status)
+                        }
+
+                        // Per-subscription update button
+                        Button {
+                            onUpdate()
+                        } label: {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("更新此订阅")
+                        .disabled(status != nil)
+                    }
 
                     Text(subscription.url)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
+
+                    // Subscription info: traffic usage and expiry
+                    if let info {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ProgressView(value: info.usagePercent, total: 100)
+                                .tint(info.usagePercent > 80 ? .red : .blue)
+
+                            HStack {
+                                Text("已用 \(SubscriptionInfo.formatBytes(info.used)) / \(SubscriptionInfo.formatBytes(info.total))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("剩余 \(SubscriptionInfo.formatBytes(info.remaining))")
+                                    .font(.caption2)
+                                    .foregroundStyle(info.remaining < info.total / 10 ? .red : .green)
+                            }
+
+                            if let expire = info.expire {
+                                Text("到期: \(Self.expiryFormatter.string(from: expire))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            } else if info.total > 0 {
+                                Text("到期: 长期有效")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding(4)
         }
@@ -215,6 +309,31 @@ struct SubscriptionCard: View {
                 .stroke(isHovering ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
         )
         .onHover { isHovering = $0 }
+    }
+
+    private static let expiryFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    @ViewBuilder
+    private func statusBadge(_ status: SubscriptionUpdateStatus) -> some View {
+        switch status {
+        case .updating:
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 16, height: 16)
+        case .success(let count):
+            Label("\(count) nodes", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .failure(let msg):
+            Label(msg, systemImage: "xmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(1)
+        }
     }
 }
 

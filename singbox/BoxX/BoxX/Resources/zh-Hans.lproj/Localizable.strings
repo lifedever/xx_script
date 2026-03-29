@@ -34,25 +34,6 @@
 "sidebar.connections" = "连接";
 "sidebar.logs" = "日志";
 "sidebar.subscriptions" = "订阅";
-"sidebar.rule_test" = "规则测试";
-"sidebar.services_config" = "服务分流";
-
-// Services Config
-"services.add" = "添加服务";
-"services.edit" = "编辑服务";
-"services.move_up" = "上移";
-"services.move_down" = "下移";
-"services.save_and_update" = "保存并更新";
-"services.name_field" = "服务名称";
-"services.geosite_field" = "Geosite 规则集 (逗号分隔)";
-"services.default_outbound" = "默认出站";
-"services.include_direct" = "包含 DIRECT 选项";
-"services.exclude_hk" = "排除香港节点";
-"services.custom_rules_section" = "自定义规则列表";
-"services.rule_name" = "名称";
-"services.rule_url" = "规则列表 URL";
-"services.add_rule" = "添加";
-
 // Overview
 "overview.status" = "状态";
 "overview.running" = "运行中";
@@ -90,16 +71,6 @@
 "proxies.section.regions" = "地区节点";
 "proxies.section.subscriptions" = "订阅分组";
 "proxies.section.other" = "其他";
-"ruletest.placeholder" = "输入域名或 URL (如 google.com)";
-"ruletest.button" = "测试";
-"ruletest.clear" = "清空";
-"ruletest.hint" = "测试域名匹配哪条规则";
-"ruletest.hint_detail" = "输入域名并点击测试。\n将通过 sing-box 发起真实连接，获取准确的路由结果。";
-"ruletest.no_match" = "未找到匹配的连接";
-"ruletest.flow.rule" = "匹配规则";
-"ruletest.flow.outbound" = "出站节点";
-"ruletest.flow.chain" = "完整链路";
-
 // Rules
 "rules.search" = "搜索规则…";
 "rules.count" = "%d 条规则";
@@ -111,6 +82,7 @@
 "connections.time" = "时间";
 "connections.host" = "主机";
 "connections.network" = "协议";
+"connections.process" = "进程";
 "connections.rule" = "规则";
 "connections.outbound" = "出站";
 "connections.chain" = "链路";
@@ -127,6 +99,15 @@
 "connections.detail.type" = "类型";
 "connections.detail.source" = "来源";
 "connections.detail.process" = "进程";
+"connections.detail.duration" = "时长";
+"connections.detail.rule_match" = "规则匹配";
+"connections.detail.rule_payload" = "匹配值";
+"connections.detail.outbound_chain" = "出站链路";
+"connections.detail.traffic" = "流量";
+"connections.detail.connection_info" = "连接信息";
+"connections.pause" = "暂停";
+"connections.resume" = "继续";
+"connections.clear" = "清空";
 
 // Add Rule Sheet
 "addrule.title" = "添加规则";
@@ -174,6 +155,14 @@
 "settings.helper.not_installed" = "未安装";
 "settings.helper.install" = "安装助手";
 "settings.helper.reinstall" = "重新安装助手";
+"settings.open_config_dir" = "打开配置目录";
+"settings.config_dir_description" = "BoxX 配置和代理数据存储位置";
+
+// Menu Bar
+"menu.open_config_dir" = "打开配置目录";
+"menu.show_main_window" = "显示主窗口";
+"menu.outbound_mode" = "出站模式";
+"menu.mode.current" = "当前: %@";
 
 // Errors
 "error.title" = "错误";

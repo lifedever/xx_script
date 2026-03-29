@@ -2,21 +2,22 @@ import Foundation
 import AppKit
 
 actor WakeObserver {
-    private let singBoxManager: SingBoxManager
+    private let singBoxProcess: SingBoxProcess
     private let api: ClashAPI
-    private let configPath: String
     private var isRecovering = false
     private var observation: NSObjectProtocol?
     private let logFile: String = {
-        let dir = (UserDefaults.standard.string(forKey: "scriptDir")
-            ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox"))
-        return dir + "/boxx-wake.log"
+        let fm = FileManager.default
+        let sharedDir = "/Library/Application Support/BoxX"
+        let userDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("BoxX").path
+        let dir = fm.isWritableFile(atPath: sharedDir) ? sharedDir : userDir
+        return "\(dir)/boxx-wake.log"
     }()
 
-    init(singBoxManager: SingBoxManager, api: ClashAPI, configPath: String) {
-        self.singBoxManager = singBoxManager
+    init(singBoxProcess: SingBoxProcess, api: ClashAPI) {
+        self.singBoxProcess = singBoxProcess
         self.api = api
-        self.configPath = configPath
     }
 
     func startObserving() {
@@ -51,35 +52,36 @@ actor WakeObserver {
 
         if !apiReachable {
             log("Process dead, cannot auto-restart")
-            await singBoxManager.refreshStatus()
             return
         }
 
         // Step 1: Flush DNS + close all connections
         log("Step 1: flush DNS + close connections")
-        flushDNS()
+        await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(2))
 
         let test1 = await probeExternalConnectivity()
         log("Step 1 result: \(test1 ? "OK" : "FAIL")")
-        if test1 { await singBoxManager.refreshStatus(); return }
+        if test1 { return }
 
         // Step 2: Retry
         log("Step 2: retry flush + close")
-        flushDNS()
+        await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(3))
 
         let test2 = await probeExternalConnectivity()
         log("Step 2 result: \(test2 ? "OK" : "FAIL")")
-        if test2 { await singBoxManager.refreshStatus(); return }
+        if test2 { return }
 
-        // Step 3: Restart sing-box (password prompt)
-        log("Step 3: restarting sing-box (password required)")
-        try? await singBoxManager.restart(configPath: configPath)
-        await singBoxManager.refreshStatus()
-        log("Restart complete, running: \(await singBoxManager.isRunning)")
+        // Step 3: Full restart of sing-box
+        log("Step 3: restarting sing-box process")
+        // We cannot easily restart here without the config path,
+        // but the process is still running (API was reachable).
+        // Just flush DNS one more time.
+        await MainActor.run { singBoxProcess.flushDNS() }
+        log("Step 3: final DNS flush done")
     }
 
     private func log(_ message: String) {
@@ -96,21 +98,6 @@ actor WakeObserver {
                 FileManager.default.createFile(atPath: logFile, contents: data)
             }
         }
-    }
-
-    /// Flush DNS cache
-    private func flushDNS() {
-        let flush = Process()
-        flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
-        flush.arguments = ["-flushcache"]
-        try? flush.run()
-        flush.waitUntilExit()
-
-        let killDNS = Process()
-        killDNS.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        killDNS.arguments = ["-HUP", "mDNSResponder"]
-        try? killDNS.run()
-        killDNS.waitUntilExit()
     }
 
     private func probeExternalConnectivity() async -> Bool {

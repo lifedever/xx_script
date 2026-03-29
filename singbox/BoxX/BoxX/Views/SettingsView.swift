@@ -21,8 +21,8 @@ struct SettingsView: View {
 // MARK: - General
 
 struct GeneralSettingsTab: View {
+    @Environment(AppState.self) private var appState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("scriptDir") private var scriptDir = ""
     @State private var loginError: String?
 
     var body: some View {
@@ -46,35 +46,26 @@ struct GeneralSettingsTab: View {
                 Text(err).font(.caption).foregroundStyle(.red)
             }
 
-            LabeledContent(String(localized: "settings.script_directory")) {
+            LabeledContent(String(localized: "settings.open_config_dir")) {
                 HStack {
-                    Text(scriptDir.isEmpty ? "–" : scriptDir)
+                    Text(appState.configEngine.baseDir.path)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Spacer()
-                    Button(String(localized: "settings.browse")) {
-                        let panel = NSOpenPanel()
-                        panel.canChooseFiles = false
-                        panel.canChooseDirectories = true
-                        if panel.runModal() == .OK, let url = panel.url {
-                            scriptDir = url.path
-                        }
+                    Button(String(localized: "settings.open_config_dir")) {
+                        NSWorkspace.shared.open(appState.configEngine.baseDir)
                     }
                     .controlSize(.small)
                 }
             }
+
+            Text(String(localized: "settings.config_dir_description"))
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .formStyle(.grouped)
-        .onAppear {
-            if scriptDir.isEmpty {
-                let candidate = NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox"
-                if FileManager.default.fileExists(atPath: candidate + "/generate.py") {
-                    scriptDir = candidate
-                }
-            }
-        }
     }
 }
 
@@ -93,7 +84,7 @@ struct AboutTab: View {
             Text("sing-box macOS Client")
                 .foregroundStyle(.secondary)
 
-            Text("v1.0")
+            Text("v2.0")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }

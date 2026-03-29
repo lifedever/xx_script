@@ -32,6 +32,7 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
+      - sdk: SwiftData.framework
       - target: BoxXHelper
         embed: false
         copy:

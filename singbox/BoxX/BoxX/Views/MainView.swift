@@ -1,89 +1,94 @@
 import SwiftUI
 
-enum SidebarItem: String, CaseIterable, Identifiable {
-    case overview
-    case proxies
-    case ruleTest
-    case rules
-    case connections
-    case logs
-    case servicesConfig
-    case subscriptions
-
-    var id: String { rawValue }
-
-    var localizedTitle: String {
-        switch self {
-        case .overview: return String(localized: "sidebar.overview")
-        case .proxies: return String(localized: "sidebar.proxies")
-        case .ruleTest: return String(localized: "sidebar.rule_test")
-        case .rules: return String(localized: "sidebar.rules")
-        case .connections: return String(localized: "sidebar.connections")
-        case .logs: return String(localized: "sidebar.logs")
-        case .servicesConfig: return String(localized: "sidebar.services_config")
-        case .subscriptions: return String(localized: "sidebar.subscriptions")
-        }
-    }
+enum SidebarTab: String, CaseIterable {
+    case overview = "概览"
+    case proxies = "策略组"
+    case routeRules = "路由规则"
+    case ruleSets = "规则集"
+    case builtinRules = "内置规则"
+    case connections = "请求"
+    case logs = "日志"
+    case subscriptions = "订阅"
+    case settings = "设置"
 
     var icon: String {
         switch self {
-        case .overview: return "chart.bar.doc.horizontal"
+        case .overview: return "square.grid.2x2"
         case .proxies: return "network"
-        case .ruleTest: return "arrow.triangle.branch"
-        case .rules: return "list.bullet"
-        case .connections: return "link"
+        case .routeRules: return "list.bullet.rectangle"
+        case .ruleSets: return "tray.2"
+        case .builtinRules: return "shield.checkered"
+        case .connections: return "arrow.left.arrow.right"
         case .logs: return "doc.text"
-        case .servicesConfig: return "slider.horizontal.3"
         case .subscriptions: return "antenna.radiowaves.left.and.right"
+        case .settings: return "gearshape"
+        }
+    }
+
+    var section: String? {
+        switch self {
+        case .routeRules, .ruleSets, .builtinRules: return "规则"
+        default: return nil
         }
     }
 }
 
 struct MainView: View {
-    let api: ClashAPI
-    let singBoxManager: SingBoxManager
-    let configGenerator: ConfigGenerator
+    @Environment(AppState.self) private var appState
+    @State private var selectedTab: SidebarTab = .overview
 
-    @State private var selectedItem: SidebarItem? = .overview
+    private var generalTabs: [SidebarTab] { [.overview, .proxies] }
+    private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .builtinRules] }
+    private var monitorTabs: [SidebarTab] { [.connections, .logs] }
+    private var manageTabs: [SidebarTab] { [.subscriptions, .settings] }
 
     var body: some View {
         NavigationSplitView {
-            List(SidebarItem.allCases, selection: $selectedItem) { item in
-                Label(item.localizedTitle, systemImage: item.icon)
-                    .tag(item)
-            }
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
-        } detail: {
-            if let item = selectedItem {
-                switch item {
-                case .overview:
-                    OverviewView(api: api, singBoxManager: singBoxManager, configGenerator: configGenerator)
-                        .navigationTitle(String(localized: "sidebar.overview"))
-                case .proxies:
-                    ProxiesView(api: api)
-                        .navigationTitle(String(localized: "sidebar.proxies"))
-                case .ruleTest:
-                    RuleTestView(api: api)
-                        .navigationTitle(String(localized: "sidebar.rule_test"))
-                case .rules:
-                    RulesView(api: api)
-                        .navigationTitle(String(localized: "sidebar.rules"))
-                case .connections:
-                    ConnectionsView(api: api)
-                        .navigationTitle(String(localized: "sidebar.connections"))
-                case .logs:
-                    LogsView()
-                        .navigationTitle(String(localized: "sidebar.logs"))
-                case .servicesConfig:
-                    ServicesConfigView(configGenerator: configGenerator, singBoxManager: singBoxManager)
-                        .navigationTitle(String(localized: "sidebar.services_config"))
-                case .subscriptions:
-                    SubscriptionsView(configGenerator: configGenerator, singBoxManager: singBoxManager)
-                        .navigationTitle(String(localized: "sidebar.subscriptions"))
+            List(selection: $selectedTab) {
+                ForEach(generalTabs, id: \.self) { tab in
+                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
                 }
-            } else {
-                Text("Select a section")
-                    .foregroundStyle(.secondary)
+
+                Section("规则") {
+                    ForEach(ruleTabs, id: \.self) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    }
+                }
+
+                Section("监控") {
+                    ForEach(monitorTabs, id: \.self) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    }
+                }
+
+                Section("管理") {
+                    ForEach(manageTabs, id: \.self) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    }
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 200)
+        } detail: {
+            switch selectedTab {
+            case .overview:
+                OverviewView()
+            case .proxies:
+                ProxiesView()
+            case .routeRules:
+                RouteRulesView()
+            case .ruleSets:
+                RuleSetsView()
+            case .builtinRules:
+                BuiltinRulesView()
+            case .connections:
+                ConnectionsView()
+            case .logs:
+                LogsView()
+            case .subscriptions:
+                SubscriptionsView()
+            case .settings:
+                SettingsView()
             }
         }
         .frame(minWidth: 800, minHeight: 500)

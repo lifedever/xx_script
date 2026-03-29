@@ -29,6 +29,17 @@ struct Connection: Identifiable, Codable, Sendable {
         return fmt.string(from: date)
     }
 
+    /// Extract app name from processPath like "/Applications/Chrome.app/Contents/MacOS/Chrome" -> "Chrome"
+    var processName: String {
+        let path = metadata.processPath
+        if path.isEmpty { return "\u{2013}" }
+        if let range = path.range(of: ".app") {
+            let appPath = String(path[..<range.lowerBound])
+            return URL(fileURLWithPath: appPath).lastPathComponent
+        }
+        return URL(fileURLWithPath: path).lastPathComponent
+    }
+
     /// Domain suffix for rule creation (e.g. "api.anthropic.com" → "anthropic.com")
     var domainForRule: String {
         let h = metadata.host

@@ -35,7 +35,7 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
 
     func startSingBox(configPath: String, withReply reply: @escaping (Bool, String?) -> Void) {
         serialQueue.async { [self] in
-            guard (configPath.contains("/singbox/") || configPath.hasPrefix("/tmp/boxx/")) && configPath.hasSuffix(".json") else {
+            guard (configPath.hasPrefix("/tmp/boxx/") || configPath.contains("/Library/Application Support/BoxX/")) && configPath.hasSuffix(".json") else {
                 reply(false, "Invalid config path")
                 return
             }
@@ -133,6 +133,88 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
             } else {
                 reply(false, 0)
             }
+        }
+    }
+
+    // MARK: - v2 New Methods
+
+    func reloadSingBox(withReply reply: @escaping (Bool, String?) -> Void) {
+        serialQueue.async { [self] in
+            // Try managed process first
+            if let proc = singBoxProcess, proc.isRunning {
+                kill(proc.processIdentifier, SIGHUP)
+                reply(true, nil)
+                return
+            }
+            // Try orphan process
+            if let pid = findSingBoxPID() {
+                kill(pid, SIGHUP)
+                reply(true, nil)
+                return
+            }
+            reply(false, "sing-box is not running")
+        }
+    }
+
+    func flushDNS(withReply reply: @escaping (Bool) -> Void) {
+        serialQueue.async {
+            // Flush DNS cache (runs as root)
+            let flush = Process()
+            flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
+            flush.arguments = ["-flushcache"]
+            try? flush.run()
+            flush.waitUntilExit()
+
+            // Restart mDNSResponder
+            let killMDNS = Process()
+            killMDNS.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+            killMDNS.arguments = ["-HUP", "mDNSResponder"]
+            try? killMDNS.run()
+            killMDNS.waitUntilExit()
+
+            reply(true)
+        }
+    }
+
+    func setSystemProxy(port: Int32, withReply reply: @escaping (Bool) -> Void) {
+        serialQueue.async {
+            let services = ["Wi-Fi", "Ethernet"]
+            let types = [
+                ("setwebproxy", String(port)),
+                ("setsecurewebproxy", String(port)),
+                ("setsocksfirewallproxy", String(port))
+            ]
+            for service in services {
+                for (flag, p) in types {
+                    let proc = Process()
+                    proc.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+                    proc.arguments = ["-\(flag)", service, "127.0.0.1", p]
+                    proc.standardOutput = FileHandle.nullDevice
+                    proc.standardError = FileHandle.nullDevice
+                    try? proc.run()
+                    proc.waitUntilExit()
+                }
+            }
+            reply(true)
+        }
+    }
+
+    func clearSystemProxy(withReply reply: @escaping (Bool) -> Void) {
+        serialQueue.async {
+            let services = ["Wi-Fi", "Ethernet"]
+            let types = ["setwebproxystate", "setsecurewebproxystate", "setsocksfirewallproxystate"]
+            for service in services {
+                for flag in types {
+                    let proc = Process()
+                    proc.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+                    proc.arguments = ["-\(flag)", service, "off"]
+                    proc.standardOutput = FileHandle.nullDevice
+                    proc.standardError = FileHandle.nullDevice
+                    try? proc.run()
+                    proc.waitUntilExit()
+                }
+            }
+            reply(true)
         }
     }
 

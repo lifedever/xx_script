@@ -34,25 +34,6 @@
 "sidebar.connections" = "Connections";
 "sidebar.logs" = "Logs";
 "sidebar.subscriptions" = "Subscriptions";
-"sidebar.rule_test" = "Rule Test";
-"sidebar.services_config" = "Service Config";
-
-// Services Config
-"services.add" = "Add Service";
-"services.edit" = "Edit Service";
-"services.move_up" = "Move Up";
-"services.move_down" = "Move Down";
-"services.save_and_update" = "Save & Update";
-"services.name_field" = "Service Name";
-"services.geosite_field" = "Geosite Rules (comma-separated)";
-"services.default_outbound" = "Default Outbound";
-"services.include_direct" = "Include DIRECT option";
-"services.exclude_hk" = "Exclude Hong Kong";
-"services.custom_rules_section" = "Custom Rule Lists";
-"services.rule_name" = "Name";
-"services.rule_url" = "Rule list URL";
-"services.add_rule" = "Add";
-
 // Overview
 "overview.status" = "Status";
 "overview.running" = "Running";
@@ -90,16 +71,6 @@
 "proxies.section.regions" = "Regions";
 "proxies.section.subscriptions" = "Subscriptions";
 "proxies.section.other" = "Other";
-"ruletest.placeholder" = "Enter domain or URL (e.g. google.com)";
-"ruletest.button" = "Test";
-"ruletest.clear" = "Clear";
-"ruletest.hint" = "Test which rule a domain matches";
-"ruletest.hint_detail" = "Enter a domain and click Test.\nA real connection will be made through sing-box to get the exact routing result.";
-"ruletest.no_match" = "No matching connection found";
-"ruletest.flow.rule" = "Matched Rule";
-"ruletest.flow.outbound" = "Outbound";
-"ruletest.flow.chain" = "Full Chain";
-
 // Rules
 "rules.search" = "Search rules…";
 "rules.count" = "%d rules";
@@ -111,6 +82,7 @@
 "connections.time" = "Time";
 "connections.host" = "Host";
 "connections.network" = "Net";
+"connections.process" = "Process";
 "connections.rule" = "Rule";
 "connections.outbound" = "Outbound";
 "connections.chain" = "Chain";
@@ -127,6 +99,15 @@
 "connections.detail.type" = "Type";
 "connections.detail.source" = "Source";
 "connections.detail.process" = "Process";
+"connections.detail.duration" = "Duration";
+"connections.detail.rule_match" = "Rule Match";
+"connections.detail.rule_payload" = "Payload";
+"connections.detail.outbound_chain" = "Outbound Chain";
+"connections.detail.traffic" = "Traffic";
+"connections.detail.connection_info" = "Connection Info";
+"connections.pause" = "Pause";
+"connections.resume" = "Resume";
+"connections.clear" = "Clear";
 
 // Add Rule Sheet
 "addrule.title" = "Add Rule";
@@ -174,6 +155,14 @@
 "settings.helper.not_installed" = "Not installed";
 "settings.helper.install" = "Install Helper";
 "settings.helper.reinstall" = "Reinstall Helper";
+"settings.open_config_dir" = "Open Config Directory";
+"settings.config_dir_description" = "BoxX configuration and proxy data storage location";
+
+// Menu Bar
+"menu.open_config_dir" = "Open Config Directory";
+"menu.show_main_window" = "Show Main Window";
+"menu.outbound_mode" = "Outbound Mode";
+"menu.mode.current" = "Current: %@";
 
 // Errors
 "error.title" = "Error";
