@@ -133,12 +133,9 @@ struct MenuBarView: View {
 
             // Settings
             Button(String(localized: "menu.settings")) {
-                // Must switch to regular mode first for Settings window to work
+                openWindow(id: "settings")
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
             }
 
             Divider()

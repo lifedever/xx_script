@@ -10,13 +10,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let appState, let singBoxManager, let api, let configGenerator else { return }
         Task { @MainActor in
-            // Check status immediately on launch
             await singBoxManager.refreshStatus()
             appState.isRunning = singBoxManager.isRunning
             appState.pid = singBoxManager.pid
             appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
 
-            // Setup WakeObserver
             let observer = WakeObserver(
                 singBoxManager: singBoxManager,
                 api: api,
@@ -36,10 +34,6 @@ struct BoxXApp: App {
     @State private var configGenerator = ConfigGenerator()
     private let api = ClashAPI()
 
-    init() {
-        // Wire up delegate references (will be used in applicationDidFinishLaunching)
-    }
-
     var body: some Scene {
         MenuBarExtra {
             MenuBarView(
@@ -49,7 +43,6 @@ struct BoxXApp: App {
             )
             .environment(appState)
             .onAppear {
-                // Wire delegate refs on first appear (body is evaluated before didFinishLaunching)
                 appDelegate.appState = appState
                 appDelegate.singBoxManager = singBoxManager
                 appDelegate.api = api
@@ -79,41 +72,31 @@ struct BoxXApp: App {
                 NSApp.activate()
             }
             .onDisappear {
-                NSApp.setActivationPolicy(.accessory)
+                // Only go back to accessory if settings window isn't open
+                let hasVisibleWindow = NSApp.windows.contains { $0.isVisible && $0.identifier?.rawValue != "" }
+                if !hasVisibleWindow {
+                    NSApp.setActivationPolicy(.accessory)
+                }
             }
         }
         .defaultSize(width: 900, height: 600)
-        .commands {
-            CommandGroup(replacing: .appInfo) {
-                Button(String(localized: "appmenu.about")) {
-                    NSApp.orderFrontStandardAboutPanel(nil)
+
+        Window(String(localized: "menu.settings"), id: "settings") {
+            SettingsView()
+                .environment(appState)
+                .onAppear {
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate()
                 }
-            }
-            CommandGroup(after: .appInfo) {
-                if !appState.isHelperInstalled {
-                    Button(String(localized: "menu.install_helper")) {
-                        do {
-                            try HelperManager.shared.installHelper()
-                            appState.isHelperInstalled = true
-                        } catch {
-                            appState.showAlert(error.localizedDescription)
-                        }
+                .onDisappear {
+                    let hasVisibleWindow = NSApp.windows.contains {
+                        $0.isVisible && $0.title != "" && $0.title != String(localized: "menu.settings")
+                    }
+                    if !hasVisibleWindow {
+                        NSApp.setActivationPolicy(.accessory)
                     }
                 }
-            }
-            CommandGroup(replacing: .appTermination) {
-                Button(String(localized: "appmenu.quit")) {
-                    NSApplication.shared.terminate(nil)
-                }
-                .keyboardShortcut("q")
-            }
-            CommandGroup(replacing: .windowList) {
-                EmptyView()
-            }
         }
-
-        Settings {
-            SettingsView()
-        }
+        .windowResizability(.contentSize)
     }
 }
