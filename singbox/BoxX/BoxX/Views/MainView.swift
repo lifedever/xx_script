@@ -1,93 +1,55 @@
 import SwiftUI
 
-enum SidebarItem: String, CaseIterable, Identifiable {
-    case overview
-    case proxies
-    case ruleTest
-    case rules
-    case connections
-    case logs
-    case servicesConfig
-    case subscriptions
-
-    var id: String { rawValue }
-
-    var localizedTitle: String {
-        switch self {
-        case .overview: return String(localized: "sidebar.overview")
-        case .proxies: return String(localized: "sidebar.proxies")
-        case .ruleTest: return String(localized: "sidebar.rule_test")
-        case .rules: return String(localized: "sidebar.rules")
-        case .connections: return String(localized: "sidebar.connections")
-        case .logs: return String(localized: "sidebar.logs")
-        case .servicesConfig: return String(localized: "sidebar.services_config")
-        case .subscriptions: return String(localized: "sidebar.subscriptions")
-        }
-    }
+enum SidebarTab: String, CaseIterable {
+    case overview = "概览"
+    case proxies = "策略组"
+    case rules = "规则"
+    case connections = "请求"
+    case logs = "日志"
+    case subscriptions = "订阅"
+    case settings = "设置"
 
     var icon: String {
         switch self {
-        case .overview: return "chart.bar.doc.horizontal"
+        case .overview: return "square.grid.2x2"
         case .proxies: return "network"
-        case .ruleTest: return "arrow.triangle.branch"
-        case .rules: return "list.bullet"
-        case .connections: return "link"
+        case .rules: return "list.bullet.rectangle"
+        case .connections: return "arrow.left.arrow.right"
         case .logs: return "doc.text"
-        case .servicesConfig: return "slider.horizontal.3"
         case .subscriptions: return "antenna.radiowaves.left.and.right"
+        case .settings: return "gearshape"
         }
     }
 }
 
 struct MainView: View {
     @Environment(AppState.self) private var appState
-    @State private var selectedItem: SidebarItem? = .overview
+    @State private var selectedTab: SidebarTab = .overview
 
     var body: some View {
         NavigationSplitView {
-            List(SidebarItem.allCases, selection: $selectedItem) { item in
-                Label(item.localizedTitle, systemImage: item.icon)
-                    .tag(item)
+            List(SidebarTab.allCases, id: \.self, selection: $selectedTab) { tab in
+                Label(tab.rawValue, systemImage: tab.icon)
+                    .tag(tab)
             }
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 200)
         } detail: {
-            if let item = selectedItem {
-                switch item {
-                case .overview:
-                    OverviewView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.overview"))
-                case .proxies:
-                    ProxiesView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.proxies"))
-                case .ruleTest:
-                    RuleTestView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.rule_test"))
-                case .rules:
-                    RulesView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.rules"))
-                case .connections:
-                    ConnectionsView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.connections"))
-                case .logs:
-                    LogsView()
-                        .navigationTitle(String(localized: "sidebar.logs"))
-                case .servicesConfig:
-                    ServicesConfigView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.services_config"))
-                case .subscriptions:
-                    SubscriptionsView()
-                        .environment(appState)
-                        .navigationTitle(String(localized: "sidebar.subscriptions"))
-                }
-            } else {
-                Text("Select a section")
-                    .foregroundStyle(.secondary)
+            switch selectedTab {
+            case .overview:
+                OverviewView()
+            case .proxies:
+                ProxiesView()
+            case .rules:
+                RulesView()
+            case .connections:
+                ConnectionsView()
+            case .logs:
+                LogsView()
+            case .subscriptions:
+                SubscriptionsView()
+            case .settings:
+                SettingsView()
             }
         }
         .frame(minWidth: 800, minHeight: 500)
