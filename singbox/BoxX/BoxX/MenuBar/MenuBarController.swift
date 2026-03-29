@@ -273,7 +273,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                 print("[BoxX] Starting sing-box with: \(runtimePath)")
-                try appState.singBoxProcess.start(configPath: runtimePath)
+                try await appState.singBoxProcess.start(configPath: runtimePath)
                 print("[BoxX] sing-box started successfully")
             } catch {
                 print("[BoxX] ERROR: \(error)")
@@ -291,7 +291,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func stopSingBox() {
         Task {
-            appState.singBoxProcess.stop()
+            await appState.singBoxProcess.stop()
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
         }
@@ -302,7 +302,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             do {
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                try appState.singBoxProcess.restart(configPath: runtimePath)
+                try await appState.singBoxProcess.restart(configPath: runtimePath)
             } catch {
                 appState.showAlert(error.localizedDescription)
             }

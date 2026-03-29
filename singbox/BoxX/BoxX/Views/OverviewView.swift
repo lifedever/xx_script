@@ -283,7 +283,7 @@ struct OverviewView: View {
         do {
             try appState.configEngine.deployRuntime()
             let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-            try appState.singBoxProcess.start(configPath: runtimePath)
+            try await appState.singBoxProcess.start(configPath: runtimePath)
         } catch {
             appState.showAlert(error.localizedDescription)
         }
@@ -293,7 +293,7 @@ struct OverviewView: View {
 
     private func doStop() async {
         isOperating = true; defer { isOperating = false }
-        appState.singBoxProcess.stop()
+        await appState.singBoxProcess.stop()
         StatusPoller.shared.nudge(appState: appState)
         await refresh()
     }
@@ -303,7 +303,7 @@ struct OverviewView: View {
         do {
             try appState.configEngine.deployRuntime()
             let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-            try appState.singBoxProcess.restart(configPath: runtimePath)
+            try await appState.singBoxProcess.restart(configPath: runtimePath)
         } catch {
             appState.showAlert(error.localizedDescription)
         }

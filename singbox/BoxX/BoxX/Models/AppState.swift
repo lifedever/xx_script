@@ -26,12 +26,9 @@ final class AppState {
         // When config deploys, restart sing-box
         let process = singBoxProcess
         let runtimePath = baseDir.appendingPathComponent("runtime-config.json").path
-        configEngine.onDeployComplete = {
-            // Try reload first (no password prompt), fall back to restart
-            process.reload()
-            // If reload isn't supported (no XPC), need full restart
-            // But skip restart here to avoid password prompts on every config save
-        }
+        // Config deploy does NOT auto-restart (would prompt password every time).
+        // User manually restarts via menu when needed.
+        configEngine.onDeployComplete = nil
     }
 
     /// Resolve config base directory, auto-create if needed.

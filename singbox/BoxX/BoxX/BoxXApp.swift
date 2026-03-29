@@ -32,7 +32,6 @@ struct BoxXApp: App {
 
         Task { @MainActor in
             // Register XPC Helper (tries SMAppService, falls back to osascript)
-            state.singBoxProcess.registerHelper()
 
             // Load config
             do {
@@ -88,7 +87,7 @@ struct BoxXApp: App {
                 if appState.isRunning {
                     Button("停止") {
                         Task {
-                            appState.singBoxProcess.stop()
+                            await appState.singBoxProcess.stop()
                             StatusPoller.shared.nudge(appState: appState)
                         }
                     }
@@ -99,7 +98,7 @@ struct BoxXApp: App {
                             do {
                                 try appState.configEngine.deployRuntime()
                                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                                try appState.singBoxProcess.restart(configPath: runtimePath)
+                                try await appState.singBoxProcess.restart(configPath: runtimePath)
                             } catch {
                                 appState.showAlert(error.localizedDescription)
                             }
@@ -113,7 +112,7 @@ struct BoxXApp: App {
                             do {
                                 try appState.configEngine.deployRuntime()
                                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                                try appState.singBoxProcess.start(configPath: runtimePath)
+                                try await appState.singBoxProcess.start(configPath: runtimePath)
                             } catch {
                                 appState.showAlert(error.localizedDescription)
                             }
