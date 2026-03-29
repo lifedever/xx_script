@@ -81,35 +81,50 @@ actor ClashAPI {
 
     /// Test which rule a domain matches by making a real connection through the proxy
     func testRule(domain: String) async -> RuleTestResult? {
-        // Make a test request through sing-box proxy port
+        let domainLower = domain.lowercased()
+
+        // Fire a test request through the HTTP proxy (don't await result)
         let proxyConfig = URLSessionConfiguration.ephemeral
         proxyConfig.connectionProxyDictionary = [
             kCFNetworkProxiesHTTPEnable: true,
             kCFNetworkProxiesHTTPProxy: "127.0.0.1",
             kCFNetworkProxiesHTTPPort: 7890,
+            kCFNetworkProxiesHTTPSEnable: true,
+            kCFNetworkProxiesHTTPSProxy: "127.0.0.1",
+            kCFNetworkProxiesHTTPSPort: 7890,
         ] as [String: Any]
         proxyConfig.timeoutIntervalForRequest = 5
         let proxySession = URLSession(configuration: proxyConfig)
-        defer { proxySession.invalidateAndCancel() }
 
-        // Fire request (don't care about result, just need the connection to appear)
-        _ = try? await proxySession.data(from: URL(string: "http://\(domain)")!)
+        // Launch request in background, don't wait for it to complete
+        Task.detached {
+            _ = try? await proxySession.data(from: URL(string: "https://\(domain)")!)
+            proxySession.invalidateAndCancel()
+        }
 
-        // Wait a bit then check connections
-        try? await Task.sleep(for: .milliseconds(500))
+        // Poll connections multiple times to find the match
+        for attempt in 0..<6 {
+            try? await Task.sleep(for: .milliseconds(attempt == 0 ? 300 : 500))
 
-        guard let snapshot = try? await getConnections() else { return nil }
-        if let conn = snapshot.connections?.first(where: {
-            $0.metadata.host.lowercased() == domain.lowercased() ||
-            $0.host.lowercased() == domain.lowercased()
-        }) {
-            return RuleTestResult(
-                domain: domain,
-                rule: conn.rule,
-                outbound: conn.outbound,
-                chain: conn.chain,
-                destinationIP: conn.metadata.destinationIP
-            )
+            guard let snapshot = try? await getConnections(),
+                  let connections = snapshot.connections else { continue }
+
+            // Search broadly: exact match, contains, or www. prefix
+            if let conn = connections.first(where: { conn in
+                let host = conn.metadata.host.lowercased()
+                return host == domainLower ||
+                       host == "www.\(domainLower)" ||
+                       host.hasSuffix(".\(domainLower)") ||
+                       domainLower.hasSuffix(".\(host)")
+            }) {
+                return RuleTestResult(
+                    domain: domain,
+                    rule: conn.rule,
+                    outbound: conn.outbound,
+                    chain: conn.chain,
+                    destinationIP: conn.metadata.destinationIP
+                )
+            }
         }
         return nil
     }
