@@ -18,8 +18,11 @@ struct MenuBarView: View {
                 if singBoxManager.isExternalProcess {
                     Label(String(localized: "menu.status.running.external"), systemImage: "circle.fill")
                         .foregroundStyle(Color.green)
-                } else {
+                } else if appState.pid != 0 {
                     Label(String(format: String(localized: "menu.status.running.pid"), appState.pid), systemImage: "circle.fill")
+                        .foregroundStyle(Color.green)
+                } else {
+                    Label(String(localized: "menu.status.running"), systemImage: "circle.fill")
                         .foregroundStyle(Color.green)
                 }
             } else {
@@ -35,12 +38,10 @@ struct MenuBarView: View {
                     Task {
                         do {
                             try await singBoxManager.stop()
-                            await singBoxManager.refreshStatus()
-                            appState.isRunning = singBoxManager.isRunning
-                            appState.pid = singBoxManager.pid
                         } catch {
                             appState.showAlert(error.localizedDescription)
                         }
+                        await syncStatus()
                     }
                 }
             } else {
@@ -48,12 +49,10 @@ struct MenuBarView: View {
                     Task {
                         do {
                             try await singBoxManager.start(configPath: configGenerator.configPath)
-                            await singBoxManager.refreshStatus()
-                            appState.isRunning = singBoxManager.isRunning
-                            appState.pid = singBoxManager.pid
                         } catch {
                             appState.showAlert(error.localizedDescription)
                         }
+                        await syncStatus()
                     }
                 }
             }
@@ -67,6 +66,8 @@ struct MenuBarView: View {
                         print("[ConfigGenerator] \(line)")
                     }
                     isUpdatingSubscriptions = false
+                    // Refresh after update
+                    await syncStatus()
                 }
             }
             .disabled(isUpdatingSubscriptions)
@@ -80,8 +81,7 @@ struct MenuBarView: View {
             } else {
                 ForEach(proxyGroups.filter { $0.type == "Selector" }) { group in
                     Menu(group.name) {
-                        let nodes = group.displayAll
-                        ForEach(nodes, id: \.self) { node in
+                        ForEach(group.displayAll, id: \.self) { node in
                             Button {
                                 Task {
                                     try? await api.selectProxy(group: group.name, name: node)
@@ -121,19 +121,26 @@ struct MenuBarView: View {
             }
         }
         .task {
-            await refreshProxyGroups()
+            // Refresh status first, THEN load proxy groups
+            await syncStatus()
         }
     }
 
+    /// Sync sing-box status + proxy groups in one shot
+    private func syncStatus() async {
+        await singBoxManager.refreshStatus()
+        appState.isRunning = singBoxManager.isRunning
+        appState.pid = singBoxManager.pid
+        await refreshProxyGroups()
+    }
+
     private func refreshProxyGroups() async {
-        guard appState.isRunning else {
-            proxyGroups = []
-            return
-        }
+        // Don't gate on appState.isRunning — just try the API directly
+        // If API is reachable, we have groups. If not, empty.
         do {
             proxyGroups = try await api.getProxies()
         } catch {
-            // silently ignore when API is unreachable
+            proxyGroups = []
         }
     }
 }

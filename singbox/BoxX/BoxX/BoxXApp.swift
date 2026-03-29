@@ -17,12 +17,7 @@ struct BoxXApp: App {
             )
             .environment(appState)
             .task {
-                // Initial status refresh
-                await singBoxManager.refreshStatus()
-                appState.isRunning = singBoxManager.isRunning
-                appState.pid = singBoxManager.pid
-
-                // Setup WakeObserver
+                // Setup WakeObserver (status refresh is handled by MenuBarView.syncStatus)
                 let observer = WakeObserver(
                     singBoxManager: singBoxManager,
                     api: api,
