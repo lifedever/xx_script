@@ -66,12 +66,40 @@ struct BoxXApp: App {
         Task { @MainActor in
             await singBoxManager.refreshStatus()
             appState.isRunning = singBoxManager.isRunning
+            if appState.isRunning {
+                // Already running — slow poll (30s) just to detect if it stops
+                scheduleSlowPoll()
+            } else {
+                // Not running — fast poll (3s) until detected
+                scheduleFastPoll()
+            }
         }
-        // Poll every 5 seconds
-        statusTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+    }
+
+    private func scheduleFastPoll() {
+        statusTimer?.invalidate()
+        statusTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
             Task { @MainActor in
                 await singBoxManager.refreshStatus()
                 appState.isRunning = singBoxManager.isRunning
+                if appState.isRunning {
+                    // Found it — switch to slow poll
+                    self.scheduleSlowPoll()
+                }
+            }
+        }
+    }
+
+    private func scheduleSlowPoll() {
+        statusTimer?.invalidate()
+        statusTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
+            Task { @MainActor in
+                await singBoxManager.refreshStatus()
+                appState.isRunning = singBoxManager.isRunning
+                if !appState.isRunning {
+                    // Lost it — switch to fast poll
+                    self.scheduleFastPoll()
+                }
             }
         }
     }
