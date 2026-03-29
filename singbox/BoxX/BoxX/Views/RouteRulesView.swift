@@ -9,6 +9,7 @@ struct RouteRulesView: View {
     @State private var showAddRule = false
     @State private var selectedRuleIndex: Int?
     @State private var editingRuleIndex: Int?
+    @State private var deletingRuleIndex: Int?
 
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }

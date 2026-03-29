@@ -7,6 +7,8 @@ struct RuleSetsView: View {
     @State private var selectedRuleSetIndex: Int?
     @State private var editingRuleSetTag: String?
     @State private var editingOutbound: String = ""
+    @State private var deletingTag: String?
+    @State private var deletingIndex: Int?
 
     enum RuleSetUpdateStatus {
         case idle
@@ -49,7 +51,13 @@ struct RuleSetsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    let ruleSets = appState.configEngine.config.route.ruleSet ?? []
+                    // Filter out rule sets managed by 内置规则 page
+                    let builtinGeositeTags = Set(BuiltinRuleSet.all.flatMap { $0.geositeNames }.map { "geosite-\($0)" })
+                    let ruleSets = (appState.configEngine.config.route.ruleSet ?? [])
+                        .filter { item in
+                            guard let tag = item["tag"]?.stringValue else { return true }
+                            return !builtinGeositeTags.contains(tag)
+                        }
                     if ruleSets.isEmpty {
                         Text("暂无规则集")
                             .foregroundStyle(.secondary)
@@ -105,6 +113,21 @@ struct RuleSetsView: View {
                 },
                 onCancel: { editingRuleSetTag = nil }
             )
+        }
+        .alert("确认删除", isPresented: .init(
+            get: { deletingTag != nil },
+            set: { if !$0 { deletingTag = nil; deletingIndex = nil } }
+        )) {
+            Button("取消", role: .cancel) { deletingTag = nil; deletingIndex = nil }
+            Button("删除", role: .destructive) {
+                if let idx = deletingIndex, let tag = deletingTag {
+                    deleteRuleSet(at: idx, tag: tag)
+                }
+                deletingTag = nil
+                deletingIndex = nil
+            }
+        } message: {
+            Text("确定要删除规则集「\(deletingTag ?? "")」吗？")
         }
     }
 
@@ -192,7 +215,8 @@ struct RuleSetsView: View {
                 .controlSize(.small)
 
                 Button("删除") {
-                    deleteRuleSet(at: index, tag: tag)
+                    deletingTag = tag
+                    deletingIndex = index
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
