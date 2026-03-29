@@ -34,6 +34,15 @@
 "overview.download" = "下载";
 "overview.upload" = "上传";
 "overview.memory" = "内存";
+"overview.start" = "启动";
+"overview.stop" = "停止";
+"overview.restart" = "重启";
+"overview.update_subs" = "更新订阅";
+"overview.need_helper" = "安装特权助手后可从 App 启动";
+
+// Settings
+"settings.about" = "关于";
+"settings.helper.description" = "特权助手允许 BoxX 以 root 权限启停 sing-box（TUN 模式需要）。它以 LaunchDaemon 方式运行。";
 
 // Proxies
 "proxies.search" = "搜索分组…";

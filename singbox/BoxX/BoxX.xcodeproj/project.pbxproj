@@ -258,7 +258,7 @@
 			buildPhases = (
 				1B59DD60D261C65B7419DD95 /* Sources */,
 				DFF8BD0BE27D1EB818A50173 /* Resources */,
-				AE5854DB145D0C91C85A2D85 /* Copy Helper launchd plist */,
+				47EDD7E1AC8C7AE44832FE58 /* Embed Helper binary and plist */,
 			);
 			buildRules = (
 			);
@@ -336,7 +336,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		AE5854DB145D0C91C85A2D85 /* Copy Helper launchd plist */ = {
+		47EDD7E1AC8C7AE44832FE58 /* Embed Helper binary and plist */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -346,14 +346,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Copy Helper launchd plist";
+			name = "Embed Helper binary and plist";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/BoxXHelper/launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons/com.boxx.helper.plist\"\n";
+			shellScript = "DAEMON_DIR=\"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons\"\nmkdir -p \"${DAEMON_DIR}\"\ncp \"${BUILT_PRODUCTS_DIR}/BoxXHelper\" \"${DAEMON_DIR}/BoxXHelper\"\ncp \"${SRCROOT}/BoxXHelper/launchd.plist\" \"${DAEMON_DIR}/com.boxx.helper.plist\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

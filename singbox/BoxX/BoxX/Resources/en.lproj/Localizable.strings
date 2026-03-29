@@ -34,6 +34,15 @@
 "overview.download" = "Download";
 "overview.upload" = "Upload";
 "overview.memory" = "Memory";
+"overview.start" = "Start";
+"overview.stop" = "Stop";
+"overview.restart" = "Restart";
+"overview.update_subs" = "Update Subs";
+"overview.need_helper" = "Install Helper to start from app";
+
+// Settings
+"settings.about" = "About";
+"settings.helper.description" = "The Privileged Helper allows BoxX to start/stop sing-box with root privileges (required for TUN mode). It runs as a LaunchDaemon.";
 
 // Proxies
 "proxies.search" = "Search groups…";

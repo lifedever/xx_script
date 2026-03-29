@@ -38,10 +38,12 @@ targets:
           destination: wrapper
           subpath: Contents/Library/LaunchDaemons
     postBuildScripts:
-      - name: "Copy Helper launchd plist"
+      - name: "Embed Helper binary and plist"
         script: |
-          mkdir -p "${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons"
-          cp "${SRCROOT}/BoxXHelper/launchd.plist" "${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons/com.boxx.helper.plist"
+          DAEMON_DIR="${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons"
+          mkdir -p "${DAEMON_DIR}"
+          cp "${BUILT_PRODUCTS_DIR}/BoxXHelper" "${DAEMON_DIR}/BoxXHelper"
+          cp "${SRCROOT}/BoxXHelper/launchd.plist" "${DAEMON_DIR}/com.boxx.helper.plist"
         basedOnDependencyAnalysis: false
 
   BoxXHelper:

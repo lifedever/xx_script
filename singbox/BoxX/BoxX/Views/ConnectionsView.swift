@@ -232,7 +232,7 @@ struct ConnectionDetailPanel: View {
                 }
                 .padding()
             }
-            .frame(height: 180)
+            .frame(height: 240)
             .background(.bar)
         }
     }

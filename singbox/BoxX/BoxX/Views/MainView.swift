@@ -48,7 +48,7 @@ struct MainView: View {
             if let item = selectedItem {
                 switch item {
                 case .overview:
-                    OverviewView(api: api, singBoxManager: singBoxManager)
+                    OverviewView(api: api, singBoxManager: singBoxManager, configGenerator: configGenerator)
                         .navigationTitle(String(localized: "sidebar.overview"))
                 case .proxies:
                     ProxiesView(api: api)
