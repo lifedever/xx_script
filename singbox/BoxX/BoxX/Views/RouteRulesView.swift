@@ -185,7 +185,8 @@ struct RouteRulesView: View {
                 if !isSystem {
                     Button("编辑") {
                         editingRuleIndex = rule.id
-                        showAddRule = true
+                        // Delay to ensure index is set before sheet evaluates
+                        DispatchQueue.main.async { showAddRule = true }
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
