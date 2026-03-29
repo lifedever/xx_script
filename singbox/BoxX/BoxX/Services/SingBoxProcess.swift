@@ -9,7 +9,8 @@ class SingBoxProcess {
 
     private let singBoxPath = "/opt/homebrew/bin/sing-box"
 
-    /// Start sing-box with the given config. Waits for Clash API to be ready.
+    /// Start sing-box with admin privileges (needed for TUN mode).
+    /// Uses osascript to get admin auth — prompts password once per session.
     func start(configPath: String) throws {
         guard FileManager.default.fileExists(atPath: singBoxPath) else {
             throw SingBoxError.notInstalled
@@ -20,48 +21,33 @@ class SingBoxProcess {
 
         // Kill any existing sing-box first
         killExisting()
-        // Wait for ports to release
         waitForPortRelease()
 
+        // Use osascript to start sing-box with admin privileges (for TUN)
+        let configDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
+        let shellCmd = "cd '\(configDir)' && '\(singBoxPath)' run -c '\(configPath)' &>/dev/null &"
+
         let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: singBoxPath)
-        proc.arguments = ["run", "-c", configPath]
-        proc.currentDirectoryURL = URL(fileURLWithPath: configPath).deletingLastPathComponent()
-        proc.environment = ProcessInfo.processInfo.environment
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        proc.arguments = [
+            "-e",
+            "do shell script \"\(shellCmd)\" with administrator privileges"
+        ]
         proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = FileHandle.nullDevice
 
-        // Capture stderr for error reporting
-        let stderrPipe = Pipe()
-        proc.standardError = stderrPipe
+        print("[BoxX] Starting sing-box with admin privileges...")
+        try proc.run()
+        proc.waitUntilExit()
 
-        proc.terminationHandler = { [weak self] proc in
-            Task { @MainActor in
-                self?.isRunning = false
-                self?.process = nil
-            }
+        if proc.terminationStatus != 0 {
+            throw SingBoxError.startFailed("授权被取消或失败")
         }
 
-        try proc.run()
-        process = proc
-
-        // Wait up to 15 seconds for sing-box to start (it downloads rule sets on first run)
-        print("[BoxX] sing-box process started (pid \(proc.processIdentifier)), waiting for Clash API...")
+        // Wait for Clash API to be ready (sing-box downloads rule sets on first run)
+        print("[BoxX] Waiting for Clash API...")
         var ready = false
-        for i in 0..<30 {
-            // Check if process died
-            if !proc.isRunning {
-                let stderrData = stderrPipe.fileHandleForReading.availableData
-                let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-                let lastLines = stderrStr.components(separatedBy: "\n")
-                    .filter { $0.contains("FATAL") || $0.contains("ERROR") || $0.contains("error") }
-                    .suffix(3)
-                    .joined(separator: "\n")
-                let errorMsg = lastLines.isEmpty ? "sing-box 进程退出 (code \(proc.terminationStatus))" : lastLines
-                process = nil
-                throw SingBoxError.startFailed(errorMsg)
-            }
-
-            // Check Clash API
+        for _ in 0..<30 {
             if checkClashAPISync() {
                 ready = true
                 break
@@ -71,48 +57,47 @@ class SingBoxProcess {
 
         if ready {
             isRunning = true
-            print("[BoxX] sing-box is ready!")
-        } else if proc.isRunning {
-            // Process is running but API not ready yet — might still be downloading rule sets
-            // Consider it running anyway
-            isRunning = true
-            print("[BoxX] sing-box process running but API slow to respond, marking as running")
+            print("[BoxX] sing-box started successfully with TUN support!")
         } else {
-            let stderrData = stderrPipe.fileHandleForReading.availableData
-            let stderrStr = String(data: stderrData, encoding: .utf8) ?? "Unknown error"
-            process = nil
-            throw SingBoxError.startFailed(stderrStr)
+            // Check if process exists
+            if findSingBoxPID() != nil {
+                isRunning = true
+                print("[BoxX] sing-box process running, API slow to respond")
+            } else {
+                throw SingBoxError.startFailed("sing-box 启动后立即退出，请检查配置")
+            }
         }
     }
 
-    /// Stop sing-box
+    /// Stop sing-box (needs sudo since it runs as root)
     func stop() {
-        if let proc = process, proc.isRunning {
-            proc.terminate()
-            for _ in 0..<30 {
-                if !proc.isRunning { break }
-                usleep(100_000)
-            }
-            if proc.isRunning {
-                kill(proc.processIdentifier, SIGKILL)
-                usleep(500_000)
-            }
-        }
+        // Try sudo kill via osascript
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        proc.arguments = [
+            "-e",
+            "do shell script \"pkill -x sing-box\" with administrator privileges"
+        ]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = FileHandle.nullDevice
+        try? proc.run()
+        proc.waitUntilExit()
+
         process = nil
-        killExisting()
         isRunning = false
+        waitForPortRelease()
+        print("[BoxX] sing-box stopped")
     }
 
     /// Restart with new config
     func restart(configPath: String) throws {
         stop()
-        waitForPortRelease()
         try start(configPath: configPath)
     }
 
     /// Check if sing-box is running
     func refreshStatus() async -> Bool {
-        if let proc = process, proc.isRunning {
+        if findSingBoxPID() != nil {
             isRunning = true
             return true
         }
@@ -134,7 +119,26 @@ class SingBoxProcess {
 
     // MARK: - Private
 
+    private func findSingBoxPID() -> Int32? {
+        let pgrep = Process()
+        pgrep.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        pgrep.arguments = ["-x", "sing-box"]
+        let pipe = Pipe()
+        pgrep.standardOutput = pipe
+        pgrep.standardError = FileHandle.nullDevice
+        try? pgrep.run()
+        pgrep.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !output.isEmpty,
+              let pid = Int32(output.components(separatedBy: "\n").first ?? "") else {
+            return nil
+        }
+        return pid
+    }
+
     private func killExisting() {
+        // Try without sudo first (user-level processes)
         let pkill = Process()
         pkill.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
         pkill.arguments = ["-x", "sing-box"]
@@ -142,6 +146,11 @@ class SingBoxProcess {
         pkill.standardError = FileHandle.nullDevice
         try? pkill.run()
         pkill.waitUntilExit()
+
+        // If still running, needs sudo — don't prompt here, just wait
+        if findSingBoxPID() != nil {
+            usleep(500_000)
+        }
     }
 
     private func waitForPortRelease() {
@@ -169,10 +178,9 @@ class SingBoxProcess {
         return result != 0
     }
 
-    /// Synchronous Clash API check (for use in start wait loop)
     private func checkClashAPISync() -> Bool {
         guard let url = URL(string: "http://127.0.0.1:9091") else { return false }
-        var request = URLRequest(url: url, timeoutInterval: 1)
+        let request = URLRequest(url: url, timeoutInterval: 1)
         let semaphore = DispatchSemaphore(value: 0)
         var success = false
         let task = URLSession.shared.dataTask(with: request) { _, response, _ in
@@ -186,7 +194,6 @@ class SingBoxProcess {
         return success
     }
 
-    /// Async Clash API check
     private func checkClashAPI() async -> Bool {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 2
