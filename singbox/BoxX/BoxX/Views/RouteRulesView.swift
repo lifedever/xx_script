@@ -271,8 +271,11 @@ struct RouteRulesView: View {
         isLoading = true
         defer { isLoading = false }
         let configRules = appState.configEngine.config.route.rules ?? []
-        rules = configRules.enumerated().map { (index, rule) in
-            Rule(
+        // Filter out RULE-SET rules (managed in 规则集 page) to avoid duplication
+        rules = configRules.enumerated().compactMap { (index, rule) -> Rule? in
+            // Skip rules that only have rule_set references
+            if rule["rule_set"] != nil { return nil }
+            return Rule(
                 id: index,
                 type: Self.extractRuleType(from: rule),
                 payload: Self.extractRulePayload(from: rule),
