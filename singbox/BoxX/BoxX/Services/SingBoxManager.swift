@@ -28,6 +28,47 @@ final class SingBoxManager {
     }
 
     func start(configPath: String) async throws {
+        // Copy config + local rules to /tmp/boxx/ so the root Helper can read them
+        // (macOS privacy protection blocks root from reading ~/Documents)
+        let tmpDir = "/tmp/boxx"
+        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+
+        let srcDir = (configPath as NSString).deletingLastPathComponent
+        let tmpConfig = tmpDir + "/config.json"
+
+        // Read and rewrite config, replacing local rule paths
+        let configData = try Data(contentsOf: URL(fileURLWithPath: configPath))
+        var configStr = String(data: configData, encoding: .utf8) ?? ""
+
+        // Copy local rule JSON files and update paths in config
+        let rulesDir = srcDir + "/rules"
+        if FileManager.default.fileExists(atPath: rulesDir) {
+            let tmpRules = tmpDir + "/rules"
+            try? FileManager.default.createDirectory(atPath: tmpRules, withIntermediateDirectories: true)
+            if let files = try? FileManager.default.contentsOfDirectory(atPath: rulesDir) {
+                for file in files {
+                    let src = rulesDir + "/" + file
+                    let dst = tmpRules + "/" + file
+                    try? FileManager.default.removeItem(atPath: dst)
+                    try? FileManager.default.copyItem(atPath: src, toPath: dst)
+                    // Replace path references in config
+                    configStr = configStr.replacingOccurrences(of: src, with: dst)
+                }
+            }
+        }
+
+        // Also update cache.db path
+        let tmpCache = tmpDir + "/cache.db"
+        let srcCache = srcDir + "/cache.db"
+        if configStr.contains(srcCache) {
+            // Copy existing cache if available
+            try? FileManager.default.removeItem(atPath: tmpCache)
+            try? FileManager.default.copyItem(atPath: srcCache, toPath: tmpCache)
+            configStr = configStr.replacingOccurrences(of: srcCache, with: tmpCache)
+        }
+
+        try configStr.write(toFile: tmpConfig, atomically: true, encoding: .utf8)
+
         helperManager.disconnect()
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -37,7 +78,7 @@ final class SingBoxManager {
                 continuation.resume(throwing: SingBoxError.helperNotAvailable)
                 return
             }
-            helper.startSingBox(configPath: configPath) { success, error in
+            helper.startSingBox(configPath: tmpConfig) { success, error in
                 if success {
                     Task { @MainActor in
                         self.isRunning = true
