@@ -28,108 +28,36 @@ final class SingBoxManager {
     }
 
     func start(configPath: String) async throws {
-        // Copy config + local rules to /tmp/boxx/ so the root Helper can read them
-        // (macOS privacy protection blocks root from reading ~/Documents)
-        let tmpDir = "/tmp/boxx"
-        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+        // Use osascript to run sing-box with admin privileges
+        // Same as `box start` — reads config directly, no permission issues
+        let singBoxPath = HelperConstants.singBoxPath
+        let script = """
+        do shell script "\(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
+        """
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+        try process.run()
+        process.waitUntilExit()
 
-        let srcDir = (configPath as NSString).deletingLastPathComponent
-        let tmpConfig = tmpDir + "/config.json"
-
-        // Read and rewrite config, replacing local rule paths
-        let configData = try Data(contentsOf: URL(fileURLWithPath: configPath))
-        var configStr = String(data: configData, encoding: .utf8) ?? ""
-
-        // Copy local rule JSON files and update paths in config
-        let rulesDir = srcDir + "/rules"
-        if FileManager.default.fileExists(atPath: rulesDir) {
-            let tmpRules = tmpDir + "/rules"
-            try? FileManager.default.createDirectory(atPath: tmpRules, withIntermediateDirectories: true)
-            if let files = try? FileManager.default.contentsOfDirectory(atPath: rulesDir) {
-                for file in files {
-                    let src = rulesDir + "/" + file
-                    let dst = tmpRules + "/" + file
-                    try? FileManager.default.removeItem(atPath: dst)
-                    try? FileManager.default.copyItem(atPath: src, toPath: dst)
-                    // Replace path references in config
-                    configStr = configStr.replacingOccurrences(of: src, with: dst)
-                }
-            }
+        if process.terminationStatus != 0 {
+            throw SingBoxError.startFailed("osascript exited with code \(process.terminationStatus)")
         }
 
-        // Also update cache.db path
-        let tmpCache = tmpDir + "/cache.db"
-        let srcCache = srcDir + "/cache.db"
-        if configStr.contains(srcCache) {
-            // Copy existing cache if available
-            try? FileManager.default.removeItem(atPath: tmpCache)
-            try? FileManager.default.copyItem(atPath: srcCache, toPath: tmpCache)
-            configStr = configStr.replacingOccurrences(of: srcCache, with: tmpCache)
-        }
-
-        try configStr.write(toFile: tmpConfig, atomically: true, encoding: .utf8)
-
-        helperManager.disconnect()
-
-        return try await withCheckedThrowingContinuation { continuation in
-            guard let helper = helperManager.getProxyWithErrorHandler({ error in
-                continuation.resume(throwing: SingBoxError.startFailed(error.localizedDescription))
-            }) else {
-                continuation.resume(throwing: SingBoxError.helperNotAvailable)
+        // Wait for sing-box to be ready
+        for _ in 0..<30 {
+            try await Task.sleep(for: .milliseconds(200))
+            if await clashAPI.isReachable() {
+                isRunning = true
+                isExternalProcess = false
                 return
             }
-            helper.startSingBox(configPath: tmpConfig) { success, error in
-                if success {
-                    Task { @MainActor in
-                        self.isRunning = true
-                        self.isExternalProcess = false
-                    }
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: SingBoxError.startFailed(error ?? "Unknown error"))
-                }
-            }
         }
+        throw SingBoxError.startFailed("sing-box started but Clash API not reachable after 6 seconds")
     }
 
-    func stop() async throws {
-        helperManager.disconnect()
-
-        return try await withCheckedThrowingContinuation { continuation in
-            guard let helper = helperManager.getProxyWithErrorHandler({ error in
-                continuation.resume(throwing: SingBoxError.stopFailed(error.localizedDescription))
-            }) else {
-                continuation.resume(throwing: SingBoxError.helperNotAvailable)
-                return
-            }
-            helper.stopSingBox { success, error in
-                if success {
-                    Task { @MainActor in
-                        self.isRunning = false
-                        self.pid = 0
-                    }
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: SingBoxError.stopFailed(error ?? "Unknown error"))
-                }
-            }
-        }
-    }
-
-    /// Stop sing-box regardless of how it was started
+    /// Stop sing-box — uses osascript sudo pkill (same as box stop)
     func stopAny() async throws {
-        if helperManager.isHelperInstalled {
-            do {
-                try await stop()
-                return
-            } catch {
-                // Helper failed, fallback to script
-            }
-        }
-        try await stopViaScript()
-    }
-
-    private func stopViaScript() async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
@@ -138,6 +66,14 @@ final class SingBoxManager {
         ]
         try process.run()
         process.waitUntilExit()
+
+        // Wait for process to actually die
+        for _ in 0..<20 {
+            try await Task.sleep(for: .milliseconds(200))
+            if !(await clashAPI.isReachable()) {
+                break
+            }
+        }
         isRunning = false
         pid = 0
         isExternalProcess = false

@@ -36,7 +36,7 @@ actor ClashAPI {
         _ = try await put("/proxies/\(encoded)", body: body)
     }
 
-    func getDelay(name: String, url: String = "http://www.gstatic.com/generate_204", timeout: Int = 5000) async throws -> Int {
+    func getDelay(name: String, url: String = "http://cp.cloudflare.com/generate_204", timeout: Int = 8000) async throws -> Int {
         let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let encodedURL = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url
         let data = try await get("/proxies/\(encoded)/delay?url=\(encodedURL)&timeout=\(timeout)")
