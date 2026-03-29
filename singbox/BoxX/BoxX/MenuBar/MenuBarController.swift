@@ -69,20 +69,23 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
         menu.addItem(si)
 
-        // ── Start / Stop / Restart ──
+        // ── 操作 submenu ──
+        let opsMenu = NSMenu()
         if appState.isRunning {
             let stopItem = NSMenuItem(title: "停止", action: #selector(stopSingBox), keyEquivalent: "")
             stopItem.target = self
-            menu.addItem(stopItem)
-
+            opsMenu.addItem(stopItem)
             let restartItem = NSMenuItem(title: "重启", action: #selector(restartSingBox), keyEquivalent: "")
             restartItem.target = self
-            menu.addItem(restartItem)
+            opsMenu.addItem(restartItem)
         } else {
             let startItem = NSMenuItem(title: "启动", action: #selector(startSingBox), keyEquivalent: "")
             startItem.target = self
-            menu.addItem(startItem)
+            opsMenu.addItem(startItem)
         }
+        let opsItem = NSMenuItem(title: "操作", action: nil, keyEquivalent: "")
+        opsItem.submenu = opsMenu
+        menu.addItem(opsItem)
 
         menu.addItem(.separator())
 
