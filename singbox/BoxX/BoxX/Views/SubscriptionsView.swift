@@ -126,15 +126,7 @@ struct SubscriptionsView: View {
     }
 
     static func loadSubscriptions() -> [Subscription] {
-        let newPath = subscriptionsFilePath
-        // Migrate from old path if needed (one-time v1 -> v2 migration)
-        if !FileManager.default.fileExists(atPath: newPath) {
-            let oldPath = NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox/subscriptions.json"
-            if FileManager.default.fileExists(atPath: oldPath) {
-                try? FileManager.default.copyItem(atPath: oldPath, toPath: newPath)
-            }
-        }
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: newPath)) else { return [] }
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: subscriptionsFilePath)) else { return [] }
         return (try? JSONDecoder().decode([Subscription].self, from: data)) ?? []
     }
 
