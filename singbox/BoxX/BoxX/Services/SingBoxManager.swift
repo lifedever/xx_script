@@ -32,7 +32,7 @@ final class SingBoxManager {
         // Same as `box start` — reads config directly, no permission issues
         let singBoxPath = HelperConstants.singBoxPath
         let script = """
-        do shell script "\(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
+        do shell script "dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; \(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
         """
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
@@ -62,7 +62,7 @@ final class SingBoxManager {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
             "-e",
-            "do shell script \"pkill -x sing-box || true\" with administrator privileges"
+            "do shell script \"pkill -x sing-box || true; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null\" with administrator privileges"
         ]
         try process.run()
         process.waitUntilExit()
@@ -79,10 +79,33 @@ final class SingBoxManager {
         isExternalProcess = false
     }
 
+    /// Restart sing-box — single password prompt, includes DNS flush
     func restart(configPath: String) async throws {
-        try await stopAny()
-        try await Task.sleep(for: .seconds(2))
-        try await start(configPath: configPath)
+        let singBoxPath = HelperConstants.singBoxPath
+        // Single osascript call: kill → wait → flush DNS → start
+        let script = """
+        do shell script "pkill -x sing-box || true; sleep 2; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; \(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
+        """
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+        try process.run()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            throw SingBoxError.startFailed("Restart failed (osascript code \(process.terminationStatus))")
+        }
+
+        // Wait for sing-box to be ready
+        for _ in 0..<30 {
+            try await Task.sleep(for: .milliseconds(200))
+            if await clashAPI.isReachable() {
+                isRunning = true
+                isExternalProcess = false
+                return
+            }
+        }
+        throw SingBoxError.startFailed("sing-box restarted but Clash API not reachable")
     }
 
 }
