@@ -16,27 +16,33 @@ class SingBoxProcess {
             throw SingBoxError.startFailed("配置文件不存在: \(configPath)")
         }
 
-        // Kill existing on background thread
-        await runOnBackground { self.killExistingSync() }
-        await runOnBackground { self.waitForPortReleaseSync() }
-
-        // Start via osascript on background thread
-        // Escape paths for shell: replace ' with '\''
+        // Build launcher script that handles everything: kill old, start new
         let sbPath = singBoxPath
         let escapedConfigPath = configPath.replacingOccurrences(of: "'", with: "'\\''")
         let escapedConfigDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
             .replacingOccurrences(of: "'", with: "'\\''")
 
-        // Write a temp launcher script to avoid shell quoting issues in osascript
+        // Single osascript call: kill old (as root) + start new (as root)
         let launcherScript = """
         #!/bin/bash
+        # Kill existing sing-box (including root processes)
+        pkill -x sing-box 2>/dev/null
+        sleep 1
+        # Force kill if still alive
+        pkill -9 -x sing-box 2>/dev/null
+        sleep 1
+        # Start sing-box
         cd '\(escapedConfigDir)'
         '\(sbPath)' run -c '\(escapedConfigPath)' &>/dev/null &
-        echo $!
         """
         let launcherPath = "/tmp/boxx-launcher.sh"
-        try launcherScript.write(toFile: launcherPath, atomically: true, encoding: .utf8)
-        FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcherPath)
+
+        do {
+            try launcherScript.write(toFile: launcherPath, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: launcherPath)
+        } catch {
+            throw SingBoxError.startFailed("无法创建启动脚本: \(error.localizedDescription)")
+        }
 
         print("[BoxX] Starting sing-box with admin privileges...")
 
