@@ -53,8 +53,20 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: HelperConstants.singBoxPath)
             process.arguments = ["run", "-c", configPath]
-            process.environment = ["PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"]
+            // Set working directory to config's directory
+            let configDir = (configPath as NSString).deletingLastPathComponent
+            process.currentDirectoryURL = URL(fileURLWithPath: configDir)
+            process.environment = [
+                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
+                "HOME": "/var/root",
+            ]
             umask(0o022)
+
+            // Capture stderr for error reporting
+            let stderrPipe = Pipe()
+            process.standardError = stderrPipe
+            // Don't capture stdout (sing-box writes logs there)
+            process.standardOutput = FileHandle.nullDevice
 
             do {
                 try process.run()
@@ -70,7 +82,11 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
                 if isAlive {
                     reply(true, nil)
                 } else {
-                    reply(false, "sing-box exited immediately (code \(process.terminationStatus))")
+                    // Read stderr for error details
+                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
+                    let lastLines = stderrStr.components(separatedBy: "\n").suffix(5).joined(separator: "\n")
+                    reply(false, "sing-box exited (code \(process.terminationStatus)): \(lastLines)")
                     singBoxProcess = nil
                 }
             } catch {
