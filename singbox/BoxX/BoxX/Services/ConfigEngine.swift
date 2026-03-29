@@ -108,11 +108,79 @@ class ConfigEngine: @unchecked Sendable {
     }
 
     func deployRuntime() throws {
-        let runtime = buildRuntimeConfig()
+        var runtime = buildRuntimeConfig()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(runtime)
+        var data = try encoder.encode(runtime)
         try data.write(to: runtimeURL, options: .atomic)
+
+        // Validate config with sing-box check. If it fails, try removing problematic proxy nodes.
+        if !validateConfig() {
+            print("[BoxX] Config validation failed, trying to remove problematic nodes...")
+            // Remove proxy nodes (keep selectors/urltest/direct) and re-add one by one
+            let proxyTypes: Set<String> = ["vmess", "shadowsocks", "trojan", "hysteria2", "vless"]
+            let coreOutbounds = runtime.outbounds.filter { ob in
+                switch ob {
+                case .selector, .urltest, .direct: return true
+                case .unknown(_, let type, _): return !proxyTypes.contains(type)
+                default: return false
+                }
+            }
+            let proxyOutbounds = runtime.outbounds.filter { ob in
+                switch ob {
+                case .vmess, .shadowsocks, .trojan, .hysteria2, .vless: return true
+                case .unknown(_, let type, _): return proxyTypes.contains(type)
+                default: return false
+                }
+            }
+
+            // Try adding each proxy node, skip ones that cause validation failure
+            var validProxies: [Outbound] = []
+            for proxy in proxyOutbounds {
+                runtime.outbounds = coreOutbounds + validProxies + [proxy]
+                // Re-validate selectors
+                let allTags = Set(runtime.outbounds.map { $0.tag })
+                for i in runtime.outbounds.indices {
+                    switch runtime.outbounds[i] {
+                    case .selector(var s):
+                        s.outbounds = s.outbounds.filter { allTags.contains($0) }
+                        if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
+                        runtime.outbounds[i] = .selector(s)
+                    case .urltest(var u):
+                        u.outbounds = u.outbounds.filter { allTags.contains($0) }
+                        if u.outbounds.isEmpty { u.outbounds = ["DIRECT"] }
+                        runtime.outbounds[i] = .urltest(u)
+                    default: break
+                    }
+                }
+                data = try encoder.encode(runtime)
+                try data.write(to: runtimeURL, options: .atomic)
+                if validateConfig() {
+                    validProxies.append(proxy)
+                } else {
+                    print("[BoxX] Skipping problematic node: \(proxy.tag)")
+                }
+            }
+            // Write final valid config
+            runtime.outbounds = coreOutbounds + validProxies
+            let finalAllTags = Set(runtime.outbounds.map { $0.tag })
+            for i in runtime.outbounds.indices {
+                switch runtime.outbounds[i] {
+                case .selector(var s):
+                    s.outbounds = s.outbounds.filter { finalAllTags.contains($0) }
+                    if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
+                    runtime.outbounds[i] = .selector(s)
+                case .urltest(var u):
+                    u.outbounds = u.outbounds.filter { finalAllTags.contains($0) }
+                    if u.outbounds.isEmpty { u.outbounds = ["DIRECT"] }
+                    runtime.outbounds[i] = .urltest(u)
+                default: break
+                }
+            }
+            data = try encoder.encode(runtime)
+            try data.write(to: runtimeURL, options: .atomic)
+            print("[BoxX] Deployed with \(validProxies.count)/\(proxyOutbounds.count) valid proxy nodes")
+        }
         try onDeployComplete?()
     }
 
@@ -133,6 +201,20 @@ class ConfigEngine: @unchecked Sendable {
             try FileManager.default.removeItem(at: file)
         }
         proxies.removeValue(forKey: name)
+    }
+
+    // MARK: - Validation
+
+    /// Run `sing-box check` to validate the runtime config
+    private func validateConfig() -> Bool {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/sing-box")
+        proc.arguments = ["check", "-c", runtimeURL.path]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = FileHandle.nullDevice
+        try? proc.run()
+        proc.waitUntilExit()
+        return proc.terminationStatus == 0
     }
 
     // MARK: - File Watching

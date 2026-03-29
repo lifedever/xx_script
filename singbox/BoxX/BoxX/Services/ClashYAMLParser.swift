@@ -144,8 +144,13 @@ struct ClashYAMLParser: ProxyParser {
         for pair in pairs {
             let trimmedPair = pair.trimmingCharacters(in: .whitespaces)
             guard let colonIdx = trimmedPair.firstIndex(of: ":") else { continue }
-            let key = String(trimmedPair[..<colonIdx]).trimmingCharacters(in: .whitespaces)
+            var key = String(trimmedPair[..<colonIdx]).trimmingCharacters(in: .whitespaces)
             var value = String(trimmedPair[trimmedPair.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
+
+            // Remove quotes from key (JSON style: "name" → name)
+            if (key.hasPrefix("\"") && key.hasSuffix("\"")) || (key.hasPrefix("'") && key.hasSuffix("'")) {
+                key = String(key.dropFirst().dropLast())
+            }
 
             // Remove quotes from value
             if (value.hasPrefix("'") && value.hasSuffix("'")) || (value.hasPrefix("\"") && value.hasSuffix("\"")) {
@@ -556,6 +561,19 @@ struct ClashYAMLParser: ProxyParser {
                     realityObj["short_id"] = .string(shortId)
                 }
                 tls["reality"] = .object(realityObj)
+                // Reality requires uTLS
+                let fingerprint = stringVal(dict["client-fingerprint"]) ?? "chrome"
+                tls["utls"] = .object([
+                    "enabled": .bool(true),
+                    "fingerprint": .string(fingerprint),
+                ])
+            }
+            // Also add utls if client-fingerprint is set (even without reality)
+            if dict["reality-opts"] == nil, let fp = stringVal(dict["client-fingerprint"]) {
+                tls["utls"] = .object([
+                    "enabled": .bool(true),
+                    "fingerprint": .string(fp),
+                ])
             }
             obj["tls"] = .object(tls)
         }
