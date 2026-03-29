@@ -2,6 +2,10 @@
 import Foundation
 import Observation
 
+private extension Notification.Name {
+    static let configFileDidChange = Notification.Name("com.boxx.configFileDidChange")
+}
+
 @Observable
 class ConfigEngine {
     private(set) var config: SingBoxConfig
@@ -12,6 +16,8 @@ class ConfigEngine {
     private var proxiesDir: URL { baseDir.appendingPathComponent("proxies") }
     private var runtimeURL: URL { baseDir.appendingPathComponent("runtime-config.json") }
     private var lastMtime: Date?
+    private var watcher: FileWatcher?
+    private var watcherObserver: NSObjectProtocol?
 
     /// Called after deployRuntime writes runtime-config.json.
     /// App sets this to call XPCClient.reload().
@@ -92,5 +98,32 @@ class ConfigEngine {
             try FileManager.default.removeItem(at: file)
         }
         proxies.removeValue(forKey: name)
+    }
+
+    // MARK: - File Watching
+
+    func startWatching() {
+        let watchDir = configURL.deletingLastPathComponent().path
+        watcher = FileWatcher(path: watchDir) { @Sendable in
+            NotificationCenter.default.post(name: .configFileDidChange, object: nil)
+        }
+        watcher?.start()
+
+        watcherObserver = NotificationCenter.default.addObserver(
+            forName: .configFileDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            try? self?.load()
+        }
+    }
+
+    func stopWatching() {
+        watcher?.stop()
+        watcher = nil
+        if let observer = watcherObserver {
+            NotificationCenter.default.removeObserver(observer)
+            watcherObserver = nil
+        }
     }
 }
