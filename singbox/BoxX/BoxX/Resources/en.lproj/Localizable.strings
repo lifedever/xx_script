@@ -47,10 +47,19 @@
 "connections.search" = "Search connections…";
 "connections.count" = "%d connections";
 "connections.close_all" = "Close All";
+"connections.time" = "Time";
 "connections.host" = "Host";
+"connections.network" = "Net";
 "connections.rule" = "Rule";
 "connections.outbound" = "Outbound";
 "connections.chain" = "Chain";
+"connections.download" = "Download";
+"connections.upload" = "Upload";
+"connections.ctx.copy_host" = "Copy Host";
+"connections.ctx.add_rule" = "Add Rule…";
+"connections.ctx.close" = "Close Connection";
+"connections.ctx.rule_copied_title" = "Rule Copied";
+"connections.ctx.rule_copied_msg" = "Copied: %@\nTarget: %@\n\nPaste into the corresponding rule file (ss/rules/ or clash/rules/).";
 
 // Logs
 "logs.auto_scroll" = "Auto-scroll";

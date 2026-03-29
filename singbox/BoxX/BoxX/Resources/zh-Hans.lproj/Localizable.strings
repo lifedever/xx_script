@@ -47,10 +47,19 @@
 "connections.search" = "搜索连接…";
 "connections.count" = "%d 个连接";
 "connections.close_all" = "全部关闭";
+"connections.time" = "时间";
 "connections.host" = "主机";
+"connections.network" = "协议";
 "connections.rule" = "规则";
 "connections.outbound" = "出站";
 "connections.chain" = "链路";
+"connections.download" = "下载";
+"connections.upload" = "上传";
+"connections.ctx.copy_host" = "复制主机";
+"connections.ctx.add_rule" = "添加规则…";
+"connections.ctx.close" = "关闭连接";
+"connections.ctx.rule_copied_title" = "规则已复制";
+"connections.ctx.rule_copied_msg" = "已复制: %@\n目标: %@\n\n请粘贴到对应的规则文件中 (ss/rules/ 或 clash/rules/)。";
 
 // Logs
 "logs.auto_scroll" = "自动滚动";

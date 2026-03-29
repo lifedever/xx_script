@@ -13,6 +13,32 @@ struct Connection: Identifiable, Codable, Sendable {
     var host: String { metadata.host.isEmpty ? metadata.destinationIP : metadata.host }
     var outbound: String { chains.first ?? "" }
     var chain: String { chains.joined(separator: " -> ") }
+    var network: String { metadata.network.uppercased() }
+    var destinationPort: String { metadata.destinationPort }
+
+    var startDate: Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: start) ?? ISO8601DateFormatter().date(from: start)
+    }
+
+    var startTimeString: String {
+        guard let date = startDate else { return "" }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm:ss"
+        return fmt.string(from: date)
+    }
+
+    /// Domain suffix for rule creation (e.g. "api.anthropic.com" → "anthropic.com")
+    var domainForRule: String {
+        let h = metadata.host
+        if h.isEmpty { return metadata.destinationIP }
+        let parts = h.split(separator: ".")
+        if parts.count >= 2 {
+            return parts.suffix(2).joined(separator: ".")
+        }
+        return h
+    }
 }
 
 struct ConnectionMetadata: Codable, Sendable {
