@@ -125,7 +125,7 @@ struct RulesView: View {
                         ruleRow(rule)
                     }
                 }
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(.regularMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
@@ -155,7 +155,7 @@ struct RulesView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(rule.id % 2 == 0 ? Color.clear : Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(rule.id % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
     }
 
     private func ruleTypeBadge(_ type: String) -> some View {
@@ -250,7 +250,7 @@ struct RulesView: View {
             .controlSize(.small)
         }
         .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .opacity(isEnabled ? 1.0 : 0.6)
         .contentShape(Rectangle())
@@ -367,6 +367,31 @@ struct RulesView: View {
                     .foregroundStyle(.tertiary)
             }
 
+            // Outbound routing
+            if let currentOutbound = outboundForRuleSet(tag: tag) {
+                HStack {
+                    Text("出站:")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    Picker("", selection: Binding(
+                        get: { currentOutbound },
+                        set: { newValue in changeOutbound(forRuleSetTag: tag, to: newValue) }
+                    )) {
+                        ForEach(availableOutbounds, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    }
+                    .labelsHidden()
+                    .controlSize(.small)
+                    .frame(maxWidth: 140)
+                }
+            } else {
+                Text("未关联")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
             // Update status indicator
             if let status = ruleSetUpdateStatus[tag] {
                 switch status {
@@ -391,8 +416,49 @@ struct RulesView: View {
             }
         }
         .padding(8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Outbound Helpers
+
+    private var availableOutbounds: [String] {
+        appState.configEngine.config.outbounds.compactMap { outbound in
+            switch outbound {
+            case .selector(let s): return s.tag
+            case .direct(let d): return d.tag
+            default: return nil
+            }
+        }
+    }
+
+    private func outboundForRuleSet(tag: String) -> String? {
+        let rules = appState.configEngine.config.route.rules ?? []
+        for rule in rules {
+            guard let ruleSetRefs = rule["rule_set"]?.arrayValue else { continue }
+            let tags = ruleSetRefs.compactMap { $0.stringValue }
+            if tags.contains(tag) {
+                return rule["outbound"]?.stringValue
+            }
+        }
+        return nil
+    }
+
+    private func changeOutbound(forRuleSetTag tag: String, to newOutbound: String) {
+        var rules = appState.configEngine.config.route.rules ?? []
+        for i in rules.indices {
+            guard let ruleSetRefs = rules[i]["rule_set"]?.arrayValue else { continue }
+            let tags = ruleSetRefs.compactMap { $0.stringValue }
+            if tags.contains(tag) {
+                if case .object(var dict) = rules[i] {
+                    dict["outbound"] = .string(newOutbound)
+                    rules[i] = .object(dict)
+                }
+                break
+            }
+        }
+        appState.configEngine.config.route.rules = rules
+        try? appState.configEngine.save(restartRequired: true)
     }
 
     // MARK: - Rule Set Update
