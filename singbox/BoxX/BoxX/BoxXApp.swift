@@ -27,7 +27,7 @@ struct BoxXApp: App {
                 await observer.startObserving()
             }
         } label: {
-            Image(systemName: appState.isRunning ? "network" : "network.slash")
+            Image(systemName: appState.isRunning ? "shippingbox.fill" : "shippingbox")
         }
 
         Window("BoxX", id: "main") {
