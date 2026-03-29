@@ -38,6 +38,10 @@
 // Proxies
 "proxies.search" = "Search groups…";
 "proxies.timeout" = "timeout";
+"proxies.section.services" = "Services";
+"proxies.section.regions" = "Regions";
+"proxies.section.subscriptions" = "Subscriptions";
+"proxies.section.other" = "Other";
 
 // Rules
 "rules.search" = "Search rules…";

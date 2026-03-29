@@ -38,6 +38,10 @@
 // Proxies
 "proxies.search" = "搜索分组…";
 "proxies.timeout" = "超时";
+"proxies.section.services" = "服务分流";
+"proxies.section.regions" = "地区节点";
+"proxies.section.subscriptions" = "订阅分组";
+"proxies.section.other" = "其他";
 
 // Rules
 "rules.search" = "搜索规则…";
