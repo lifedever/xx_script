@@ -34,25 +34,6 @@
 "sidebar.connections" = "Connections";
 "sidebar.logs" = "Logs";
 "sidebar.subscriptions" = "Subscriptions";
-"sidebar.rule_test" = "Rule Test";
-"sidebar.services_config" = "Service Config";
-
-// Services Config
-"services.add" = "Add Service";
-"services.edit" = "Edit Service";
-"services.move_up" = "Move Up";
-"services.move_down" = "Move Down";
-"services.save_and_update" = "Save & Update";
-"services.name_field" = "Service Name";
-"services.geosite_field" = "Geosite Rules (comma-separated)";
-"services.default_outbound" = "Default Outbound";
-"services.include_direct" = "Include DIRECT option";
-"services.exclude_hk" = "Exclude Hong Kong";
-"services.custom_rules_section" = "Custom Rule Lists";
-"services.rule_name" = "Name";
-"services.rule_url" = "Rule list URL";
-"services.add_rule" = "Add";
-
 // Overview
 "overview.status" = "Status";
 "overview.running" = "Running";
@@ -90,16 +71,6 @@
 "proxies.section.regions" = "Regions";
 "proxies.section.subscriptions" = "Subscriptions";
 "proxies.section.other" = "Other";
-"ruletest.placeholder" = "Enter domain or URL (e.g. google.com)";
-"ruletest.button" = "Test";
-"ruletest.clear" = "Clear";
-"ruletest.hint" = "Test which rule a domain matches";
-"ruletest.hint_detail" = "Enter a domain and click Test.\nA real connection will be made through sing-box to get the exact routing result.";
-"ruletest.no_match" = "No matching connection found";
-"ruletest.flow.rule" = "Matched Rule";
-"ruletest.flow.outbound" = "Outbound";
-"ruletest.flow.chain" = "Full Chain";
-
 // Rules
 "rules.search" = "Search rules…";
 "rules.count" = "%d rules";

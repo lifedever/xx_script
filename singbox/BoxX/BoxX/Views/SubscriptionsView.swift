@@ -1,5 +1,11 @@
 import SwiftUI
 
+struct Subscription: Identifiable, Codable {
+    var id: String { name }
+    var name: String
+    var url: String
+}
+
 struct SubscriptionsView: View {
     @Environment(AppState.self) private var appState
 
@@ -8,8 +14,6 @@ struct SubscriptionsView: View {
     @State private var editingSubscription: Subscription? = nil
     @State private var isUpdating = false
     @State private var updateResults: [String: SubscriptionUpdateStatus] = [:]
-
-    private let manager = SubscriptionManager()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,7 +96,7 @@ struct SubscriptionsView: View {
             }
         }
         .onAppear {
-            subscriptions = manager.load()
+            subscriptions = Self.loadSubscriptions()
         }
     }
 
@@ -102,7 +106,27 @@ struct SubscriptionsView: View {
     }
 
     private func saveSubscriptions() {
-        try? manager.save(subscriptions)
+        Self.saveSubscriptions(subscriptions)
+    }
+
+    // MARK: - File I/O (shared with MenuBarView)
+
+    static var subscriptionsFilePath: String {
+        let scriptDir = UserDefaults.standard.string(forKey: "scriptDir")
+            ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox")
+        return scriptDir + "/subscriptions.json"
+    }
+
+    static func loadSubscriptions() -> [Subscription] {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: subscriptionsFilePath)) else { return [] }
+        return (try? JSONDecoder().decode([Subscription].self, from: data)) ?? []
+    }
+
+    static func saveSubscriptions(_ subs: [Subscription]) {
+        guard let data = try? JSONEncoder().encode(subs),
+              let json = try? JSONSerialization.jsonObject(with: data),
+              let pretty = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]) else { return }
+        try? pretty.write(to: URL(fileURLWithPath: subscriptionsFilePath))
     }
 
     private func saveAndUpdate() async {

@@ -210,8 +210,7 @@ struct MenuBarView: View {
             guard !isUpdatingSubscriptions else { return }
             isUpdatingSubscriptions = true
             Task {
-                let manager = SubscriptionManager()
-                let subs = manager.load()
+                let subs = SubscriptionsView.loadSubscriptions()
                 let subService = appState.subscriptionService
                 for sub in subs {
                     guard let url = URL(string: sub.url) else { continue }
