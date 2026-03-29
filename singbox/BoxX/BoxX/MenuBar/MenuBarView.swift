@@ -177,7 +177,7 @@ struct MenuBarView: View {
     @ViewBuilder
     private func groupSubmenu(_ group: ProxyGroup) -> some View {
         let currentNode = group.now ?? "–"
-        Menu("\(group.name)          \(currentNode)") {
+        Menu("\(group.name)\t\(currentNode)") {
             ForEach(group.displayAll, id: \.self) { node in
                 Button {
                     Task { await selectNode(group: group.name, node: node) }
