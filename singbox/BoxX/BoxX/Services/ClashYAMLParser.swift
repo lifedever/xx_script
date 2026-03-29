@@ -377,7 +377,9 @@ struct ClashYAMLParser: ProxyParser {
     private func stringVal(_ val: JSONValue?) -> String? {
         switch val {
         case .string(let s): return s
-        case .number(let n): return String(Int(n))
+        case .number(let n):
+            guard n.isFinite else { return nil }
+            return n == n.rounded() ? String(Int(n)) : String(n)
         default: return nil
         }
     }
