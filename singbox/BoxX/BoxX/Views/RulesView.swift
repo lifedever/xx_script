@@ -9,6 +9,14 @@ struct RulesView: View {
     @State private var showAddRule = false
     @State private var enabledRuleSetIDs: Set<String> = []
     @State private var editingRuleSet: BuiltinRuleSet?
+    @State private var ruleSetUpdateStatus: [String: RuleSetUpdateStatus] = [:]
+
+    enum RuleSetUpdateStatus {
+        case idle
+        case updating
+        case success
+        case failed(String)
+    }
 
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }
@@ -253,11 +261,32 @@ struct RulesView: View {
 
     private var configuredRuleSetsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("已配置规则集")
-                .font(.headline)
-            Text("当前 config.json 中的规则集定义")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("已配置规则集")
+                        .font(.headline)
+                    Text("当前 config.json 中的规则集定义")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                let hasRemote = (appState.configEngine.config.route.ruleSet ?? [])
+                    .contains { $0["type"]?.stringValue == "remote" }
+                if hasRemote {
+                    Button {
+                        Task { await updateAllRemoteRuleSets() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                            Text("全部更新")
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(ruleSetUpdateStatus.values.contains { if case .updating = $0 { return true } else { return false } })
+                }
+            }
 
             let ruleSets = appState.configEngine.config.route.ruleSet ?? []
             if ruleSets.isEmpty {
@@ -285,6 +314,7 @@ struct RulesView: View {
         let format = ruleSet["format"]?.stringValue ?? ""
         let url = ruleSet["url"]?.stringValue
         let path = ruleSet["path"]?.stringValue
+        let isRemote = type == "remote"
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -292,6 +322,22 @@ struct RulesView: View {
                     .font(.callout.bold())
                     .lineLimit(1)
                 Spacer()
+                if isRemote, let url = url {
+                    let isUpdating: Bool = {
+                        if case .updating = ruleSetUpdateStatus[tag] { return true }
+                        return false
+                    }()
+                    Button {
+                        Task { await updateRuleSet(tag: tag, url: url) }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .disabled(isUpdating)
+                    .help("更新规则集")
+                }
                 Text(type)
                     .font(.caption2)
                     .padding(.horizontal, 5)
@@ -320,10 +366,62 @@ struct RulesView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
+
+            // Update status indicator
+            if let status = ruleSetUpdateStatus[tag] {
+                switch status {
+                case .updating:
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.small)
+                        Text("更新中...").font(.caption2).foregroundStyle(.secondary)
+                    }
+                case .success:
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption)
+                        Text("已更新").font(.caption2).foregroundStyle(.green)
+                    }
+                case .failed(let error):
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
+                        Text(error).font(.caption2).foregroundStyle(.red).lineLimit(1)
+                    }
+                case .idle:
+                    EmptyView()
+                }
+            }
         }
         .padding(8)
         .background(Color(nsColor: .controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Rule Set Update
+
+    private func updateRuleSet(tag: String, url: String) async {
+        ruleSetUpdateStatus[tag] = .updating
+        do {
+            let ruleSetManager = RuleSetManager(rulesDir: appState.configEngine.baseDir.appendingPathComponent("rules"))
+            guard let remoteURL = URL(string: url) else {
+                ruleSetUpdateStatus[tag] = .failed("无效的 URL")
+                return
+            }
+            let ext = url.hasSuffix(".srs") ? "srs" : "json"
+            _ = try await ruleSetManager.downloadRuleSet(url: remoteURL, filename: "\(tag).\(ext)")
+            ruleSetUpdateStatus[tag] = .success
+        } catch {
+            ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
+        }
+    }
+
+    private func updateAllRemoteRuleSets() async {
+        let remoteSets = (appState.configEngine.config.route.ruleSet ?? [])
+            .filter { $0["type"]?.stringValue == "remote" }
+
+        for rs in remoteSets {
+            guard let tag = rs["tag"]?.stringValue,
+                  let url = rs["url"]?.stringValue else { continue }
+            await updateRuleSet(tag: tag, url: url)
+        }
     }
 
     // MARK: - Rule Set Config Helpers
