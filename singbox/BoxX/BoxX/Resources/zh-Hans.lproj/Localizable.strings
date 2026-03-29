@@ -15,6 +15,7 @@
 "menu.install_helper" = "安装特权助手…";
 "menu.stop_external_hint" = "sing-box 由外部启动（如 box start），请在终端执行 box stop 停止，或安装特权助手后由 App 管理。";
 "menu.start_no_helper_hint" = "特权助手未安装，请先安装（菜单或设置中），或在终端执行 box start。";
+"menu.helper_install_success" = "特权助手安装成功，现在可以从 App 启停 sing-box 了。";
 
 // Sidebar
 "sidebar.overview" = "概览";

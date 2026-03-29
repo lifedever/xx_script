@@ -65,7 +65,11 @@ struct MenuBarView: View {
                     }
                 } else {
                     Button(String(localized: "menu.start")) {
-                        appState.showAlert(String(localized: "menu.start_no_helper_hint"))
+                        showNSAlert(
+                            title: String(localized: "menu.start"),
+                            message: String(localized: "menu.start_no_helper_hint"),
+                            style: .informational
+                        )
                     }
                 }
             }
@@ -116,25 +120,25 @@ struct MenuBarView: View {
             // Install Helper (only when not installed)
             if !appState.isHelperInstalled {
                 Button(String(localized: "menu.install_helper")) {
-                    do {
-                        try HelperManager.shared.installHelper()
-                        appState.isHelperInstalled = true
-                    } catch {
-                        appState.showAlert(error.localizedDescription)
-                    }
+                    installHelper()
                 }
             }
 
             // Open Dashboard
             Button(String(localized: "menu.open_dashboard")) {
                 openWindow(id: "main")
+                NSApp.setActivationPolicy(.regular)
                 NSApp.activate()
             }
 
             // Settings
             Button(String(localized: "menu.settings")) {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                // Must switch to regular mode first for Settings window to work
+                NSApp.setActivationPolicy(.regular)
                 NSApp.activate()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                }
             }
 
             Divider()
@@ -162,6 +166,40 @@ struct MenuBarView: View {
             proxyGroups = try await api.getProxies()
         } catch {
             proxyGroups = []
+        }
+    }
+
+    private func installHelper() {
+        do {
+            try HelperManager.shared.installHelper()
+            appState.isHelperInstalled = true
+            showNSAlert(
+                title: String(localized: "settings.helper.installed"),
+                message: String(localized: "menu.helper_install_success"),
+                style: .informational
+            )
+        } catch {
+            showNSAlert(
+                title: String(localized: "error.title"),
+                message: error.localizedDescription,
+                style: .critical
+            )
+        }
+    }
+
+    private func showNSAlert(title: String, message: String, style: NSAlert.Style) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = style
+        alert.addButton(withTitle: String(localized: "error.ok"))
+        // Activate app so alert is visible
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        alert.runModal()
+        // Go back to accessory if no window is open
+        if NSApp.windows.filter({ $0.isVisible && $0.title != "" }).isEmpty {
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 }
