@@ -58,6 +58,11 @@ actor ClashAPI {
     func closeConnection(id: String) async throws { _ = try await delete("/connections/\(id)") }
     func closeAllConnections() async throws { _ = try await delete("/connections") }
 
+    func getConfig() async throws -> ClashConfig {
+        let data = try await get("/configs")
+        return try JSONDecoder().decode(ClashConfig.self, from: data)
+    }
+
     func isReachable() async -> Bool {
         do { _ = try await get("/"); return true } catch { return false }
     }
@@ -99,6 +104,24 @@ actor ClashAPI {
 
     private func addAuth(_ request: inout URLRequest) {
         if !secret.isEmpty { request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization") }
+    }
+}
+
+struct ClashConfig: Codable {
+    let mode: String?
+    let mixedPort: Int?
+    let port: Int?
+    let socksPort: Int?
+    let allowLan: Bool?
+    let logLevel: String?
+
+    enum CodingKeys: String, CodingKey {
+        case mode
+        case mixedPort = "mixed-port"
+        case port
+        case socksPort = "socks-port"
+        case allowLan = "allow-lan"
+        case logLevel = "log-level"
     }
 }
 

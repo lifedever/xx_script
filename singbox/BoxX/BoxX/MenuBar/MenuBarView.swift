@@ -131,14 +131,20 @@ struct MenuBarView: View {
             Button(String(localized: "menu.open_dashboard")) {
                 openWindow(id: "main")
                 NSApp.setActivationPolicy(.regular)
-                NSApp.activate()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NSApp.activate()
+                    NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+                }
             }
 
             // Settings
             Button(String(localized: "menu.settings")) {
                 openWindow(id: "settings")
                 NSApp.setActivationPolicy(.regular)
-                NSApp.activate()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NSApp.activate()
+                    NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+                }
             }
 
             Divider()

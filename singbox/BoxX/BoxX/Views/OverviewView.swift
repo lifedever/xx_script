@@ -7,6 +7,9 @@ struct OverviewView: View {
 
     @Environment(AppState.self) private var appState
     @State private var snapshot: ConnectionSnapshot?
+    @State private var clashConfig: ClashConfig?
+    @State private var proxyGroupCount: Int = 0
+    @State private var ruleCount: Int = 0
     @State private var isLoading = false
     @State private var isOperating = false
 
@@ -132,11 +135,71 @@ struct OverviewView: View {
                     }
                     .padding(.vertical, 30)
                 }
+
+                // System Info Card
+                GroupBox {
+                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 8) {
+                        systemInfoRow(
+                            label: String(localized: "overview.proxy_mode"),
+                            value: modeDisplayName(clashConfig?.mode)
+                        )
+                        Divider()
+                        systemInfoRow(
+                            label: String(localized: "overview.http_proxy"),
+                            value: "127.0.0.1:7890"
+                        )
+                        Divider()
+                        systemInfoRow(
+                            label: String(localized: "overview.api_address"),
+                            value: "127.0.0.1:9091"
+                        )
+                        Divider()
+                        systemInfoRow(
+                            label: String(localized: "overview.proxy_groups"),
+                            value: "\(proxyGroupCount)"
+                        )
+                        Divider()
+                        systemInfoRow(
+                            label: String(localized: "overview.rule_count"),
+                            value: "\(ruleCount)"
+                        )
+                        Divider()
+                        systemInfoRow(
+                            label: String(localized: "overview.config_path"),
+                            value: configGenerator.configPath
+                        )
+                    }
+                    .padding(4)
+                } label: {
+                    Label(String(localized: "overview.system_info"), systemImage: "info.circle")
+                }
             }
             .padding()
         }
         .task {
             await refresh()
+        }
+    }
+
+    @ViewBuilder
+    private func systemInfoRow(label: String, value: String) -> some View {
+        GridRow {
+            Text(label)
+                .foregroundStyle(.secondary)
+                .gridColumnAlignment(.leading)
+            Text(value)
+                .font(.system(.body, design: .monospaced))
+                .textSelection(.enabled)
+                .gridColumnAlignment(.leading)
+        }
+    }
+
+    private func modeDisplayName(_ mode: String?) -> String {
+        switch mode?.lowercased() {
+        case "rule":   return String(localized: "overview.mode.rule")
+        case "global": return String(localized: "overview.mode.global")
+        case "direct": return String(localized: "overview.mode.direct")
+        default:       return mode ?? "–"
         }
     }
 
@@ -193,8 +256,21 @@ struct OverviewView: View {
         await singBoxManager.refreshStatus()
         appState.isRunning = singBoxManager.isRunning
         appState.pid = singBoxManager.pid
-        guard singBoxManager.isRunning else { snapshot = nil; return }
-        snapshot = try? await api.getConnections()
+        guard singBoxManager.isRunning else {
+            snapshot = nil
+            clashConfig = nil
+            proxyGroupCount = 0
+            ruleCount = 0
+            return
+        }
+        async let snapshotResult = api.getConnections()
+        async let configResult = api.getConfig()
+        async let proxiesResult = api.getProxies()
+        async let rulesResult = api.getRules()
+        snapshot = try? await snapshotResult
+        clashConfig = try? await configResult
+        proxyGroupCount = (try? await proxiesResult)?.count ?? 0
+        ruleCount = (try? await rulesResult)?.count ?? 0
     }
 }
 

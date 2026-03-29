@@ -43,6 +43,16 @@
 "overview.restart" = "Restart";
 "overview.update_subs" = "Update Subs";
 "overview.need_helper" = "Install Helper to start from app";
+"overview.system_info" = "System Info";
+"overview.proxy_mode" = "Proxy Mode";
+"overview.mode.rule" = "Rule Mode";
+"overview.mode.global" = "Global Mode";
+"overview.mode.direct" = "Direct Mode";
+"overview.http_proxy" = "HTTP Proxy";
+"overview.api_address" = "API Address";
+"overview.proxy_groups" = "Proxy Groups";
+"overview.rule_count" = "Rules";
+"overview.config_path" = "Config File";
 
 // Settings
 "settings.about" = "About";

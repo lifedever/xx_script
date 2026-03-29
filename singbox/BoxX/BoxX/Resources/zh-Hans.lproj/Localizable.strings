@@ -43,6 +43,16 @@
 "overview.restart" = "重启";
 "overview.update_subs" = "更新订阅";
 "overview.need_helper" = "安装特权助手后可从 App 启动";
+"overview.system_info" = "系统信息";
+"overview.proxy_mode" = "代理模式";
+"overview.mode.rule" = "规则模式";
+"overview.mode.global" = "全局模式";
+"overview.mode.direct" = "直连模式";
+"overview.http_proxy" = "HTTP 代理";
+"overview.api_address" = "API 地址";
+"overview.proxy_groups" = "代理组";
+"overview.rule_count" = "规则数";
+"overview.config_path" = "配置文件";
 
 // Settings
 "settings.about" = "关于";

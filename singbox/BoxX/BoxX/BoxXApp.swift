@@ -65,6 +65,7 @@ struct BoxXApp: App {
             .onAppear {
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate()
+                NSApp.mainWindow?.makeKeyAndOrderFront(nil)
             }
             .onDisappear {
                 let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "BoxX" && $0.title != "" }
