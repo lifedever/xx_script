@@ -32,15 +32,17 @@ struct BuiltinRuleSet: Sendable, Identifiable {
         ])
     }
 
+    /// Order matters! More specific services must come before more general ones.
+    /// e.g. YouTube before Google (youtube.com is also in geosite-google).
     static let all: [BuiltinRuleSet] = [
         BuiltinRuleSet(id: "ai", name: "OpenAI", emoji: "\u{1F916}", geositeNames: ["openai", "anthropic", "category-ai-chat-!cn"], defaultOutbound: "\u{1F916}OpenAI"),
-        BuiltinRuleSet(id: "google", name: "Google", emoji: "\u{1F50D}", geositeNames: ["google"], defaultOutbound: "\u{1F50D}Google"),
         BuiltinRuleSet(id: "youtube", name: "YouTube", emoji: "\u{1F4FA}", geositeNames: ["youtube"], defaultOutbound: "\u{1F4FA}YouTube"),
         BuiltinRuleSet(id: "netflix", name: "Netflix", emoji: "\u{1F3AC}", geositeNames: ["netflix"], defaultOutbound: "\u{1F3AC}Netflix"),
         BuiltinRuleSet(id: "disney", name: "Disney", emoji: "\u{1F3F0}", geositeNames: ["disney"], defaultOutbound: "\u{1F3F0}Disney"),
         BuiltinRuleSet(id: "tiktok", name: "TikTok", emoji: "\u{1F3B5}", geositeNames: ["tiktok"], defaultOutbound: "\u{1F3B5}TikTok"),
-        BuiltinRuleSet(id: "microsoft", name: "Microsoft", emoji: "\u{1F4BB}", geositeNames: ["github", "microsoft"], defaultOutbound: "\u{1F4BB}Microsoft"),
         BuiltinRuleSet(id: "notion", name: "Notion", emoji: "\u{1F4DD}", geositeNames: ["notion"], defaultOutbound: "\u{1F4DD}Notion"),
+        BuiltinRuleSet(id: "google", name: "Google", emoji: "\u{1F50D}", geositeNames: ["google"], defaultOutbound: "\u{1F50D}Google"),
+        BuiltinRuleSet(id: "microsoft", name: "Microsoft", emoji: "\u{1F4BB}", geositeNames: ["github", "microsoft"], defaultOutbound: "\u{1F4BB}Microsoft"),
         BuiltinRuleSet(id: "apple", name: "Apple", emoji: "\u{1F34E}", geositeNames: ["apple"], defaultOutbound: "\u{1F34E}Apple"),
     ]
 }
