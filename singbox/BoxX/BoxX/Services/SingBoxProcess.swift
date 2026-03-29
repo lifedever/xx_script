@@ -197,15 +197,22 @@ class SingBoxProcess {
 
     private nonisolated func checkClashAPISync() -> Bool {
         guard let url = URL(string: "http://127.0.0.1:9091") else { return false }
-        let request = URLRequest(url: url, timeoutInterval: 1)
+        // MUST bypass proxy — otherwise TUN mode creates a loop
+        let config = URLSessionConfiguration.ephemeral
+        config.connectionProxyDictionary = [:]  // No proxy
+        config.timeoutIntervalForRequest = 2
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+
+        let request = URLRequest(url: url, timeoutInterval: 2)
         let semaphore = DispatchSemaphore(value: 0)
         var success = false
-        let task = URLSession.shared.dataTask(with: request) { _, response, _ in
+        let task = session.dataTask(with: request) { _, response, _ in
             if let http = response as? HTTPURLResponse, http.statusCode == 200 { success = true }
             semaphore.signal()
         }
         task.resume()
-        _ = semaphore.wait(timeout: .now() + 2)
+        _ = semaphore.wait(timeout: .now() + 3)
         return success
     }
 }
