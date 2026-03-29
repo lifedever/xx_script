@@ -117,11 +117,12 @@ final class SingBoxManager {
 
     /// Stop sing-box regardless of how it was started
     func stopAny() async throws {
-        if isExternalProcess || !helperManager.isHelperInstalled {
-            // External process or no helper — use sudo pkill
-            try await stopViaScript()
-        } else {
+        if helperManager.isHelperInstalled {
+            // Helper installed — always use it (it runs as root, can kill any sing-box)
             try await stop()
+        } else {
+            // No helper — fallback to sudo pkill
+            try await stopViaScript()
         }
     }
 
