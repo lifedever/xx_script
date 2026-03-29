@@ -40,8 +40,15 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     /// Build menu synchronously from cached data — no async, no delay
     private func rebuildMenuFromCache() {
-        let menu = NSMenu()
-        menu.delegate = self
+        let menu: NSMenu
+        if let existing = statusItem.menu {
+            existing.removeAllItems()
+            menu = existing
+        } else {
+            menu = NSMenu()
+            menu.delegate = self
+            statusItem.menu = menu
+        }
 
         // ── Status header (green dot when running) ──
         let si = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -176,7 +183,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         quitItem.keyEquivalentModifierMask = [.command]
         menu.addItem(quitItem)
 
-        statusItem.menu = menu
     }
 
     // MARK: - Section Header
