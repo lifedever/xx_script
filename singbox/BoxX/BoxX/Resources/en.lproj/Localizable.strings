@@ -15,7 +15,11 @@
 "menu.install_helper" = "Install Privileged Helper…";
 "menu.stop_external_hint" = "sing-box was started externally (e.g. via 'box start'). Please use 'box stop' in terminal to stop it, or install the Privileged Helper to manage it from the app.";
 "menu.start_no_helper_hint" = "Privileged Helper is not installed. Please install it first (in the menu or Settings), or use 'box start' in terminal.";
-"menu.helper_install_success" = "Privileged Helper has been installed successfully. You can now start and stop sing-box from the app.";
+"menu.helper_install_success" = "Privileged Helper installed. You can now start and stop sing-box from the app.";
+"menu.helper_install_failed" = "Helper installation was not completed. Please try again and approve the system prompt.";
+"menu.uninstall_helper" = "Uninstall Helper";
+"menu.helper_uninstalled" = "Helper Uninstalled";
+"menu.helper_uninstall_success" = "Privileged Helper has been uninstalled.";
 
 // Sidebar
 "sidebar.overview" = "Overview";

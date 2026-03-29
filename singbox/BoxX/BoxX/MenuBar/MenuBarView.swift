@@ -116,8 +116,12 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Install Helper (only when not installed)
-            if !appState.isHelperInstalled {
+            // Install / Uninstall Helper
+            if appState.isHelperInstalled {
+                Button(String(localized: "menu.uninstall_helper")) {
+                    uninstallHelper()
+                }
+            } else {
                 Button(String(localized: "menu.install_helper")) {
                     installHelper()
                 }
@@ -155,7 +159,7 @@ struct MenuBarView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         ForEach(groups) { group in
-            Menu("\(group.name)  ·  \(group.now ?? "")") {
+            Menu(group.name) {
                 ForEach(group.displayAll, id: \.self) { node in
                     Button {
                         Task {
@@ -194,18 +198,44 @@ struct MenuBarView: View {
     private func installHelper() {
         do {
             try HelperManager.shared.installHelper()
-            appState.isHelperInstalled = true
-            showNSAlert(
-                title: String(localized: "settings.helper.installed"),
-                message: String(localized: "menu.helper_install_success"),
-                style: .informational
-            )
         } catch {
-            showNSAlert(
-                title: String(localized: "error.title"),
-                message: error.localizedDescription,
-                style: .critical
-            )
+            // SMAppService may throw even when authorization prompt succeeds
+            // Check actual status after a brief delay
+        }
+        // Always re-check actual status
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
+            if appState.isHelperInstalled {
+                showNSAlert(
+                    title: String(localized: "settings.helper.installed"),
+                    message: String(localized: "menu.helper_install_success"),
+                    style: .informational
+                )
+            } else {
+                showNSAlert(
+                    title: String(localized: "error.title"),
+                    message: String(localized: "menu.helper_install_failed"),
+                    style: .warning
+                )
+            }
+        }
+    }
+
+    private func uninstallHelper() {
+        do {
+            try HelperManager.shared.uninstallHelper()
+        } catch {
+            // ignore
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
+            if !appState.isHelperInstalled {
+                showNSAlert(
+                    title: String(localized: "menu.helper_uninstalled"),
+                    message: String(localized: "menu.helper_uninstall_success"),
+                    style: .informational
+                )
+            }
         }
     }
 
