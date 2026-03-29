@@ -11,6 +11,13 @@ struct RouteRulesView: View {
     @State private var editingRuleIndex: Int?
     @State private var deletingRuleIndex: Int?
 
+    /// Wrapper to drive sheet(item:) for editing
+    private struct EditItem: Identifiable {
+        let id: Int  // config index
+    }
+    @State private var editItem: EditItem?
+    @State private var deletingRuleIndex: Int?
+
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }
         return rules.filter {
@@ -102,18 +109,24 @@ struct RouteRulesView: View {
             await loadRules()
         }
         .sheet(isPresented: $showAddRule) {
-            if let idx = editingRuleIndex {
-                AddRuleSheet(editingIndex: idx)
-                    .onDisappear {
-                        editingRuleIndex = nil
-                        Task { await loadRules() }
-                    }
-            } else {
-                AddRuleSheet()
-                    .onDisappear {
-                        Task { await loadRules() }
-                    }
+            AddRuleSheet()
+                .onDisappear { Task { await loadRules() } }
+        }
+        .sheet(item: $editItem) { item in
+            AddRuleSheet(editingIndex: item.id)
+                .onDisappear { Task { await loadRules() } }
+        }
+        .alert("确认删除", isPresented: .init(
+            get: { deletingRuleIndex != nil },
+            set: { if !$0 { deletingRuleIndex = nil } }
+        )) {
+            Button("取消", role: .cancel) { deletingRuleIndex = nil }
+            Button("删除", role: .destructive) {
+                if let idx = deletingRuleIndex { deleteRule(at: idx) }
+                deletingRuleIndex = nil
             }
+        } message: {
+            Text("确定要删除这条规则吗？")
         }
     }
 
@@ -184,15 +197,13 @@ struct RouteRulesView: View {
             HStack(spacing: 6) {
                 if !isSystem {
                     Button("编辑") {
-                        editingRuleIndex = rule.id
-                        // Delay to ensure index is set before sheet evaluates
-                        DispatchQueue.main.async { showAddRule = true }
+                        editItem = EditItem(id: rule.id)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
 
                     Button("删除") {
-                        deleteRule(at: rule.id)
+                        deletingRuleIndex = rule.id
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
