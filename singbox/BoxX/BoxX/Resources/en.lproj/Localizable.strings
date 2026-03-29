@@ -82,6 +82,7 @@
 "connections.time" = "Time";
 "connections.host" = "Host";
 "connections.network" = "Net";
+"connections.process" = "Process";
 "connections.rule" = "Rule";
 "connections.outbound" = "Outbound";
 "connections.chain" = "Chain";

@@ -182,6 +182,13 @@ struct ConnectionsView: View {
             }
             .width(min: 40, ideal: 50)
 
+            TableColumn(String(localized: "connections.process")) { conn in
+                Text(conn.processName)
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+            .width(min: 60, ideal: 90)
+
             TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
                 HStack(spacing: 3) {
                     Text(conn.rule)

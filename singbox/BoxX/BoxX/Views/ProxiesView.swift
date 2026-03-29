@@ -8,7 +8,7 @@ struct ProxiesView: View {
     @State private var testingGroups: Set<String> = []
     @State private var searchText = ""
     @State private var isRefreshing = false
-    @State private var expandedGroup: String?
+    @State private var popoverGroup: String?
 
     // MARK: - Group Classification
 
@@ -113,8 +113,10 @@ struct ProxiesView: View {
                                     group: group,
                                     delays: delays,
                                     isTesting: testingGroups.contains(group.name),
-                                    isExpanded: expandedGroup == group.name,
-                                    onToggle: { toggleExpand(group.name) },
+                                    showPopover: Binding(
+                                        get: { popoverGroup == group.name },
+                                        set: { newVal in popoverGroup = newVal ? group.name : nil }
+                                    ),
                                     onSelect: { node in selectNode(group: group.name, node: node) },
                                     onTest: { testGroupLatency(group) }
                                 )
@@ -133,8 +135,10 @@ struct ProxiesView: View {
                                         group: group,
                                         delays: delays,
                                         isTesting: testingGroups.contains(group.name),
-                                        isExpanded: expandedGroup == group.name,
-                                        onToggle: { toggleExpand(group.name) },
+                                        showPopover: Binding(
+                                            get: { popoverGroup == group.name },
+                                            set: { newVal in popoverGroup = newVal ? group.name : nil }
+                                        ),
                                         onSelect: { node in selectNode(group: group.name, node: node) },
                                         onTest: { testGroupLatency(group) }
                                     )
@@ -154,8 +158,10 @@ struct ProxiesView: View {
                                         group: group,
                                         delays: delays,
                                         isTesting: testingGroups.contains(group.name),
-                                        isExpanded: expandedGroup == group.name,
-                                        onToggle: { toggleExpand(group.name) },
+                                        showPopover: Binding(
+                                            get: { popoverGroup == group.name },
+                                            set: { newVal in popoverGroup = newVal ? group.name : nil }
+                                        ),
                                         onSelect: { node in selectNode(group: group.name, node: node) },
                                         onTest: { testGroupLatency(group) }
                                     )
@@ -175,8 +181,10 @@ struct ProxiesView: View {
                                         group: group,
                                         delays: delays,
                                         isTesting: testingGroups.contains(group.name),
-                                        isExpanded: expandedGroup == group.name,
-                                        onToggle: { toggleExpand(group.name) },
+                                        showPopover: Binding(
+                                            get: { popoverGroup == group.name },
+                                            set: { newVal in popoverGroup = newVal ? group.name : nil }
+                                        ),
                                         onSelect: { node in selectNode(group: group.name, node: node) },
                                         onTest: { testGroupLatency(group) }
                                     )
@@ -209,12 +217,6 @@ struct ProxiesView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.top, 4)
-    }
-
-    private func toggleExpand(_ name: String) {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            expandedGroup = expandedGroup == name ? nil : name
-        }
     }
 
     private func refreshGroups() async {
@@ -255,8 +257,7 @@ private struct ProxyGroupCard: View {
     let group: ProxyGroup
     let delays: [String: Int]
     let isTesting: Bool
-    let isExpanded: Bool
-    let onToggle: () -> Void
+    @Binding var showPopover: Bool
     let onSelect: (String) -> Void
     let onTest: () -> Void
 
@@ -266,28 +267,6 @@ private struct ProxyGroupCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Card header
-            cardHeader
-                .contentShape(Rectangle())
-                .onTapGesture { onToggle() }
-
-            // Expanded node list
-            if isExpanded {
-                Divider()
-                expandedNodeList
-            }
-        }
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(.separator, lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
-    }
-
-    private var cardHeader: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Top row: name + type badge
             HStack(spacing: 8) {
@@ -353,34 +332,22 @@ private struct ProxyGroupCard: View {
             }
         }
         .padding(10)
-    }
-
-    private var expandedNodeList: some View {
-        VStack(spacing: 0) {
-            ForEach(group.displayAll, id: \.self) { node in
-                HStack(spacing: 8) {
-                    Image(systemName: group.now == node ? "checkmark.circle.fill" : "circle")
-                        .font(.caption)
-                        .foregroundStyle(group.now == node ? Color.accentColor : Color.secondary.opacity(0.4))
-
-                    Text(node)
-                        .font(.caption)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    if let d = delays[node] {
-                        DelayBadge(delay: d)
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-                .background(group.now == node ? Color.accentColor.opacity(0.06) : Color.clear)
-                .onTapGesture { onSelect(node) }
-            }
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(.separator, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+        .contentShape(Rectangle())
+        .onTapGesture { showPopover.toggle() }
+        .popover(isPresented: $showPopover) {
+            NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
+                onSelect(node)
+                showPopover = false
+            })
+            .frame(width: 280, height: 400)
         }
-        .padding(.vertical, 4)
     }
 
     // MARK: - Badge Helpers
@@ -412,6 +379,82 @@ private struct ProxyGroupCard: View {
         if delay < 150 { return .green }
         if delay <= 300 { return .yellow }
         return .red
+    }
+}
+
+// MARK: - Node Selection Popover
+
+private struct NodeSelectionPopover: View {
+    let group: ProxyGroup
+    let delays: [String: Int]
+    let onSelect: (String) -> Void
+    @State private var searchText = ""
+
+    var filteredNodes: [String] {
+        if searchText.isEmpty { return group.displayAll }
+        return group.displayAll.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with group name
+            HStack {
+                Text(group.name).font(.headline)
+                Spacer()
+                Text(group.type.lowercased())
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            // Search
+            TextField("搜索节点...", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+
+            Divider()
+
+            // Node list
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(filteredNodes, id: \.self) { node in
+                        Button {
+                            onSelect(node)
+                        } label: {
+                            HStack(spacing: 8) {
+                                if node == group.now {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.blue)
+                                        .font(.caption)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .foregroundStyle(.quaternary)
+                                        .font(.caption)
+                                }
+                                Text(node)
+                                    .font(.body)
+                                    .lineLimit(1)
+                                Spacer()
+                                if let d = delays[node], d > 0 {
+                                    DelayBadge(delay: d)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .background(node == group.now ? Color.accentColor.opacity(0.08) : Color.clear)
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -82,6 +82,7 @@
 "connections.time" = "时间";
 "connections.host" = "主机";
 "connections.network" = "协议";
+"connections.process" = "进程";
 "connections.rule" = "规则";
 "connections.outbound" = "出站";
 "connections.chain" = "链路";
