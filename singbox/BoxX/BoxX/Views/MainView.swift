@@ -40,10 +40,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 }
 
 struct MainView: View {
-    let api: ClashAPI
-    let singBoxManager: SingBoxManager
-    let configGenerator: ConfigGenerator
-
+    @Environment(AppState.self) private var appState
     @State private var selectedItem: SidebarItem? = .overview
 
     var body: some View {
@@ -57,28 +54,35 @@ struct MainView: View {
             if let item = selectedItem {
                 switch item {
                 case .overview:
-                    OverviewView(api: api, singBoxManager: singBoxManager, configGenerator: configGenerator)
+                    OverviewView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.overview"))
                 case .proxies:
-                    ProxiesView(api: api)
+                    ProxiesView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.proxies"))
                 case .ruleTest:
-                    RuleTestView(api: api)
+                    RuleTestView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.rule_test"))
                 case .rules:
-                    RulesView(api: api)
+                    RulesView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.rules"))
                 case .connections:
-                    ConnectionsView(api: api)
+                    ConnectionsView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.connections"))
                 case .logs:
                     LogsView()
                         .navigationTitle(String(localized: "sidebar.logs"))
                 case .servicesConfig:
-                    ServicesConfigView(configGenerator: configGenerator, singBoxManager: singBoxManager)
+                    ServicesConfigView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.services_config"))
                 case .subscriptions:
-                    SubscriptionsView(configGenerator: configGenerator, singBoxManager: singBoxManager)
+                    SubscriptionsView()
+                        .environment(appState)
                         .navigationTitle(String(localized: "sidebar.subscriptions"))
                 }
             } else {

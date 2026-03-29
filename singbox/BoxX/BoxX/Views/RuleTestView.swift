@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RuleTestView: View {
-    let api: ClashAPI
+    @Environment(AppState.self) private var appState
 
     @State private var domain = ""
     @State private var isTesting = false
@@ -76,10 +76,10 @@ struct RuleTestView: View {
         isTesting = true
         defer { isTesting = false }
 
-        if let result = await api.testRule(domain: input) {
+        if let result = await appState.api.testRule(domain: input) {
             results.insert(result, at: 0)
         } else {
-            // No result found — add a failure entry
+            // No result found -- add a failure entry
             results.insert(RuleTestResult(
                 domain: input,
                 rule: String(localized: "ruletest.no_match"),

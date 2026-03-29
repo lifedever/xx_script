@@ -2,21 +2,17 @@ import Foundation
 import AppKit
 
 actor WakeObserver {
-    private let singBoxManager: SingBoxManager
+    private let xpcClient: XPCClient
     private let api: ClashAPI
-    private let configPath: String
     private var isRecovering = false
     private var observation: NSObjectProtocol?
     private let logFile: String = {
-        let dir = (UserDefaults.standard.string(forKey: "scriptDir")
-            ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox"))
-        return dir + "/boxx-wake.log"
+        "/Library/Application Support/BoxX/boxx-wake.log"
     }()
 
-    init(singBoxManager: SingBoxManager, api: ClashAPI, configPath: String) {
-        self.singBoxManager = singBoxManager
+    init(xpcClient: XPCClient, api: ClashAPI) {
+        self.xpcClient = xpcClient
         self.api = api
-        self.configPath = configPath
     }
 
     func startObserving() {
@@ -51,35 +47,33 @@ actor WakeObserver {
 
         if !apiReachable {
             log("Process dead, cannot auto-restart")
-            await singBoxManager.refreshStatus()
             return
         }
 
-        // Step 1: Flush DNS + close all connections
+        // Step 1: Flush DNS via XPC + close all connections
         log("Step 1: flush DNS + close connections")
-        flushDNS()
+        _ = await xpcClient.flushDNS()
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(2))
 
         let test1 = await probeExternalConnectivity()
         log("Step 1 result: \(test1 ? "OK" : "FAIL")")
-        if test1 { await singBoxManager.refreshStatus(); return }
+        if test1 { return }
 
         // Step 2: Retry
         log("Step 2: retry flush + close")
-        flushDNS()
+        _ = await xpcClient.flushDNS()
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(3))
 
         let test2 = await probeExternalConnectivity()
         log("Step 2 result: \(test2 ? "OK" : "FAIL")")
-        if test2 { await singBoxManager.refreshStatus(); return }
+        if test2 { return }
 
-        // Step 3: Restart sing-box (password prompt)
-        log("Step 3: restarting sing-box (password required)")
-        try? await singBoxManager.restart(configPath: configPath)
-        await singBoxManager.refreshStatus()
-        log("Restart complete, running: \(await singBoxManager.isRunning)")
+        // Step 3: Reload sing-box via XPC (no password prompt!)
+        log("Step 3: reloading sing-box via XPC")
+        _ = await xpcClient.reload()
+        log("Reload complete")
     }
 
     private func log(_ message: String) {
@@ -96,21 +90,6 @@ actor WakeObserver {
                 FileManager.default.createFile(atPath: logFile, contents: data)
             }
         }
-    }
-
-    /// Flush DNS cache
-    private func flushDNS() {
-        let flush = Process()
-        flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
-        flush.arguments = ["-flushcache"]
-        try? flush.run()
-        flush.waitUntilExit()
-
-        let killDNS = Process()
-        killDNS.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        killDNS.arguments = ["-HUP", "mDNSResponder"]
-        try? killDNS.run()
-        killDNS.waitUntilExit()
     }
 
     private func probeExternalConnectivity() async -> Bool {

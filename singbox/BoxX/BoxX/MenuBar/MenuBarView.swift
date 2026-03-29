@@ -4,10 +4,6 @@ struct MenuBarView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.openWindow) private var openWindow
 
-    let singBoxManager: SingBoxManager
-    let configGenerator: ConfigGenerator
-    let api: ClashAPI
-
     @State private var proxyGroups: [ProxyGroup] = []
     @State private var isUpdatingSubscriptions = false
     @State private var currentMode: String = "rule"
@@ -29,16 +25,22 @@ struct MenuBarView: View {
             if appState.isRunning {
                 Button(String(localized: "menu.stop")) {
                     Task {
-                        do { try await singBoxManager.stop() }
-                        catch { appState.showAlert(error.localizedDescription) }
+                        let result = await appState.xpcClient.stop()
+                        if !result.success, let err = result.error {
+                            appState.showAlert(err)
+                        }
                         await syncStatus()
                     }
                 }
             } else {
                 Button(String(localized: "menu.start")) {
                     Task {
-                        do { try await singBoxManager.start(configPath: configGenerator.configPath) }
-                        catch { appState.showAlert(error.localizedDescription) }
+                        let runtimePath = appState.configEngine.baseDir
+                            .appendingPathComponent("runtime-config.json").path
+                        let result = await appState.xpcClient.start(configPath: runtimePath)
+                        if !result.success, let err = result.error {
+                            appState.showAlert(err)
+                        }
                         await syncStatus()
                     }
                 }
@@ -48,7 +50,7 @@ struct MenuBarView: View {
             Menu(String(localized: "menu.proxy_mode")) {
                 ForEach(["rule", "global", "direct"], id: \.self) { mode in
                     Button {
-                        Task { try? await api.setMode(mode); await syncStatus() }
+                        Task { try? await appState.api.setMode(mode); await syncStatus() }
                     } label: {
                         if currentMode == mode {
                             Label(modeLabel(mode), systemImage: "checkmark")
@@ -61,7 +63,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Proxy groups — categorized
+            // Proxy groups -- categorized
             if proxyGroups.isEmpty {
                 Text(String(localized: "menu.no_proxy_groups"))
                     .foregroundStyle(.secondary)
@@ -83,7 +85,7 @@ struct MenuBarView: View {
                             ForEach(group.displayAll, id: \.self) { node in
                                 Button {
                                     Task {
-                                        try? await api.selectProxy(group: group.name, name: node)
+                                        try? await appState.api.selectProxy(group: group.name, name: node)
                                         await refreshProxyGroups()
                                     }
                                 } label: {
@@ -122,7 +124,7 @@ struct MenuBarView: View {
                 guard !isUpdatingSubscriptions else { return }
                 isUpdatingSubscriptions = true
                 Task {
-                    for await line in configGenerator.generate() { print("[generate] \(line)") }
+                    // TODO: v2 redesign - use SubscriptionService for updates
                     isUpdatingSubscriptions = false
                     await syncStatus()
                 }
@@ -152,7 +154,7 @@ struct MenuBarView: View {
                 ForEach(group.displayAll, id: \.self) { node in
                     Button {
                         Task {
-                            try? await api.selectProxy(group: group.name, name: node)
+                            try? await appState.api.selectProxy(group: group.name, name: node)
                             await refreshProxyGroups()
                         }
                     } label: {
@@ -176,13 +178,13 @@ struct MenuBarView: View {
     }
 
     private func syncStatus() async {
-        await singBoxManager.refreshStatus()
-        appState.isRunning = singBoxManager.isRunning
-        if let config = try? await api.getConfig() { currentMode = config.mode ?? "rule" }
+        let status = await appState.xpcClient.getStatus()
+        appState.isRunning = status.running
+        if let config = try? await appState.api.getConfig() { currentMode = config.mode ?? "rule" }
         await refreshProxyGroups()
     }
 
     private func refreshProxyGroups() async {
-        proxyGroups = (try? await api.getProxies()) ?? []
+        proxyGroups = (try? await appState.api.getProxies()) ?? []
     }
 }

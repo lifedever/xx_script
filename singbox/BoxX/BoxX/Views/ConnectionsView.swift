@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ConnectionsView: View {
-    let api: ClashAPI
+    @Environment(AppState.self) private var appState
 
     @State private var connections: [Connection] = []
     @State private var downloadTotal: Int64 = 0
@@ -66,7 +66,7 @@ struct ConnectionsView: View {
                     .foregroundStyle(.blue)
 
                 Button(String(localized: "connections.close_all")) {
-                    Task { try? await api.closeAllConnections() }
+                    Task { try? await appState.api.closeAllConnections() }
                 }
                 .controlSize(.small)
             }
@@ -146,7 +146,7 @@ struct ConnectionsView: View {
                         }
                         Divider()
                         Button(String(localized: "connections.ctx.close")) {
-                            Task { try? await api.closeConnection(id: conn.id) }
+                            Task { try? await appState.api.closeConnection(id: conn.id) }
                         }
                     }
                 } primaryAction: { _ in }
@@ -161,7 +161,7 @@ struct ConnectionsView: View {
                             showAddRule = true
                         },
                         onCloseConnection: {
-                            Task { try? await api.closeConnection(id: conn.id) }
+                            Task { try? await appState.api.closeConnection(id: conn.id) }
                         },
                         onDismiss: { selectedID = nil }
                     )

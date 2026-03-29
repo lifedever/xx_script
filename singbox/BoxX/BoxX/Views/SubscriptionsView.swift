@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct SubscriptionsView: View {
-    let configGenerator: ConfigGenerator
-    let singBoxManager: SingBoxManager
+    @Environment(AppState.self) private var appState
 
     @State private var subscriptions: [Subscription] = []
     @State private var showAddSheet = false
@@ -155,13 +154,25 @@ struct SubscriptionsView: View {
         updateLog.removeAll()
         defer { isUpdating = false }
 
-        for await line in configGenerator.generate() {
-            updateLog.append(line)
+        // Use SubscriptionService to update each subscription
+        let subService = appState.subscriptionService
+        for sub in subscriptions {
+            guard let url = URL(string: sub.url) else {
+                updateLog.append("Invalid URL for \(sub.name)")
+                continue
+            }
+            updateLog.append("Updating \(sub.name)...")
+            do {
+                let count = try await subService.updateSubscription(name: sub.name, url: url)
+                updateLog.append("\(sub.name): \(count) nodes")
+            } catch {
+                updateLog.append("\(sub.name): \(error.localizedDescription)")
+            }
         }
 
-        if singBoxManager.isRunning {
-            updateLog.append("Restarting sing-box...")
-            try? await singBoxManager.restart(configPath: configGenerator.configPath)
+        if appState.isRunning {
+            updateLog.append("Reloading sing-box...")
+            _ = await appState.xpcClient.reload()
             updateLog.append("Done.")
         }
 

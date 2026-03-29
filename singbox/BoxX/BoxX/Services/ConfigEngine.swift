@@ -7,7 +7,7 @@ private extension Notification.Name {
 }
 
 @Observable
-class ConfigEngine {
+class ConfigEngine: @unchecked Sendable {
     var config: SingBoxConfig
     private(set) var proxies: [String: [Outbound]] = [:]  // key = subscription name
 

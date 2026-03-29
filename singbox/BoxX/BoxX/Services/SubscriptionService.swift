@@ -1,7 +1,7 @@
 // BoxX/Services/SubscriptionService.swift
 import Foundation
 
-class SubscriptionService {
+class SubscriptionService: @unchecked Sendable {
     let configEngine: ConfigEngine
     let fetcher = SubscriptionFetcher()
     private let parsers: [any ProxyParser] = [SingBoxJSONParser(), ClashYAMLParser()]

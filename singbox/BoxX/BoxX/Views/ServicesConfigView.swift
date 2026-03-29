@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct ServicesConfigView: View {
-    let configGenerator: ConfigGenerator
-    let singBoxManager: SingBoxManager
+    @Environment(AppState.self) private var appState
 
     @State private var services: [ServiceConfig] = []
     @State private var editingService: ServiceConfig?
@@ -121,9 +120,18 @@ struct ServicesConfigView: View {
         updateStatus = nil
         defer { isUpdating = false }
 
-        for await _ in configGenerator.generate() {}
-        if singBoxManager.isRunning {
-            try? await singBoxManager.restart(configPath: configGenerator.configPath)
+        // TODO: v2 redesign - use ConfigEngine to rebuild and deploy runtime config
+        // For now, just save and reload if running
+        do {
+            try appState.configEngine.save()
+            let engine = appState.configEngine
+            try await engine.deployRuntime()
+        } catch {
+            appState.showAlert(error.localizedDescription)
+        }
+
+        if appState.isRunning {
+            _ = await appState.xpcClient.reload()
         }
 
         updateStatus = String(localized: "subs.update_complete")

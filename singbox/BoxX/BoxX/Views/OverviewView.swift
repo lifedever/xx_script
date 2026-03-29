@@ -1,10 +1,6 @@
 import SwiftUI
 
 struct OverviewView: View {
-    let api: ClashAPI
-    let singBoxManager: SingBoxManager
-    let configGenerator: ConfigGenerator
-
     @Environment(AppState.self) private var appState
     @State private var snapshot: ConnectionSnapshot?
     @State private var clashConfig: ClashConfig?
@@ -25,11 +21,11 @@ struct OverviewView: View {
                 // Status + Controls Card
                 GroupBox {
                     HStack(spacing: 16) {
-                        Image(systemName: singBoxManager.isRunning ? "checkmark.circle.fill" : "xmark.circle")
+                        Image(systemName: appState.isRunning ? "checkmark.circle.fill" : "xmark.circle")
                             .font(.system(size: 36))
-                            .foregroundStyle(singBoxManager.isRunning ? Color.green : Color.secondary)
+                            .foregroundStyle(appState.isRunning ? Color.green : Color.secondary)
 
-                        Text(singBoxManager.isRunning
+                        Text(appState.isRunning
                              ? String(localized: "overview.running")
                              : String(localized: "overview.stopped"))
                             .font(.title3.bold())
@@ -39,7 +35,7 @@ struct OverviewView: View {
                         HStack(spacing: 8) {
                             if isOperating {
                                 ProgressView().scaleEffect(0.8)
-                            } else if singBoxManager.isRunning {
+                            } else if appState.isRunning {
                                 Button { Task { await doStop() } } label: {
                                     Label(String(localized: "overview.stop"), systemImage: "stop.fill")
                                 }.controlSize(.large)
@@ -78,7 +74,7 @@ struct OverviewView: View {
                             Text(String(localized: "overview.proxy_mode")).foregroundStyle(.secondary)
                             Picker("", selection: Binding(
                                 get: { clashConfig?.mode ?? "rule" },
-                                set: { newMode in Task { try? await api.setMode(newMode); clashConfig = try? await api.getConfig() } }
+                                set: { newMode in Task { try? await appState.api.setMode(newMode); clashConfig = try? await appState.api.getConfig() } }
                             )) {
                                 Text(String(localized: "menu.mode.rule")).tag("rule")
                                 Text(String(localized: "menu.mode.global")).tag("global")
@@ -95,7 +91,7 @@ struct OverviewView: View {
                         Divider()
                         infoRow(String(localized: "overview.rule_count"), "\(ruleCount)")
                         Divider()
-                        infoRow(String(localized: "overview.config_path"), configGenerator.configPath)
+                        infoRow(String(localized: "overview.config_path"), appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path)
                     }
                     .padding(4)
                 } label: {
@@ -117,34 +113,44 @@ struct OverviewView: View {
 
     private func doStart() async {
         isOperating = true; defer { isOperating = false }
-        do { try await singBoxManager.start(configPath: configGenerator.configPath) }
-        catch { appState.showAlert(error.localizedDescription) }
+        let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+        let result = await appState.xpcClient.start(configPath: runtimePath)
+        if !result.success, let err = result.error {
+            appState.showAlert(err)
+        }
         await refresh()
     }
 
     private func doStop() async {
         isOperating = true; defer { isOperating = false }
-        do { try await singBoxManager.stop() }
-        catch { appState.showAlert(error.localizedDescription) }
+        let result = await appState.xpcClient.stop()
+        if !result.success, let err = result.error {
+            appState.showAlert(err)
+        }
         await refresh()
     }
 
     private func doRestart() async {
         isOperating = true; defer { isOperating = false }
-        do { try await singBoxManager.restart(configPath: configGenerator.configPath) }
-        catch { appState.showAlert(error.localizedDescription) }
+        _ = await appState.xpcClient.stop()
+        try? await Task.sleep(for: .seconds(1))
+        let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+        let result = await appState.xpcClient.start(configPath: runtimePath)
+        if !result.success, let err = result.error {
+            appState.showAlert(err)
+        }
         await refresh()
     }
 
     private func refresh() async {
         isLoading = true; defer { isLoading = false }
-        await singBoxManager.refreshStatus()
-        appState.isRunning = singBoxManager.isRunning
-        guard singBoxManager.isRunning else { snapshot = nil; clashConfig = nil; proxyGroupCount = 0; ruleCount = 0; return }
-        async let s = api.getConnections()
-        async let c = api.getConfig()
-        async let p = api.getProxies()
-        async let r = api.getRules()
+        let status = await appState.xpcClient.getStatus()
+        appState.isRunning = status.running
+        guard appState.isRunning else { snapshot = nil; clashConfig = nil; proxyGroupCount = 0; ruleCount = 0; return }
+        async let s = appState.api.getConnections()
+        async let c = appState.api.getConfig()
+        async let p = appState.api.getProxies()
+        async let r = appState.api.getRules()
         snapshot = try? await s; clashConfig = try? await c
         proxyGroupCount = (try? await p)?.count ?? 0; ruleCount = (try? await r)?.count ?? 0
     }

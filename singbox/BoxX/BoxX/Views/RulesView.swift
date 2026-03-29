@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RulesView: View {
-    let api: ClashAPI
+    @Environment(AppState.self) private var appState
 
     @State private var rules: [Rule] = []
     @State private var searchText = ""
@@ -63,6 +63,6 @@ struct RulesView: View {
     private func loadRules() async {
         isLoading = true
         defer { isLoading = false }
-        rules = (try? await api.getRules()) ?? []
+        rules = (try? await appState.api.getRules()) ?? []
     }
 }

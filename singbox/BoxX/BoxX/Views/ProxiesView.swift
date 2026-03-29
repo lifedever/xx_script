@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProxiesView: View {
-    let api: ClashAPI
+    @Environment(AppState.self) private var appState
 
     @State private var groups: [ProxyGroup] = []
     @State private var delays: [String: Int] = [:]
@@ -143,12 +143,12 @@ struct ProxiesView: View {
     private func refreshGroups() async {
         isRefreshing = true
         defer { isRefreshing = false }
-        groups = (try? await api.getProxies()) ?? []
+        groups = (try? await appState.api.getProxies()) ?? []
     }
 
     private func selectNode(group: String, node: String) {
         Task {
-            try? await api.selectProxy(group: group, name: node)
+            try? await appState.api.selectProxy(group: group, name: node)
             await refreshGroups()
         }
     }
@@ -160,8 +160,7 @@ struct ProxiesView: View {
             await withTaskGroup(of: (String, Int).self) { taskGroup in
                 for node in group.displayAll {
                     taskGroup.addTask {
-                        ((try? await api.getDelay(name: node)) ?? 0, 0).0
-                        let d = (try? await api.getDelay(name: node)) ?? 0
+                        let d = (try? await appState.api.getDelay(name: node)) ?? 0
                         return (node, d)
                     }
                 }
@@ -344,4 +343,3 @@ struct DelayBadge: View {
         return .orange
     }
 }
-
