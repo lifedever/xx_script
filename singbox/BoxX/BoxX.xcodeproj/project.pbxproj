@@ -24,14 +24,19 @@
 		A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14648562F958BE7DF9541A7F /* AppState.swift */; };
 		A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */; };
 		A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8356E67918A3E954AF83EA /* ProxyModels.swift */; };
+		AAD0AC2F8AF0311D9A05DD6F /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3233A78B55590B6DFD58E74C /* LogsView.swift */; };
+		ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236316BA886FAF9975D7C310 /* OverviewView.swift */; };
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
+		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
+		CA555942B8B8494999381A5F /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67DE93C42F2614F14BE4375 /* RulesView.swift */; };
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
 		D6E71EB2B460AF350CA00140 /* ProxyModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */; };
 		D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C202DBB07E3609789CAD3C7 /* SingBoxManager.swift */; };
 		E6795C17D7CDED2E5E416334 /* ConfigGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040E1FEFB36E4C33EED1A5C3 /* ConfigGenerator.swift */; };
 		E90CA122DD57879F17A9FDA6 /* ClashWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */; };
 		ED796EFF6EB83CE60430DA4E /* RingBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */; };
+		F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAEE62A30EDCED844892451 /* ConnectionsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,7 +64,9 @@
 		18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
 		1C202DBB07E3609789CAD3C7 /* SingBoxManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxManager.swift; sourceTree = "<group>"; };
 		223B0D94A0BDD5B469B1C6D3 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
+		236316BA886FAF9975D7C310 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
 		28863DF4368C71D5FFF7A186 /* BoxXHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = BoxXHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		3233A78B55590B6DFD58E74C /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 		33FF2D74D270C7533F9221B0 /* ClashAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashAPI.swift; sourceTree = "<group>"; };
 		359FAFDB5E064BD58048D440 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
@@ -67,6 +74,7 @@
 		75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionModels.swift; sourceTree = "<group>"; };
 		7D75DB00D57E74D03D75F000 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXApp.swift; sourceTree = "<group>"; };
+		8CAEE62A30EDCED844892451 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 		8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperManager.swift; sourceTree = "<group>"; };
 		948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,10 +84,12 @@
 		C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashAPITests.swift; sourceTree = "<group>"; };
 		C92D36E087DFEB3FE6AC5111 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoxXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D67DE93C42F2614F14BE4375 /* RulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesView.swift; sourceTree = "<group>"; };
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
 		ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModelsTests.swift; sourceTree = "<group>"; };
 		F1938ECE20FFDCBC5DA86303 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		F5BD437B4F6F076959897C90 /* ProxiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxiesView.swift; sourceTree = "<group>"; };
 		FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -157,7 +167,12 @@
 		A8B70330834890FBCFD372D7 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8CAEE62A30EDCED844892451 /* ConnectionsView.swift */,
+				3233A78B55590B6DFD58E74C /* LogsView.swift */,
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
+				236316BA886FAF9975D7C310 /* OverviewView.swift */,
+				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
+				D67DE93C42F2614F14BE4375 /* RulesView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -341,14 +356,19 @@
 				E90CA122DD57879F17A9FDA6 /* ClashWebSocket.swift in Sources */,
 				E6795C17D7CDED2E5E416334 /* ConfigGenerator.swift in Sources */,
 				0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */,
+				F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */,
 				0D00DCB833E7B0E79F0D5CAA /* HelperManager.swift in Sources */,
 				B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */,
 				1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */,
+				AAD0AC2F8AF0311D9A05DD6F /* LogsView.swift in Sources */,
 				6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */,
 				8CC9F2A705A8A9D8FAEA9926 /* MenuBarView.swift in Sources */,
+				ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */,
+				BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */,
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
+				CA555942B8B8494999381A5F /* RulesView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */,
 				0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */,
