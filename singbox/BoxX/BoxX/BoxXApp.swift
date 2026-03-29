@@ -15,9 +15,14 @@ struct BoxXApp: App {
                 state.showAlert("Failed to load config: \(error.localizedDescription)")
             }
 
-            // Initial status check via XPC
-            let status = await state.xpcClient.getStatus()
-            state.isRunning = status.running
+            // Initial status check: XPC first, fallback to Clash API
+            // This detects sing-box started by box.sh or other means
+            let xpcStatus = await state.xpcClient.getStatus()
+            if xpcStatus.running {
+                state.isRunning = true
+            } else {
+                state.isRunning = await state.api.isReachable()
+            }
 
             // Start adaptive polling
             StatusPoller.shared.start(appState: state)
@@ -92,11 +97,20 @@ final class StatusPoller {
         }
     }
 
+    /// Check running status: try XPC first, fallback to Clash API reachability.
+    /// This ensures compatibility with box.sh-started sing-box instances.
+    private func checkStatus(appState: AppState) async -> Bool {
+        let xpcStatus = await appState.xpcClient.getStatus()
+        if xpcStatus.running { return true }
+        // Fallback: if XPC helper isn't running or doesn't know about the process,
+        // check if Clash API is reachable (box.sh or manually started sing-box)
+        return await appState.api.isReachable()
+    }
+
     /// Call this after any operation that changes state (start/stop/restart/wake)
     func nudge(appState: AppState) {
         Task { @MainActor in
-            let status = await appState.xpcClient.getStatus()
-            appState.isRunning = status.running
+            appState.isRunning = await checkStatus(appState: appState)
             if appState.isRunning {
                 scheduleSlowPoll(appState: appState)
             } else {
@@ -109,10 +123,10 @@ final class StatusPoller {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                let status = await appState.xpcClient.getStatus()
-                appState.isRunning = status.running
+                guard let self else { return }
+                appState.isRunning = await self.checkStatus(appState: appState)
                 if appState.isRunning {
-                    self?.scheduleSlowPoll(appState: appState)
+                    self.scheduleSlowPoll(appState: appState)
                 }
             }
         }
@@ -122,10 +136,10 @@ final class StatusPoller {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                let status = await appState.xpcClient.getStatus()
-                appState.isRunning = status.running
+                guard let self else { return }
+                appState.isRunning = await self.checkStatus(appState: appState)
                 if !appState.isRunning {
-                    self?.scheduleFastPoll(appState: appState)
+                    self.scheduleFastPoll(appState: appState)
                 }
             }
         }
