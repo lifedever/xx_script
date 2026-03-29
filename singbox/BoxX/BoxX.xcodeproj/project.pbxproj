@@ -23,6 +23,7 @@
 		39EA029175CED929C253468B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */; };
 		411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223B0D94A0BDD5B469B1C6D3 /* Rule.swift */; };
 		47453C12227D762DD0C77C18 /* RouteRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */; };
+		51025126A8E2ED63C6A795CD /* ProxyGroupEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */; };
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
 		60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978990E5B126418AE87D12CB /* SingBoxConfig.swift */; };
 		633D1C59207385917825B026 /* OutboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */; };
@@ -50,7 +51,6 @@
 		B67AF501AE3B8D8096D46095 /* OutboundConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2C045DE653866E54C14171 /* OutboundConfigTests.swift */; };
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
-		BA39303F0FBFFBAE241596A9 /* ProxyGroupEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C91 /* ProxyGroupEditSheet.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
 		C2DA449DAC046D928ADFB90E /* AutoGrouper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1F107044EE7E7A2AC75600 /* AutoGrouper.swift */; };
 		C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */; };
@@ -106,6 +106,7 @@
 		33FF2D74D270C7533F9221B0 /* ClashAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashAPI.swift; sourceTree = "<group>"; };
 		359FAFDB5E064BD58048D440 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3A1528B619F372B267512D08 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
+		3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyGroupEditSheet.swift; sourceTree = "<group>"; };
 		3DB438A56B425DD4201D80DC /* FileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcher.swift; sourceTree = "<group>"; };
 		3E933712F9588A4920A916AD /* SingBoxJSONParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxJSONParser.swift; sourceTree = "<group>"; };
 		46F312446DB749C20DF79E3D /* RuleSetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetManager.swift; sourceTree = "<group>"; };
@@ -132,7 +133,6 @@
 		AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueTests.swift; sourceTree = "<group>"; };
 		B1F605B3DA3C289944EC8E66 /* BoxXHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxXHelper.entitlements; sourceTree = "<group>"; };
 		B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddRuleSheet.swift; sourceTree = "<group>"; };
-		F5BD437B4F6F076959897C91 /* ProxyGroupEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyGroupEditSheet.swift; sourceTree = "<group>"; };
 		B65B5EDDE76159D34C31513B /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		BC97FA8D4B6846EB7C901F48 /* LogConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogConfig.swift; sourceTree = "<group>"; };
 		C292DC1809C61C3195C3C227 /* DataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataModels.swift; sourceTree = "<group>"; };
@@ -281,7 +281,7 @@
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
-				F5BD437B4F6F076959897C91 /* ProxyGroupEditSheet.swift */,
+				3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */,
 				5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */,
 				55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
@@ -522,7 +522,7 @@
 				ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */,
 				AF70DEFEF9561D21C86E583B /* ParsedProxy.swift in Sources */,
 				BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */,
-				BA39303F0FBFFBAE241596A9 /* ProxyGroupEditSheet.swift in Sources */,
+				51025126A8E2ED63C6A795CD /* ProxyGroupEditSheet.swift in Sources */,
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */,

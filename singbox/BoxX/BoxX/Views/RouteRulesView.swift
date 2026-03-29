@@ -7,6 +7,8 @@ struct RouteRulesView: View {
     @State private var searchText = ""
     @State private var isLoading = true
     @State private var showAddRule = false
+    @State private var selectedRuleIndex: Int?
+    @State private var editingRuleIndex: Int?
 
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }
@@ -74,6 +76,8 @@ struct RouteRulesView: View {
                                 Spacer()
                                 Text("策略组")
                                     .frame(width: 140, alignment: .leading)
+                                Text("操作")
+                                    .frame(width: 70, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -103,15 +107,38 @@ struct RouteRulesView: View {
 
     // MARK: - Row Views
 
-    /// System rule types that cannot be deleted
+    /// System rule types that cannot be edited or deleted
     private static let systemTypes: Set<String> = ["SNIFF", "HIJACK-DNS", "IP-PRIVATE", "REJECT", "MODE"]
 
-    private var isDeletable: (Rule) -> Bool {
-        { rule in !Self.systemTypes.contains(rule.type) }
+    private var isSystemRule: (Rule) -> Bool {
+        { rule in Self.systemTypes.contains(rule.type) }
+    }
+
+    /// Human-readable description for system rules
+    private func systemRuleDescription(_ rule: Rule) -> String {
+        switch rule.type {
+        case "SNIFF":
+            return "协议嗅探"
+        case "HIJACK-DNS":
+            return "DNS 劫持"
+        case "IP-PRIVATE":
+            return "私有 IP 地址"
+        case "REJECT":
+            return "拒绝连接"
+        case "MODE":
+            // Show the mode value (e.g., "Direct", "Global")
+            let modeValue = rule.proxy
+            return modeValue == "—" ? "模式匹配" : modeValue
+        default:
+            return "—"
+        }
     }
 
     private func ruleRow(_ rule: Rule) -> some View {
-        HStack(spacing: 0) {
+        let isSelected = selectedRuleIndex == rule.id
+        let isSystem = isSystemRule(rule)
+
+        return HStack(spacing: 0) {
             Text("\(rule.id + 1)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
@@ -120,10 +147,19 @@ struct RouteRulesView: View {
             ruleTypeBadge(rule.type)
                 .frame(width: 140, alignment: .leading)
 
-            Text(rule.payload)
-                .font(.body.monospaced())
-                .lineLimit(1)
-                .frame(minWidth: 200, alignment: .leading)
+            Group {
+                if isSystem && rule.payload == "—" {
+                    Text(systemRuleDescription(rule))
+                        .font(.body)
+                        .foregroundStyle(.tertiary)
+                        .italic()
+                } else {
+                    Text(rule.payload)
+                        .font(.body.monospaced())
+                }
+            }
+            .lineLimit(1)
+            .frame(minWidth: 200, alignment: .leading)
 
             Spacer()
 
@@ -131,17 +167,57 @@ struct RouteRulesView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(width: 140, alignment: .leading)
+
+            // Edit + Delete buttons
+            HStack(spacing: 4) {
+                if !isSystem {
+                    Button {
+                        editingRuleIndex = rule.id
+                        showAddRule = true
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .help("编辑")
+
+                    Button {
+                        deleteRule(at: rule.id)
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                            .foregroundStyle(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help("删除")
+                }
+            }
+            .frame(width: 70, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(rule.id % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        .background(
+            isSelected
+                ? AnyShapeStyle(Color.accentColor.opacity(0.15))
+                : (rule.id % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedRuleIndex = (selectedRuleIndex == rule.id) ? nil : rule.id
+        }
         .contextMenu {
-            if isDeletable(rule) {
+            if !isSystem {
+                Button {
+                    editingRuleIndex = rule.id
+                    showAddRule = true
+                } label: {
+                    Label("编辑", systemImage: "pencil")
+                }
                 Button("删除", role: .destructive) {
                     deleteRule(at: rule.id)
                 }
             } else {
-                Text("系统规则，不可删除")
+                Text("系统规则，不可编辑")
             }
         }
     }
@@ -156,6 +232,7 @@ struct RouteRulesView: View {
         } catch {
             appState.showAlert("删除失败: \(error.localizedDescription)")
         }
+        selectedRuleIndex = nil
         Task { await loadRules() }
     }
 
@@ -181,6 +258,14 @@ struct RouteRulesView: View {
             return .gray
         case "RULE-SET":
             return .green
+        case "SNIFF", "HIJACK-DNS":
+            return .teal
+        case "IP-PRIVATE":
+            return .mint
+        case "REJECT":
+            return .red
+        case "MODE":
+            return .indigo
         default:
             return .secondary
         }
@@ -253,6 +338,13 @@ struct RouteRulesView: View {
                 default:
                     break
                 }
+            }
+        }
+        // For MODE rules, show the clash_mode value
+        if let modeVal = rule["clash_mode"] {
+            switch modeVal {
+            case .string(let s): return s
+            default: break
             }
         }
         return "—"

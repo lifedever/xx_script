@@ -4,6 +4,9 @@ struct RuleSetsView: View {
     @Environment(AppState.self) private var appState
 
     @State private var ruleSetUpdateStatus: [String: RuleSetUpdateStatus] = [:]
+    @State private var selectedRuleSetIndex: Int?
+    @State private var editingRuleSetTag: String?
+    @State private var editingOutbound: String = ""
 
     enum RuleSetUpdateStatus {
         case idle
@@ -67,9 +70,9 @@ struct RuleSetsView: View {
                             Text("格式")
                                 .frame(width: 60, alignment: .leading)
                             Text("出站")
-                                .frame(width: 120, alignment: .leading)
-                            Text("")
-                                .frame(width: 30)
+                                .frame(width: 100, alignment: .leading)
+                            Text("操作")
+                                .frame(width: 90, alignment: .center)
                         }
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
@@ -88,6 +91,50 @@ struct RuleSetsView: View {
                 .padding()
             }
         }
+        .popover(item: Binding(
+            get: { editingRuleSetTag.map { EditingTag(tag: $0) } },
+            set: { editingRuleSetTag = $0?.tag }
+        )) { item in
+            outboundEditPopover(tag: item.tag)
+        }
+    }
+
+    // MARK: - Popover ID wrapper
+
+    private struct EditingTag: Identifiable {
+        let tag: String
+        var id: String { tag }
+    }
+
+    // MARK: - Outbound Edit Popover
+
+    private func outboundEditPopover(tag: String) -> some View {
+        VStack(spacing: 12) {
+            Text("修改出站策略")
+                .font(.headline)
+
+            Picker("出站", selection: $editingOutbound) {
+                ForEach(availableOutbounds, id: \.self) { name in
+                    Text(name).tag(name)
+                }
+            }
+            .labelsHidden()
+
+            HStack {
+                Button("取消") {
+                    editingRuleSetTag = nil
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("保存") {
+                    changeOutbound(forRuleSetTag: tag, to: editingOutbound)
+                    editingRuleSetTag = nil
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(width: 220)
     }
 
     // MARK: - Row View
@@ -100,6 +147,7 @@ struct RuleSetsView: View {
         let path = ruleSet["path"]?.stringValue
         let isRemote = type == "remote"
         let location = url ?? path ?? "—"
+        let isSelected = selectedRuleSetIndex == index
 
         return HStack(spacing: 0) {
             // # column
@@ -141,32 +189,44 @@ struct RuleSetsView: View {
                 .foregroundStyle(.tertiary)
                 .frame(width: 60, alignment: .leading)
 
-            // Outbound column (inline picker)
+            // Outbound column (plain text, no picker)
             Group {
                 let currentOutbound = outboundForRuleSet(tag: tag)
-                if currentOutbound != nil {
-                    Picker("", selection: Binding(
-                        get: { currentOutbound ?? "Proxy" },
-                        set: { newValue in
-                            changeOutbound(forRuleSetTag: tag, to: newValue)
-                        }
-                    )) {
-                        ForEach(availableOutbounds, id: \.self) { name in
-                            Text(name).tag(name)
-                        }
-                    }
-                    .labelsHidden()
-                    .controlSize(.mini)
+                if let outbound = currentOutbound {
+                    Text(outbound)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 } else {
                     Text("未关联")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
-            .frame(width: 140, alignment: .leading)
+            .frame(width: 100, alignment: .leading)
 
-            // Refresh / status column
-            Group {
+            // Action buttons: edit + delete + refresh
+            HStack(spacing: 4) {
+                Button {
+                    editingOutbound = outboundForRuleSet(tag: tag) ?? availableOutbounds.first ?? "Proxy"
+                    editingRuleSetTag = tag
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .help("编辑出站")
+
+                Button {
+                    deleteRuleSet(at: index, tag: tag)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundStyle(.red.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help("删除")
+
+                // Refresh / status indicator for remote
                 if let status = ruleSetUpdateStatus[tag] {
                     switch status {
                     case .updating:
@@ -186,11 +246,39 @@ struct RuleSetsView: View {
                     ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
                 }
             }
-            .frame(width: 30)
+            .frame(width: 90, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(index % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        .background(
+            isSelected
+                ? AnyShapeStyle(Color.accentColor.opacity(0.15))
+                : (index % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedRuleSetIndex = (selectedRuleSetIndex == index) ? nil : index
+        }
+        .contextMenu {
+            Button {
+                editingOutbound = outboundForRuleSet(tag: tag) ?? availableOutbounds.first ?? "Proxy"
+                editingRuleSetTag = tag
+            } label: {
+                Label("编辑出站", systemImage: "pencil")
+            }
+            if isRemote, let url = url {
+                Button {
+                    Task { await updateRuleSet(tag: tag, url: url) }
+                } label: {
+                    Label("更新", systemImage: "arrow.clockwise")
+                }
+            }
+            Button(role: .destructive) {
+                deleteRuleSet(at: index, tag: tag)
+            } label: {
+                Label("删除", systemImage: "trash")
+            }
+        }
     }
 
     @ViewBuilder
@@ -206,8 +294,34 @@ struct RuleSetsView: View {
             .foregroundStyle(.secondary)
             .help("更新规则集")
         } else {
-            EmptyView()
+            Color.clear.frame(width: 16, height: 16)
         }
+    }
+
+    // MARK: - Delete
+
+    private func deleteRuleSet(at index: Int, tag: String) {
+        // Remove from route.rule_set
+        var ruleSets = appState.configEngine.config.route.ruleSet ?? []
+        guard index >= 0 && index < ruleSets.count else { return }
+        ruleSets.remove(at: index)
+        appState.configEngine.config.route.ruleSet = ruleSets
+
+        // Also remove any route.rules referencing this rule_set tag
+        var rules = appState.configEngine.config.route.rules ?? []
+        rules.removeAll { rule in
+            guard let refs = rule["rule_set"]?.arrayValue else { return false }
+            let tags = refs.compactMap { $0.stringValue }
+            return tags == [tag]
+        }
+        appState.configEngine.config.route.rules = rules
+
+        do {
+            try appState.configEngine.save(restartRequired: true)
+        } catch {
+            appState.showAlert("删除失败: \(error.localizedDescription)")
+        }
+        selectedRuleSetIndex = nil
     }
 
     // MARK: - Outbound Helpers
