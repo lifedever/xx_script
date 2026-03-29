@@ -7,6 +7,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case rules
     case connections
     case logs
+    case servicesConfig
     case subscriptions
 
     var id: String { rawValue }
@@ -19,6 +20,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .rules: return String(localized: "sidebar.rules")
         case .connections: return String(localized: "sidebar.connections")
         case .logs: return String(localized: "sidebar.logs")
+        case .servicesConfig: return String(localized: "sidebar.services_config")
         case .subscriptions: return String(localized: "sidebar.subscriptions")
         }
     }
@@ -31,6 +33,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .rules: return "list.bullet"
         case .connections: return "link"
         case .logs: return "doc.text"
+        case .servicesConfig: return "slider.horizontal.3"
         case .subscriptions: return "antenna.radiowaves.left.and.right"
         }
     }
@@ -71,6 +74,9 @@ struct MainView: View {
                 case .logs:
                     LogsView()
                         .navigationTitle(String(localized: "sidebar.logs"))
+                case .servicesConfig:
+                    ServicesConfigView(configGenerator: configGenerator, singBoxManager: singBoxManager)
+                        .navigationTitle(String(localized: "sidebar.services_config"))
                 case .subscriptions:
                     SubscriptionsView(configGenerator: configGenerator, singBoxManager: singBoxManager)
                         .navigationTitle(String(localized: "sidebar.subscriptions"))

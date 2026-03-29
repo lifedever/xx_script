@@ -35,6 +35,19 @@
 "sidebar.logs" = "日志";
 "sidebar.subscriptions" = "订阅";
 "sidebar.rule_test" = "规则测试";
+"sidebar.services_config" = "服务分流";
+
+// Services Config
+"services.add" = "添加服务";
+"services.edit" = "编辑服务";
+"services.move_up" = "上移";
+"services.move_down" = "下移";
+"services.save_and_update" = "保存并更新";
+"services.name_field" = "服务名称";
+"services.geosite_field" = "Geosite 规则集 (逗号分隔)";
+"services.default_outbound" = "默认出站";
+"services.include_direct" = "包含 DIRECT 选项";
+"services.exclude_hk" = "排除香港节点";
 
 // Overview
 "overview.status" = "状态";

@@ -35,6 +35,19 @@
 "sidebar.logs" = "Logs";
 "sidebar.subscriptions" = "Subscriptions";
 "sidebar.rule_test" = "Rule Test";
+"sidebar.services_config" = "Service Config";
+
+// Services Config
+"services.add" = "Add Service";
+"services.edit" = "Edit Service";
+"services.move_up" = "Move Up";
+"services.move_down" = "Move Down";
+"services.save_and_update" = "Save & Update";
+"services.name_field" = "Service Name";
+"services.geosite_field" = "Geosite Rules (comma-separated)";
+"services.default_outbound" = "Default Outbound";
+"services.include_direct" = "Include DIRECT option";
+"services.exclude_hk" = "Exclude Hong Kong";
 
 // Overview
 "overview.status" = "Status";

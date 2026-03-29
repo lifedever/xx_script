@@ -18,6 +18,7 @@ import json, os, re, ssl, sys, urllib.request, uuid
 #  首次使用需创建该文件，格式见 subscriptions.example.json
 # ============================================================
 SUBSCRIPTIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "subscriptions.json")
+SERVICES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "services.json")
 
 # ============================================================
 #  基础设置
@@ -447,20 +448,42 @@ def main():
             "outbounds": tags,
         })
 
-    # 3. 服务分流组
+    # 3. 服务分流组 — 从 services.json 读取
     service_outbounds = ["Proxy"] + sub_group_names + available_regions
-    services = [
-        ("🤖OpenAI", [o for o in available_regions if o != "🇭🇰香港"] + sub_group_names + ["Proxy"]),
-        ("🔍Google", service_outbounds),
-        ("▶️YouTube", service_outbounds),
-        ("🎬Netflix", service_outbounds),
-        ("🏰Disney", service_outbounds),
-        ("🎵TikTok", service_outbounds),
-        ("💻Microsoft", service_outbounds),
-        ("📝Notion", service_outbounds),
-        ("🍎Apple", ["DIRECT"] + service_outbounds),
-    ]
-    for svc_name, svc_outs in services:
+    services_config = []
+    if os.path.exists(SERVICES_FILE):
+        with open(SERVICES_FILE, "r", encoding="utf-8") as f:
+            services_config = json.load(f)
+        print(f"  📋 服务分流: {len(services_config)} 个 (从 services.json)")
+    else:
+        # Fallback: hardcoded defaults
+        services_config = [
+            {"name": "🤖OpenAI", "geosite": ["openai", "anthropic", "category-ai-chat-!cn"], "default": "auto", "exclude_regions": ["🇭🇰香港"]},
+            {"name": "🔍Google", "geosite": ["google"], "default": "Proxy"},
+            {"name": "▶️YouTube", "geosite": ["youtube"], "default": "Proxy"},
+            {"name": "🎬Netflix", "geosite": ["netflix"], "default": "Proxy"},
+            {"name": "🏰Disney", "geosite": ["disney"], "default": "Proxy"},
+            {"name": "🎵TikTok", "geosite": ["tiktok"], "default": "Proxy"},
+            {"name": "💻Microsoft", "geosite": ["github", "microsoft"], "default": "Proxy"},
+            {"name": "📝Notion", "geosite": ["notion"], "default": "Proxy"},
+            {"name": "🍎Apple", "geosite": ["apple"], "default": "DIRECT", "include_direct": True},
+        ]
+        print(f"  📋 服务分流: {len(services_config)} 个 (默认配置)")
+
+    for svc in services_config:
+        svc_name = svc["name"]
+        svc_default = svc.get("default", "Proxy")
+        exclude = svc.get("exclude_regions", [])
+        include_direct = svc.get("include_direct", False)
+
+        # Build outbound list
+        if include_direct:
+            svc_outs = ["DIRECT"] + service_outbounds
+        elif exclude:
+            svc_outs = [o for o in available_regions if o not in exclude] + sub_group_names + ["Proxy"]
+        else:
+            svc_outs = list(service_outbounds)
+
         outbounds.append({
             "type": "selector",
             "tag": svc_name,
@@ -605,49 +628,39 @@ def main():
     # 7. 自定义规则 (xx_script)
     route_rules.extend(custom_route_rules)
 
-    # 8. 服务分流
-    route_rules.extend([
-        {"rule_set": ["geosite-openai", "geosite-anthropic", "geosite-category-ai-chat-!cn"], "action": "route", "outbound": "🤖OpenAI"},
-        {"rule_set": ["geosite-youtube"], "action": "route", "outbound": "▶️YouTube"},
-        {"rule_set": ["geosite-netflix"], "action": "route", "outbound": "🎬Netflix"},
-        {"rule_set": ["geosite-disney"], "action": "route", "outbound": "🏰Disney"},
-        {"rule_set": ["geosite-tiktok"], "action": "route", "outbound": "🎵TikTok"},
-        {"rule_set": ["geosite-google"], "action": "route", "outbound": "🔍Google"},
-        {"rule_set": ["geosite-github", "geosite-microsoft"], "action": "route", "outbound": "💻Microsoft"},
-        {"rule_set": ["geosite-notion"], "action": "route", "outbound": "📝Notion"},
-        {"rule_set": ["geosite-apple"], "action": "route", "outbound": "🍎Apple"},
-        # 9. 非中国域名走代理
-        {"rule_set": ["geosite-geolocation-!cn"], "action": "route", "outbound": "Proxy"},
-        # 10. 中国域名/IP 直连
-        {"rule_set": ["geosite-cn", "geoip-cn"], "action": "route", "outbound": "DIRECT"},
-    ])
+    # 8. 服务分流 (从 services_config 动态生成)
+    for svc in services_config:
+        rule_sets = [f"geosite-{gs}" for gs in svc["geosite"]]
+        route_rules.append({"rule_set": rule_sets, "action": "route", "outbound": svc["name"]})
 
-    # --- Rule sets ---
+    # 9. 非中国域名走代理
+    route_rules.append({"rule_set": ["geosite-geolocation-!cn"], "action": "route", "outbound": "Proxy"})
+    # 10. 中国域名/IP 直连
+    route_rules.append({"rule_set": ["geosite-cn", "geoip-cn"], "action": "route", "outbound": "DIRECT"})
+
+    # --- Rule sets (动态生成) ---
     rule_set_defs = custom_rule_set_defs + [
         geosite_rule_set("ads", "geosite-category-ads-all"),
         geosite_rule_set("cn"),
         geosite_rule_set("apple-cn", "geosite-apple@cn"),
         geosite_rule_set("microsoft-cn", "geosite-microsoft@cn"),
         geosite_rule_set("google-cn", "geosite-google@cn"),
-        geosite_rule_set("openai"),
-        geosite_rule_set("anthropic"),
-        geosite_rule_set("category-ai-chat-!cn"),
-        geosite_rule_set("youtube"),
-        geosite_rule_set("netflix"),
-        geosite_rule_set("disney"),
-        geosite_rule_set("tiktok"),
-        geosite_rule_set("google"),
-        geosite_rule_set("github"),
-        geosite_rule_set("microsoft"),
-        geosite_rule_set("notion"),
-        geosite_rule_set("apple"),
+    ]
+    # 从 services_config 动态添加 geosite rule sets
+    seen_geosite = set()
+    for svc in services_config:
+        for gs in svc["geosite"]:
+            if gs not in seen_geosite:
+                seen_geosite.add(gs)
+                rule_set_defs.append(geosite_rule_set(gs))
+    rule_set_defs.extend([
         geosite_rule_set("geolocation-!cn"),
         geoip_rule_set("cn"),
-    ]
+    ])
 
     # --- 完整配置 ---
     config = {
-        "log": {"level": "info", "timestamp": True},
+        "log": {"level": "debug", "timestamp": True},
         "experimental": {
             "cache_file": {
                 "enabled": True,
@@ -667,7 +680,6 @@ def main():
             "server": "time.apple.com",
             "server_port": 123,
             "interval": "30m",
-            "detour": "DIRECT",
         },
         "inbounds": inbounds,
         "outbounds": outbounds,

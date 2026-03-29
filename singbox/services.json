@@ -1,0 +1,49 @@
+[
+  {
+    "name": "🤖OpenAI",
+    "geosite": ["openai", "anthropic", "category-ai-chat-!cn"],
+    "default": "auto",
+    "exclude_regions": ["🇭🇰香港"]
+  },
+  {
+    "name": "🔍Google",
+    "geosite": ["google"],
+    "default": "Proxy"
+  },
+  {
+    "name": "▶️YouTube",
+    "geosite": ["youtube"],
+    "default": "Proxy"
+  },
+  {
+    "name": "🎬Netflix",
+    "geosite": ["netflix"],
+    "default": "Proxy"
+  },
+  {
+    "name": "🏰Disney",
+    "geosite": ["disney"],
+    "default": "Proxy"
+  },
+  {
+    "name": "🎵TikTok",
+    "geosite": ["tiktok"],
+    "default": "Proxy"
+  },
+  {
+    "name": "💻Microsoft",
+    "geosite": ["github", "microsoft"],
+    "default": "Proxy"
+  },
+  {
+    "name": "📝Notion",
+    "geosite": ["notion"],
+    "default": "Proxy"
+  },
+  {
+    "name": "🍎Apple",
+    "geosite": ["apple"],
+    "default": "DIRECT",
+    "include_direct": true
+  }
+]

@@ -5,7 +5,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG="$SCRIPT_DIR/config.json"
 PID_FILE="$SCRIPT_DIR/.sing-box.pid"
-LOG_FILE="/tmp/sing-box.log"
+LOG_FILE="$SCRIPT_DIR/sing-box.log"
 PANEL_URL="https://yacd.metacubex.one"
 API_ADDR="127.0.0.1:9091"
 PROXY_PORT=7890
@@ -41,7 +41,8 @@ start() {
     fi
     echo -e "${CYAN}🚀 启动 sing-box...${NC}"
     sudo true || { error "sudo 认证失败"; return 1; }
-    sudo sing-box run -c "$CONFIG" &>"$LOG_FILE" &
+    echo -e "\n===== $(date '+%Y-%m-%d %H:%M:%S') sing-box start =====" >> "$LOG_FILE"
+    sudo sing-box run -c "$CONFIG" >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     sleep 2
     if is_running; then
@@ -213,6 +214,37 @@ fix() {
     info "网络已修复"
 }
 
+build() {
+    local BOXX_DIR="$SCRIPT_DIR/BoxX"
+    if [ ! -f "$BOXX_DIR/project.yml" ]; then
+        error "BoxX 项目不存在: $BOXX_DIR"
+        return 1
+    fi
+    echo -e "${CYAN}🔨 编译 BoxX...${NC}"
+    cd "$BOXX_DIR"
+    xcodegen generate -q 2>/dev/null
+    if ! xcodebuild -scheme BoxX -configuration Debug build 2>&1 | tail -3 | grep -q "BUILD SUCCEEDED"; then
+        error "编译失败"
+        return 1
+    fi
+    # 找到编译产物并复制到 /Applications
+    local BUILD_DIR=$(xcodebuild -scheme BoxX -configuration Debug -showBuildSettings 2>/dev/null | grep " BUILT_PRODUCTS_DIR" | awk '{print $3}')
+    if [ ! -d "$BUILD_DIR/BoxX.app" ]; then
+        error "编译产物不存在"
+        return 1
+    fi
+    echo -e "${CYAN}📦 安装到 /Applications...${NC}"
+    pkill -f "BoxX.app" 2>/dev/null
+    sleep 1
+    rm -rf /Applications/BoxX.app
+    cp -R "$BUILD_DIR/BoxX.app" /Applications/
+    info "BoxX 已安装到 /Applications/BoxX.app"
+    echo -e "   启动: ${BOLD}open /Applications/BoxX.app${NC}"
+    # 自动启动
+    open /Applications/BoxX.app
+    info "BoxX 已启动"
+}
+
 help() {
     echo -e "${BOLD}sing-box 管理脚本${NC}"
     echo ""
@@ -230,6 +262,7 @@ help() {
     echo ""
     echo -e "${BOLD}维护命令:${NC}"
     echo -e "  ${GREEN}fix${NC}            修复网络 (休眠后断网时使用)"
+    echo -e "  ${GREEN}build${NC}          编译 BoxX 并安装到 /Applications"
     echo ""
     echo -e "${BOLD}调试命令:${NC}"
     echo -e "  ${GREEN}log${NC}  [行数]    查看最近日志 (默认 50 行)"
@@ -240,6 +273,7 @@ help() {
     echo -e "${BOLD}示例:${NC}"
     echo -e "  box start              # 启动"
     echo -e "  box update             # 更新订阅并重启"
+    echo -e "  box build              # 编译并安装 BoxX 客户端"
     echo -e "  box conns google       # 查看 google 相关连接"
     echo -e "  box conns anthropic    # 查看 Claude 走了哪个节点"
     echo -e "  box log 100            # 查看最近 100 行日志"
@@ -253,6 +287,7 @@ case "${1:-help}" in
     generate) generate ;;
     update)   update ;;
     fix)      fix ;;
+    build)    build ;;
     log)      log "$2" ;;
     logf)     logf ;;
     panel)    panel ;;
