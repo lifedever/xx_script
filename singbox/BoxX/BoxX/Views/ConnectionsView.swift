@@ -47,28 +47,26 @@ struct ConnectionsView: View {
 
             Divider()
 
-            // Table + Detail split (horizontal)
-            HSplitView {
-                // Connection table
-                connectionTable
-                    .frame(minWidth: 500)
+            // Connection table
+            connectionTable
 
-                // Right-side detail panel
-                if let conn = selectedConnection {
-                    ConnectionDetailPanel(
-                        connection: conn,
-                        byteFormatter: byteFormatter,
-                        onAddRule: {
-                            addRuleConnection = conn
-                            showAddRule = true
-                        },
-                        onCloseConnection: {
-                            Task { try? await appState.api.closeConnection(id: conn.id) }
-                        },
-                        onDismiss: { selectedID = nil }
-                    )
-                    .frame(minWidth: 280, idealWidth: 320, maxWidth: 400)
-                }
+            // Bottom detail panel (slides in when selected)
+            if let conn = selectedConnection {
+                Divider()
+                ConnectionDetailPanel(
+                    connection: conn,
+                    byteFormatter: byteFormatter,
+                    onAddRule: {
+                        addRuleConnection = conn
+                        showAddRule = true
+                    },
+                    onCloseConnection: {
+                        Task { try? await appState.api.closeConnection(id: conn.id) }
+                    },
+                    onDismiss: { selectedID = nil }
+                )
+                .frame(height: 250)
+                .transition(.move(edge: .bottom))
             }
         }
         .sheet(isPresented: $showAddRule) {
@@ -291,7 +289,7 @@ struct ConnectionsView: View {
     }
 }
 
-// MARK: - Detail Panel (right-side, closable)
+// MARK: - Detail Panel (bottom panel, horizontal layout)
 
 struct ConnectionDetailPanel: View {
     let connection: Connection
@@ -312,69 +310,69 @@ struct ConnectionDetailPanel: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text(String(localized: "connections.detail.title"))
-                    .font(.headline)
+                Text(connection.host)
+                    .font(.headline.monospaced())
+                    .textSelection(.enabled)
+                    .lineLimit(1)
 
                 Spacer()
 
-                Button {
-                    onDismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
+                        .controlSize(.small)
+                    Button(String(localized: "connections.ctx.close")) { onCloseConnection() }
+                        .controlSize(.small)
+                        .tint(.red)
+
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
             .background(.bar)
 
             Divider()
 
-            // Content
+            // Content - horizontal multi-column layout
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Host
-                    sectionHeader(String(localized: "connections.host"))
-                    Text(connection.host)
-                        .font(.body.monospaced())
-                        .textSelection(.enabled)
-
-                    // Connection info
-                    sectionHeader(String(localized: "connections.detail.connection_info"))
-                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
-                        DetailGridRow(label: String(localized: "connections.time"), value: connection.startTimeString)
-                        DetailGridRow(label: "IP", value: connection.metadata.destinationIP)
-                        DetailGridRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
-                        DetailGridRow(label: String(localized: "connections.network"), value: connection.network)
-                        DetailGridRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
-                        DetailGridRow(label: String(localized: "connections.detail.duration"), value: duration)
-                    }
-
-                    Divider()
-
-                    // Rule match
-                    sectionHeader(String(localized: "connections.detail.rule_match"))
-                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
-                        DetailGridRow(label: String(localized: "connections.rule"), value: connection.rule)
-                        if !connection.rulePayload.isEmpty {
-                            DetailGridRow(label: String(localized: "connections.detail.rule_payload"), value: connection.rulePayload)
+                HStack(alignment: .top, spacing: 24) {
+                    // Left column: Connection info
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader(String(localized: "connections.detail.connection_info"))
+                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 4) {
+                            DetailGridRow(label: String(localized: "connections.time"), value: connection.startTimeString)
+                            DetailGridRow(label: "IP", value: connection.metadata.destinationIP)
+                            DetailGridRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
+                            DetailGridRow(label: String(localized: "connections.network"), value: connection.network)
+                            DetailGridRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
+                            DetailGridRow(label: String(localized: "connections.detail.duration"), value: duration)
                         }
                     }
+                    .frame(minWidth: 180)
 
                     Divider()
 
-                    // Outbound chain (tree view)
-                    sectionHeader(String(localized: "connections.detail.outbound_chain"))
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(connection.chains.reversed().enumerated()), id: \.offset) { index, node in
-                            HStack(spacing: 6) {
+                    // Middle column: Rule match + outbound chain
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader(String(localized: "connections.detail.rule_match"))
+                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 4) {
+                            DetailGridRow(label: String(localized: "connections.rule"), value: connection.rule)
+                            if !connection.rulePayload.isEmpty {
+                                DetailGridRow(label: String(localized: "connections.detail.rule_payload"), value: connection.rulePayload)
+                            }
+                        }
+
+                        sectionHeader(String(localized: "connections.detail.outbound_chain"))
+                        HStack(spacing: 4) {
+                            ForEach(Array(connection.chains.reversed().enumerated()), id: \.offset) { index, node in
                                 if index > 0 {
-                                    ForEach(0..<index, id: \.self) { _ in
-                                        Text(" ")
-                                            .frame(width: 12)
-                                    }
-                                    Image(systemName: "arrow.turn.down.right")
+                                    Image(systemName: "arrow.right")
                                         .font(.caption2)
                                         .foregroundStyle(.tertiary)
                                 }
@@ -382,39 +380,31 @@ struct ConnectionDetailPanel: View {
                             }
                         }
                     }
+                    .frame(minWidth: 180)
 
                     Divider()
 
-                    // Traffic
-                    sectionHeader(String(localized: "connections.detail.traffic"))
-                    Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
-                        DetailGridRow(label: "\u{2193} " + String(localized: "connections.download"), value: byteFormatter.string(fromByteCount: connection.download))
-                        DetailGridRow(label: "\u{2191} " + String(localized: "connections.upload"), value: byteFormatter.string(fromByteCount: connection.upload))
-                    }
+                    // Right column: Traffic + source
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader(String(localized: "connections.detail.traffic"))
+                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 4) {
+                            DetailGridRow(label: "\u{2193} " + String(localized: "connections.download"), value: byteFormatter.string(fromByteCount: connection.download))
+                            DetailGridRow(label: "\u{2191} " + String(localized: "connections.upload"), value: byteFormatter.string(fromByteCount: connection.upload))
+                        }
 
-                    // Source
-                    if !connection.metadata.sourceIP.isEmpty {
-                        Divider()
-                        sectionHeader(String(localized: "connections.detail.source"))
-                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
-                            DetailGridRow(label: "IP", value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
-                            if !connection.metadata.processPath.isEmpty {
-                                DetailGridRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
+                        if !connection.metadata.sourceIP.isEmpty {
+                            sectionHeader(String(localized: "connections.detail.source"))
+                            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 4) {
+                                DetailGridRow(label: "IP", value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
+                                if !connection.metadata.processPath.isEmpty {
+                                    DetailGridRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
+                                }
                             }
                         }
                     }
+                    .frame(minWidth: 180)
 
-                    Divider()
-
-                    // Actions
-                    HStack(spacing: 12) {
-                        Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
-                            .controlSize(.small)
-                        Button(String(localized: "connections.ctx.close")) { onCloseConnection() }
-                            .controlSize(.small)
-                            .tint(.red)
-                    }
-                    .padding(.top, 4)
+                    Spacer()
                 }
                 .padding()
             }

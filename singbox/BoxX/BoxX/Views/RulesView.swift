@@ -54,9 +54,9 @@ struct RulesView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         routeRulesSection
                         Divider()
-                        builtinRuleSetsSection
+                        configuredRuleSetsSection
                         Divider()
-                        remoteRuleSetsSection
+                        builtinRuleSetsSection
                     }
                     .padding()
                 }
@@ -241,27 +241,81 @@ struct RulesView: View {
         .opacity(isEnabled ? 1.0 : 0.6)
     }
 
-    // MARK: - Remote Rule Sets Section (placeholder)
+    // MARK: - Configured Rule Sets Section
 
-    private var remoteRuleSetsSection: some View {
+    private var configuredRuleSetsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("远程规则集")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    // TODO: Add remote rule set URL
-                } label: {
-                    Label("添加 URL", systemImage: "plus")
-                }
-                .controlSize(.small)
-            }
-            Text("从远程 URL 加载自定义规则集（即将支持）")
+            Text("已配置规则集")
+                .font(.headline)
+            Text("当前 config.json 中的规则集定义")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 12)
+
+            let ruleSets = appState.configEngine.config.route.ruleSet ?? []
+            if ruleSets.isEmpty {
+                Text("暂无规则集")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding()
+            } else {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12),
+                ], spacing: 8) {
+                    ForEach(Array(ruleSets.enumerated()), id: \.offset) { _, ruleSet in
+                        configuredRuleSetCard(ruleSet)
+                    }
+                }
+            }
         }
+    }
+
+    private func configuredRuleSetCard(_ ruleSet: JSONValue) -> some View {
+        let tag = ruleSet["tag"]?.stringValue ?? "unknown"
+        let type = ruleSet["type"]?.stringValue ?? "unknown"
+        let format = ruleSet["format"]?.stringValue ?? ""
+        let url = ruleSet["url"]?.stringValue
+        let path = ruleSet["path"]?.stringValue
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(tag)
+                    .font(.callout.bold())
+                    .lineLimit(1)
+                Spacer()
+                Text(type)
+                    .font(.caption2)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(type == "local" ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
+                    .foregroundStyle(type == "local" ? Color.green : Color.blue)
+                    .clipShape(Capsule())
+            }
+
+            if let url = url {
+                Text(url)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else if let path = path {
+                Text(path)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            if !format.isEmpty {
+                Text(format)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(8)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     // MARK: - Rule Set Config Helpers
