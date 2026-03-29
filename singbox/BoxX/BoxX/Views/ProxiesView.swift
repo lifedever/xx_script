@@ -246,7 +246,7 @@ struct ProxiesView: View {
             typeBadge(for: group)
                 .frame(width: 80, alignment: .leading)
 
-            // Current node + delay (clickable to switch)
+            // Current node + delay (read-only display)
             HStack(spacing: 6) {
                 if let now = group.now, !now.isEmpty {
                     Circle()
@@ -260,29 +260,12 @@ struct ProxiesView: View {
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(delayColor(d))
                     }
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
                 } else {
                     Text("—")
                         .foregroundStyle(.tertiary)
                 }
             }
             .frame(minWidth: 200, alignment: .leading)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                popoverGroup = group.name
-            }
-            .popover(isPresented: Binding(
-                get: { popoverGroup == group.name },
-                set: { if !$0 { popoverGroup = nil } }
-            )) {
-                NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
-                    selectNode(group: group.name, node: node)
-                    popoverGroup = nil
-                })
-                .frame(width: 280, height: 400)
-            }
 
             Spacer()
 
