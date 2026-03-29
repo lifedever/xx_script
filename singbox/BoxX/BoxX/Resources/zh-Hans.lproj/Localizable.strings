@@ -62,8 +62,9 @@
 "connections.ctx.copy_host" = "复制主机";
 "connections.ctx.add_rule" = "添加规则…";
 "connections.ctx.close" = "关闭连接";
-"connections.ctx.rule_copied_title" = "规则已复制";
-"connections.ctx.rule_copied_msg" = "已复制: %@\n目标: %@\n\n请粘贴到对应的规则文件中 (ss/rules/ 或 clash/rules/)。";
+"connections.ctx.rule_added_title" = "规则已添加";
+"connections.ctx.rule_added_msg" = "规则: %@\n目标: %@\n\n已写入:\n  %@\n\nsingbox 本地 JSON 立即生效。\nss/clash 规则需「更新订阅」或 push 到 GitHub 后生效。";
+"connections.ctx.rule_partial_title" = "规则部分添加";
 
 // Logs
 "logs.auto_scroll" = "自动滚动";

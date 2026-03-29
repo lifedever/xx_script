@@ -164,26 +164,22 @@ struct ConnectionsView: View {
 
         if !conn.metadata.host.isEmpty {
             Menu(String(localized: "connections.ctx.add_rule")) {
-                Button("DOMAIN-SUFFIX,\(domain) → Proxy") {
-                    addRule("DOMAIN-SUFFIX", value: domain, target: "Proxy")
+                Menu("DOMAIN-SUFFIX,\(domain)") {
+                    Button("→ Proxy") { addRule("DOMAIN-SUFFIX", value: domain, target: "Proxy") }
+                    Button("→ DIRECT") { addRule("DOMAIN-SUFFIX", value: domain, target: "DIRECT") }
+                    Button("→ AI") { addRule("DOMAIN-SUFFIX", value: domain, target: "AI") }
                 }
-                Button("DOMAIN-SUFFIX,\(domain) → DIRECT") {
-                    addRule("DOMAIN-SUFFIX", value: domain, target: "DIRECT")
-                }
-                Button("DOMAIN,\(host) → Proxy") {
-                    addRule("DOMAIN", value: host, target: "Proxy")
-                }
-                Button("DOMAIN,\(host) → DIRECT") {
-                    addRule("DOMAIN", value: host, target: "DIRECT")
+                Menu("DOMAIN,\(host)") {
+                    Button("→ Proxy") { addRule("DOMAIN", value: host, target: "Proxy") }
+                    Button("→ DIRECT") { addRule("DOMAIN", value: host, target: "DIRECT") }
+                    Button("→ AI") { addRule("DOMAIN", value: host, target: "AI") }
                 }
             }
         } else {
             Menu(String(localized: "connections.ctx.add_rule")) {
-                Button("IP-CIDR,\(host)/32 → Proxy") {
-                    addRule("IP-CIDR", value: "\(host)/32", target: "Proxy")
-                }
-                Button("IP-CIDR,\(host)/32 → DIRECT") {
-                    addRule("IP-CIDR", value: "\(host)/32", target: "DIRECT")
+                Menu("IP-CIDR,\(host)/32") {
+                    Button("→ Proxy") { addRule("IP-CIDR", value: "\(host)/32", target: "Proxy") }
+                    Button("→ DIRECT") { addRule("IP-CIDR", value: "\(host)/32", target: "DIRECT") }
                 }
             }
         }
@@ -196,16 +192,23 @@ struct ConnectionsView: View {
     }
 
     private func addRule(_ type: String, value: String, target: String) {
-        let rule = "\(type),\(value)"
-        // Copy to clipboard for now — user can paste into rule files
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(rule, forType: .string)
+        let ruleManager = RuleManager()
+        let result = ruleManager.addRule(type: type, value: value, target: target)
 
-        // Show notification
         let alert = NSAlert()
-        alert.messageText = String(localized: "connections.ctx.rule_copied_title")
-        alert.informativeText = String(format: String(localized: "connections.ctx.rule_copied_msg"), rule, target)
-        alert.alertStyle = .informational
+        if result.errors.isEmpty {
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "connections.ctx.rule_added_title")
+            let files = result.filesModified.joined(separator: "\n  ")
+            alert.informativeText = String(format: String(localized: "connections.ctx.rule_added_msg"),
+                                           "\(type),\(value)", target, files)
+        } else {
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "connections.ctx.rule_partial_title")
+            let modified = result.filesModified.isEmpty ? "None" : result.filesModified.joined(separator: ", ")
+            let errors = result.errors.joined(separator: "\n")
+            alert.informativeText = "Modified: \(modified)\nErrors:\n\(errors)"
+        }
         alert.addButton(withTitle: String(localized: "error.ok"))
         alert.runModal()
     }

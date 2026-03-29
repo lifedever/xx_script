@@ -62,8 +62,9 @@
 "connections.ctx.copy_host" = "Copy Host";
 "connections.ctx.add_rule" = "Add Rule…";
 "connections.ctx.close" = "Close Connection";
-"connections.ctx.rule_copied_title" = "Rule Copied";
-"connections.ctx.rule_copied_msg" = "Copied: %@\nTarget: %@\n\nPaste into the corresponding rule file (ss/rules/ or clash/rules/).";
+"connections.ctx.rule_added_title" = "Rule Added";
+"connections.ctx.rule_added_msg" = "Rule: %@\nTarget: %@\n\nWritten to:\n  %@\n\nThe singbox local JSON takes effect immediately.\nRun 'Update Subscriptions' or push to GitHub for ss/clash rules to take effect.";
+"connections.ctx.rule_partial_title" = "Rule Partially Added";
 
 // Logs
 "logs.auto_scroll" = "Auto-scroll";
