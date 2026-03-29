@@ -9,6 +9,9 @@ struct ProxiesView: View {
     @State private var searchText = ""
     @State private var isRefreshing = false
     @State private var popoverGroup: String?
+    @State private var showGroupEdit = false
+    @State private var editingGroupTag: String?
+    @State private var deletingGroupTag: String?
 
     // MARK: - Group Classification
 
@@ -80,6 +83,15 @@ struct ProxiesView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 Button {
+                    editingGroupTag = nil
+                    showGroupEdit = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.plain)
+                .help("新建策略组")
+
+                Button {
                     Task { await refreshGroups() }
                 } label: {
                     if isRefreshing {
@@ -109,17 +121,7 @@ struct ProxiesView: View {
                         // Top-level groups (e.g. "Proxy") - full width cards
                         if !classified.top.isEmpty {
                             ForEach(classified.top) { group in
-                                ProxyGroupCard(
-                                    group: group,
-                                    delays: delays,
-                                    isTesting: testingGroups.contains(group.name),
-                                    showPopover: Binding(
-                                        get: { popoverGroup == group.name },
-                                        set: { newVal in popoverGroup = newVal ? group.name : nil }
-                                    ),
-                                    onSelect: { node in selectNode(group: group.name, node: node) },
-                                    onTest: { testGroupLatency(group) }
-                                )
+                                groupCard(for: group)
                             }
                         }
 
@@ -131,17 +133,7 @@ struct ProxiesView: View {
                             )
                             LazyVGrid(columns: gridColumns, spacing: 10) {
                                 ForEach(classified.services) { group in
-                                    ProxyGroupCard(
-                                        group: group,
-                                        delays: delays,
-                                        isTesting: testingGroups.contains(group.name),
-                                        showPopover: Binding(
-                                            get: { popoverGroup == group.name },
-                                            set: { newVal in popoverGroup = newVal ? group.name : nil }
-                                        ),
-                                        onSelect: { node in selectNode(group: group.name, node: node) },
-                                        onTest: { testGroupLatency(group) }
-                                    )
+                                    groupCard(for: group)
                                 }
                             }
                         }
@@ -154,17 +146,7 @@ struct ProxiesView: View {
                             )
                             LazyVGrid(columns: gridColumns, spacing: 10) {
                                 ForEach(classified.regions) { group in
-                                    ProxyGroupCard(
-                                        group: group,
-                                        delays: delays,
-                                        isTesting: testingGroups.contains(group.name),
-                                        showPopover: Binding(
-                                            get: { popoverGroup == group.name },
-                                            set: { newVal in popoverGroup = newVal ? group.name : nil }
-                                        ),
-                                        onSelect: { node in selectNode(group: group.name, node: node) },
-                                        onTest: { testGroupLatency(group) }
-                                    )
+                                    groupCard(for: group)
                                 }
                             }
                         }
@@ -177,17 +159,7 @@ struct ProxiesView: View {
                             )
                             LazyVGrid(columns: gridColumns, spacing: 10) {
                                 ForEach(classified.subscriptions) { group in
-                                    ProxyGroupCard(
-                                        group: group,
-                                        delays: delays,
-                                        isTesting: testingGroups.contains(group.name),
-                                        showPopover: Binding(
-                                            get: { popoverGroup == group.name },
-                                            set: { newVal in popoverGroup = newVal ? group.name : nil }
-                                        ),
-                                        onSelect: { node in selectNode(group: group.name, node: node) },
-                                        onTest: { testGroupLatency(group) }
-                                    )
+                                    groupCard(for: group)
                                 }
                             }
                         }
@@ -198,6 +170,23 @@ struct ProxiesView: View {
         }
         .task {
             await refreshGroups()
+        }
+        .sheet(isPresented: $showGroupEdit) {
+            ProxyGroupEditSheet(existingTag: editingGroupTag)
+        }
+        .alert("确认删除", isPresented: .init(
+            get: { deletingGroupTag != nil },
+            set: { if !$0 { deletingGroupTag = nil } }
+        )) {
+            Button("取消", role: .cancel) { deletingGroupTag = nil }
+            Button("删除", role: .destructive) {
+                if let tag = deletingGroupTag {
+                    deleteGroup(tag)
+                }
+                deletingGroupTag = nil
+            }
+        } message: {
+            Text("确定要删除策略组「\(deletingGroupTag ?? "")」吗？")
         }
     }
 
@@ -230,6 +219,39 @@ struct ProxiesView: View {
             try? await appState.api.selectProxy(group: group, name: node)
             await refreshGroups()
         }
+    }
+
+    private func groupCard(for group: ProxyGroup) -> some View {
+        ProxyGroupCard(
+            group: group,
+            delays: delays,
+            isTesting: testingGroups.contains(group.name),
+            showPopover: Binding(
+                get: { popoverGroup == group.name },
+                set: { newVal in popoverGroup = newVal ? group.name : nil }
+            ),
+            onSelect: { node in selectNode(group: group.name, node: node) },
+            onTest: { testGroupLatency(group) }
+        )
+        .contextMenu {
+            Button {
+                editingGroupTag = group.name
+                showGroupEdit = true
+            } label: {
+                Label("编辑", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                deletingGroupTag = group.name
+            } label: {
+                Label("删除", systemImage: "trash")
+            }
+        }
+    }
+
+    private func deleteGroup(_ tag: String) {
+        appState.configEngine.config.outbounds.removeAll { $0.tag == tag }
+        try? appState.configEngine.save(restartRequired: true)
+        Task { await refreshGroups() }
     }
 
     private func testGroupLatency(_ group: ProxyGroup) {
