@@ -5,12 +5,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             let appState = AppState.shared
             let manager = SingBoxManager.shared
-
-            // Check status on launch
             await manager.refreshStatus()
             appState.isRunning = manager.isRunning
-            appState.pid = manager.pid
-            appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
         }
     }
 }
@@ -33,7 +29,6 @@ struct BoxXApp: App {
             )
             .environment(appState)
             .task {
-                // Setup WakeObserver once
                 guard wakeObserver == nil else { return }
                 let observer = WakeObserver(
                     singBoxManager: singBoxManager,
@@ -48,31 +43,27 @@ struct BoxXApp: App {
         }
 
         Window("BoxX", id: "main") {
-            MainView(
-                api: api,
-                singBoxManager: singBoxManager,
-                configGenerator: configGenerator
-            )
-            .environment(appState)
-            .alert(String(localized: "error.title"), isPresented: Binding(
-                get: { appState.showError },
-                set: { appState.showError = $0 }
-            )) {
-                Button(String(localized: "error.ok"), role: .cancel) { appState.showError = false }
-            } message: {
-                Text(appState.errorMessage ?? "")
-            }
-            .onAppear {
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate()
-                NSApp.mainWindow?.makeKeyAndOrderFront(nil)
-            }
-            .onDisappear {
-                let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "BoxX" && $0.title != "" }
-                if !hasOtherWindow {
-                    NSApp.setActivationPolicy(.accessory)
+            MainView(api: api, singBoxManager: singBoxManager, configGenerator: configGenerator)
+                .environment(appState)
+                .alert(String(localized: "error.title"), isPresented: Binding(
+                    get: { appState.showError },
+                    set: { appState.showError = $0 }
+                )) {
+                    Button(String(localized: "error.ok"), role: .cancel) { appState.showError = false }
+                } message: {
+                    Text(appState.errorMessage ?? "")
                 }
-            }
+                .onAppear {
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate()
+                    NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+                }
+                .onDisappear {
+                    let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "BoxX" && $0.title != "" }
+                    if !hasOtherWindow {
+                        NSApp.setActivationPolicy(.accessory)
+                    }
+                }
         }
         .defaultSize(width: 900, height: 600)
 
@@ -85,9 +76,7 @@ struct BoxXApp: App {
                 }
                 .onDisappear {
                     let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "" }
-                    if !hasOtherWindow {
-                        NSApp.setActivationPolicy(.accessory)
-                    }
+                    if !hasOtherWindow { NSApp.setActivationPolicy(.accessory) }
                 }
         }
         .windowResizability(.contentSize)

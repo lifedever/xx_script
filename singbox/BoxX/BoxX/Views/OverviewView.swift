@@ -25,73 +25,33 @@ struct OverviewView: View {
                 // Status + Controls Card
                 GroupBox {
                     HStack(spacing: 16) {
-                        // Status indicator
                         Image(systemName: singBoxManager.isRunning ? "checkmark.circle.fill" : "xmark.circle")
                             .font(.system(size: 36))
                             .foregroundStyle(singBoxManager.isRunning ? Color.green : Color.secondary)
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(singBoxManager.isRunning
-                                 ? String(localized: "overview.running")
-                                 : String(localized: "overview.stopped"))
-                                .font(.title3.bold())
-
-                            if singBoxManager.isRunning {
-                                if singBoxManager.isExternalProcess {
-                                    Text(String(localized: "overview.external_process"))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                } else if singBoxManager.pid != 0 {
-                                    Text(String(format: String(localized: "overview.pid"), singBoxManager.pid))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
+                        Text(singBoxManager.isRunning
+                             ? String(localized: "overview.running")
+                             : String(localized: "overview.stopped"))
+                            .font(.title3.bold())
 
                         Spacer()
 
-                        // Control buttons
                         HStack(spacing: 8) {
                             if isOperating {
-                                ProgressView()
-                                    .scaleEffect(0.8)
+                                ProgressView().scaleEffect(0.8)
                             } else if singBoxManager.isRunning {
-                                Button {
-                                    Task { await doStop() }
-                                } label: {
+                                Button { Task { await doStop() } } label: {
                                     Label(String(localized: "overview.stop"), systemImage: "stop.fill")
-                                }
-                                .controlSize(.large)
+                                }.controlSize(.large)
 
-                                Button {
-                                    Task { await doRestart() }
-                                } label: {
+                                Button { Task { await doRestart() } } label: {
                                     Label(String(localized: "overview.restart"), systemImage: "arrow.clockwise")
-                                }
-                                .controlSize(.large)
+                                }.controlSize(.large)
                             } else {
-                                if appState.isHelperInstalled {
-                                    Button {
-                                        Task { await doStart() }
-                                    } label: {
-                                        Label(String(localized: "overview.start"), systemImage: "play.fill")
-                                    }
-                                    .controlSize(.large)
-                                    .tint(.green)
-                                } else {
-                                    Text(String(localized: "overview.need_helper"))
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                }
+                                Button { Task { await doStart() } } label: {
+                                    Label(String(localized: "overview.start"), systemImage: "play.fill")
+                                }.controlSize(.large).tint(.green)
                             }
-
-                            Button {
-                                Task { await doUpdateSubs() }
-                            } label: {
-                                Label(String(localized: "overview.update_subs"), systemImage: "arrow.down.circle")
-                            }
-                            .controlSize(.large)
                         }
                     }
                     .padding(8)
@@ -102,89 +62,40 @@ struct OverviewView: View {
                 // Stats Grid
                 if let snap = snapshot {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        StatCard(
-                            title: String(localized: "overview.connections"),
-                            value: "\(snap.connections?.count ?? 0)",
-                            icon: "link",
-                            color: .blue
-                        )
-                        StatCard(
-                            title: String(localized: "overview.download"),
-                            value: byteFormatter.string(fromByteCount: snap.downloadTotal),
-                            icon: "arrow.down.circle",
-                            color: .green
-                        )
-                        StatCard(
-                            title: String(localized: "overview.upload"),
-                            value: byteFormatter.string(fromByteCount: snap.uploadTotal),
-                            icon: "arrow.up.circle",
-                            color: .orange
-                        )
-                        StatCard(
-                            title: String(localized: "overview.memory"),
-                            value: snap.memory.map { byteFormatter.string(fromByteCount: $0) } ?? "–",
-                            icon: "memorychip",
-                            color: .purple
-                        )
+                        StatCard(title: String(localized: "overview.connections"), value: "\(snap.connections?.count ?? 0)", icon: "link", color: .blue)
+                        StatCard(title: String(localized: "overview.download"), value: byteFormatter.string(fromByteCount: snap.downloadTotal), icon: "arrow.down.circle", color: .green)
+                        StatCard(title: String(localized: "overview.upload"), value: byteFormatter.string(fromByteCount: snap.uploadTotal), icon: "arrow.up.circle", color: .orange)
+                        StatCard(title: String(localized: "overview.memory"), value: snap.memory.map { byteFormatter.string(fromByteCount: $0) } ?? "–", icon: "memorychip", color: .purple)
                     }
                 } else if isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                    .padding(.vertical, 30)
+                    HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 30)
                 }
 
-                // System Info Card
+                // System Info
                 GroupBox {
                     Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 8) {
                         GridRow {
-                            Text(String(localized: "overview.proxy_mode"))
-                                .foregroundStyle(.secondary)
-                                .gridColumnAlignment(.leading)
+                            Text(String(localized: "overview.proxy_mode")).foregroundStyle(.secondary)
                             Picker("", selection: Binding(
                                 get: { clashConfig?.mode ?? "rule" },
-                                set: { newMode in
-                                    Task {
-                                        try? await api.setMode(newMode)
-                                        clashConfig = try? await api.getConfig()
-                                    }
-                                }
+                                set: { newMode in Task { try? await api.setMode(newMode); clashConfig = try? await api.getConfig() } }
                             )) {
                                 Text(String(localized: "menu.mode.rule")).tag("rule")
                                 Text(String(localized: "menu.mode.global")).tag("global")
                                 Text(String(localized: "menu.mode.direct")).tag("direct")
                             }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                            .gridColumnAlignment(.leading)
+                            .pickerStyle(.segmented).labelsHidden()
                         }
                         Divider()
-                        systemInfoRow(
-                            label: String(localized: "overview.http_proxy"),
-                            value: "127.0.0.1:7890"
-                        )
+                        infoRow(String(localized: "overview.http_proxy"), "127.0.0.1:7890")
                         Divider()
-                        systemInfoRow(
-                            label: String(localized: "overview.api_address"),
-                            value: "127.0.0.1:9091"
-                        )
+                        infoRow(String(localized: "overview.api_address"), "127.0.0.1:9091")
                         Divider()
-                        systemInfoRow(
-                            label: String(localized: "overview.proxy_groups"),
-                            value: "\(proxyGroupCount)"
-                        )
+                        infoRow(String(localized: "overview.proxy_groups"), "\(proxyGroupCount)")
                         Divider()
-                        systemInfoRow(
-                            label: String(localized: "overview.rule_count"),
-                            value: "\(ruleCount)"
-                        )
+                        infoRow(String(localized: "overview.rule_count"), "\(ruleCount)")
                         Divider()
-                        systemInfoRow(
-                            label: String(localized: "overview.config_path"),
-                            value: configGenerator.configPath
-                        )
+                        infoRow(String(localized: "overview.config_path"), configGenerator.configPath)
                     }
                     .padding(4)
                 } label: {
@@ -193,124 +104,62 @@ struct OverviewView: View {
             }
             .padding()
         }
-        .task {
-            await refresh()
-        }
+        .task { await refresh() }
     }
 
     @ViewBuilder
-    private func systemInfoRow(label: String, value: String) -> some View {
+    private func infoRow(_ label: String, _ value: String) -> some View {
         GridRow {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .gridColumnAlignment(.leading)
-            Text(value)
-                .font(.system(.body, design: .monospaced))
-                .textSelection(.enabled)
-                .gridColumnAlignment(.leading)
-        }
-    }
-
-    private func modeDisplayName(_ mode: String?) -> String {
-        switch mode?.lowercased() {
-        case "rule":   return String(localized: "overview.mode.rule")
-        case "global": return String(localized: "overview.mode.global")
-        case "direct": return String(localized: "overview.mode.direct")
-        default:       return mode ?? "–"
+            Text(label).foregroundStyle(.secondary)
+            Text(value).font(.system(.body, design: .monospaced)).textSelection(.enabled)
         }
     }
 
     private func doStart() async {
-        isOperating = true
-        defer { isOperating = false }
-        do {
-            try await singBoxManager.start(configPath: configGenerator.configPath)
-        } catch {
-            appState.showAlert(error.localizedDescription)
-        }
+        isOperating = true; defer { isOperating = false }
+        do { try await singBoxManager.start(configPath: configGenerator.configPath) }
+        catch { appState.showAlert(error.localizedDescription) }
         await refresh()
     }
 
     private func doStop() async {
-        isOperating = true
-        defer { isOperating = false }
-        do {
-            try await singBoxManager.stopAny()
-        } catch {
-            appState.showAlert(error.localizedDescription)
-        }
+        isOperating = true; defer { isOperating = false }
+        do { try await singBoxManager.stop() }
+        catch { appState.showAlert(error.localizedDescription) }
         await refresh()
     }
 
     private func doRestart() async {
-        isOperating = true
-        defer { isOperating = false }
-        do {
-            try await singBoxManager.restart(configPath: configGenerator.configPath)
-        } catch {
-            appState.showAlert(error.localizedDescription)
-        }
-        await refresh()
-    }
-
-    private func doUpdateSubs() async {
-        isOperating = true
-        defer { isOperating = false }
-        for await _ in configGenerator.generate() {}
-        if singBoxManager.isRunning {
-            do {
-                try await singBoxManager.restart(configPath: configGenerator.configPath)
-            } catch {
-                appState.showAlert(error.localizedDescription)
-            }
-        }
+        isOperating = true; defer { isOperating = false }
+        do { try await singBoxManager.restart(configPath: configGenerator.configPath) }
+        catch { appState.showAlert(error.localizedDescription) }
         await refresh()
     }
 
     private func refresh() async {
-        isLoading = true
-        defer { isLoading = false }
+        isLoading = true; defer { isLoading = false }
         await singBoxManager.refreshStatus()
         appState.isRunning = singBoxManager.isRunning
-        appState.pid = singBoxManager.pid
-        guard singBoxManager.isRunning else {
-            snapshot = nil
-            clashConfig = nil
-            proxyGroupCount = 0
-            ruleCount = 0
-            return
-        }
-        async let snapshotResult = api.getConnections()
-        async let configResult = api.getConfig()
-        async let proxiesResult = api.getProxies()
-        async let rulesResult = api.getRules()
-        snapshot = try? await snapshotResult
-        clashConfig = try? await configResult
-        proxyGroupCount = (try? await proxiesResult)?.count ?? 0
-        ruleCount = (try? await rulesResult)?.count ?? 0
+        guard singBoxManager.isRunning else { snapshot = nil; clashConfig = nil; proxyGroupCount = 0; ruleCount = 0; return }
+        async let s = api.getConnections()
+        async let c = api.getConfig()
+        async let p = api.getProxies()
+        async let r = api.getRules()
+        snapshot = try? await s; clashConfig = try? await c
+        proxyGroupCount = (try? await p)?.count ?? 0; ruleCount = (try? await r)?.count ?? 0
     }
 }
 
 struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-
+    let title: String; let value: String; let icon: String; let color: Color
     var body: some View {
         GroupBox {
             VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
-                Text(value)
-                    .font(.title3.monospacedDigit().bold())
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Image(systemName: icon).font(.title2).foregroundStyle(color)
+                Text(value).font(.title3.monospacedDigit().bold())
+                Text(title).font(.caption).foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity).padding(.vertical, 8)
         }
     }
 }

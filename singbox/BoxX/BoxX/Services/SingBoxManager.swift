@@ -1,125 +1,92 @@
 import Foundation
 import Observation
 
+/// sing-box binary path
+private let singBoxPath = "/opt/homebrew/bin/sing-box"
+
 @Observable
 @MainActor
 final class SingBoxManager {
     static let shared = SingBoxManager()
 
-    private let helperManager = HelperManager.shared
     private let clashAPI = ClashAPI()
 
     var isRunning = false
-    var pid: Int32 = 0
-    var isExternalProcess = false
 
+    /// Check if sing-box is running by probing the Clash API
     func refreshStatus() async {
-        // Simple: if Clash API responds, sing-box is running
-        let apiReachable = await clashAPI.isReachable()
-        if apiReachable {
-            isRunning = true
-            // We don't know the PID without Helper, that's fine
-            isExternalProcess = true
-            return
-        }
-        isRunning = false
-        pid = 0
-        isExternalProcess = false
+        isRunning = await clashAPI.isReachable()
     }
 
+    /// Start sing-box with admin privileges (single password prompt)
     func start(configPath: String) async throws {
-        // Use osascript to run sing-box with admin privileges
-        // Same as `box start` — reads config directly, no permission issues
-        let singBoxPath = HelperConstants.singBoxPath
         let script = """
         do shell script "dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; \(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
         """
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script]
-        try process.run()
-        process.waitUntilExit()
+        try runOsascript(script)
 
-        if process.terminationStatus != 0 {
-            throw SingBoxError.startFailed("osascript exited with code \(process.terminationStatus)")
-        }
-
-        // Wait for sing-box to be ready
+        // Wait for Clash API to become reachable
         for _ in 0..<30 {
             try await Task.sleep(for: .milliseconds(200))
             if await clashAPI.isReachable() {
                 isRunning = true
-                isExternalProcess = false
                 return
             }
         }
-        throw SingBoxError.startFailed("sing-box started but Clash API not reachable after 6 seconds")
+        throw SingBoxError.startFailed("Clash API not reachable after 6 seconds")
     }
 
-    /// Stop sing-box — uses osascript sudo pkill (same as box stop)
-    func stopAny() async throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = [
-            "-e",
-            "do shell script \"pkill -x sing-box || true; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null\" with administrator privileges"
-        ]
-        try process.run()
-        process.waitUntilExit()
+    /// Stop sing-box with admin privileges (single password prompt)
+    func stop() async throws {
+        let script = """
+        do shell script "pkill -x sing-box || true; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null" with administrator privileges
+        """
+        try runOsascript(script)
 
-        // Wait for process to actually die
+        // Wait for process to die
         for _ in 0..<20 {
             try await Task.sleep(for: .milliseconds(200))
-            if !(await clashAPI.isReachable()) {
-                break
-            }
+            if !(await clashAPI.isReachable()) { break }
         }
         isRunning = false
-        pid = 0
-        isExternalProcess = false
     }
 
     /// Restart sing-box — single password prompt, includes DNS flush
     func restart(configPath: String) async throws {
-        let singBoxPath = HelperConstants.singBoxPath
-        // Single osascript call: kill → wait → flush DNS → start
         let script = """
         do shell script "pkill -x sing-box || true; sleep 2; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; \(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
         """
+        try runOsascript(script)
+
+        // Wait for Clash API
+        for _ in 0..<30 {
+            try await Task.sleep(for: .milliseconds(200))
+            if await clashAPI.isReachable() {
+                isRunning = true
+                return
+            }
+        }
+        throw SingBoxError.startFailed("Clash API not reachable after restart")
+    }
+
+    private func runOsascript(_ script: String) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", script]
         try process.run()
         process.waitUntilExit()
-
         if process.terminationStatus != 0 {
-            throw SingBoxError.startFailed("Restart failed (osascript code \(process.terminationStatus))")
+            throw SingBoxError.startFailed("Authorization cancelled or failed")
         }
-
-        // Wait for sing-box to be ready
-        for _ in 0..<30 {
-            try await Task.sleep(for: .milliseconds(200))
-            if await clashAPI.isReachable() {
-                isRunning = true
-                isExternalProcess = false
-                return
-            }
-        }
-        throw SingBoxError.startFailed("sing-box restarted but Clash API not reachable")
     }
-
 }
 
 enum SingBoxError: Error, LocalizedError {
-    case helperNotAvailable
     case startFailed(String)
-    case stopFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .helperNotAvailable: return "Helper not installed or not running"
-        case .startFailed(let msg): return "Failed to start: \(msg)"
-        case .stopFailed(let msg): return "Failed to stop: \(msg)"
+        case .startFailed(let msg): return msg
         }
     }
 }

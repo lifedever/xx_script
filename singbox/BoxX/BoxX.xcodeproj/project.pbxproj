@@ -11,7 +11,6 @@
 		025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */; };
 		0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EFFD13A60A868D1FABC99 /* WakeObserver.swift */; };
-		0D00DCB833E7B0E79F0D5CAA /* HelperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */; };
 		0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */; };
 		1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */; };
 		1E2427A7F9419BC567A20DFB /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = CC8166B671B895FBCAA5ADBF /* Localizable.strings */; };
@@ -88,7 +87,6 @@
 		819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXApp.swift; sourceTree = "<group>"; };
 		84EE3620F4C56C3918C1C969 /* ServiceConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceConfigManager.swift; sourceTree = "<group>"; };
 		8CAEE62A30EDCED844892451 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
-		8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperManager.swift; sourceTree = "<group>"; };
 		948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		96305C33FEFC382F3403938A /* ServicesConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicesConfigView.swift; sourceTree = "<group>"; };
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -127,7 +125,6 @@
 				33FF2D74D270C7533F9221B0 /* ClashAPI.swift */,
 				4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */,
 				040E1FEFB36E4C33EED1A5C3 /* ConfigGenerator.swift */,
-				8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */,
 				9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */,
 				84EE3620F4C56C3918C1C969 /* ServiceConfigManager.swift */,
 				1C202DBB07E3609789CAD3C7 /* SingBoxManager.swift */,
@@ -385,7 +382,6 @@
 				E6795C17D7CDED2E5E416334 /* ConfigGenerator.swift in Sources */,
 				0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */,
 				F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */,
-				0D00DCB833E7B0E79F0D5CAA /* HelperManager.swift in Sources */,
 				B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */,
 				1B2E597D5AE730484942B423 /* LogEntry.swift in Sources */,
 				AAD0AC2F8AF0311D9A05DD6F /* LogsView.swift in Sources */,

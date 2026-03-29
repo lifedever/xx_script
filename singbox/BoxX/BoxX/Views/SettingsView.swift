@@ -9,11 +9,6 @@ struct SettingsView: View {
                     Label(String(localized: "settings.general"), systemImage: "gear")
                 }
 
-            HelperSettingsTab()
-                .tabItem {
-                    Label(String(localized: "settings.helper"), systemImage: "lock.shield")
-                }
-
             AboutTab()
                 .tabItem {
                     Label(String(localized: "settings.about"), systemImage: "info.circle")
@@ -79,73 +74,6 @@ struct GeneralSettingsTab: View {
                     scriptDir = candidate
                 }
             }
-        }
-    }
-}
-
-// MARK: - Helper
-
-struct HelperSettingsTab: View {
-    @State private var helperInstalled = false
-    @State private var statusMessage = ""
-    @State private var isInstalling = false
-    @State private var errorMessage: String?
-
-    var body: some View {
-        Form {
-            LabeledContent(String(localized: "settings.helper.status")) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(helperInstalled ? Color.green : Color.red)
-                        .frame(width: 8, height: 8)
-                    Text(statusMessage)
-                        .foregroundStyle(helperInstalled ? .primary : .secondary)
-                }
-            }
-
-            LabeledContent("") {
-                HStack {
-                    Button(helperInstalled
-                           ? String(localized: "settings.helper.reinstall")
-                           : String(localized: "settings.helper.install")) {
-                        install()
-                    }
-                    .disabled(isInstalling)
-
-                    if isInstalling {
-                        ProgressView().scaleEffect(0.7)
-                    }
-                }
-            }
-
-            if let err = errorMessage {
-                Text(err).font(.caption).foregroundStyle(.red)
-            }
-
-            Text(String(localized: "settings.helper.description"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .formStyle(.grouped)
-        .onAppear { refresh() }
-    }
-
-    private func refresh() {
-        helperInstalled = HelperManager.shared.isHelperInstalled
-        statusMessage = helperInstalled
-            ? String(localized: "settings.helper.installed")
-            : String(localized: "settings.helper.not_installed")
-    }
-
-    private func install() {
-        isInstalling = true
-        errorMessage = nil
-        defer { isInstalling = false; refresh() }
-        do {
-            if helperInstalled { try HelperManager.shared.uninstallHelper() }
-            try HelperManager.shared.installHelper()
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 }
