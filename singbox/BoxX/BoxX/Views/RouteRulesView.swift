@@ -101,7 +101,18 @@ struct RouteRulesView: View {
             await loadRules()
         }
         .sheet(isPresented: $showAddRule) {
-            AddRuleSheet()
+            if let idx = editingRuleIndex {
+                AddRuleSheet(editingIndex: idx)
+                    .onDisappear {
+                        editingRuleIndex = nil
+                        Task { await loadRules() }
+                    }
+            } else {
+                AddRuleSheet()
+                    .onDisappear {
+                        Task { await loadRules() }
+                    }
+            }
         }
     }
 

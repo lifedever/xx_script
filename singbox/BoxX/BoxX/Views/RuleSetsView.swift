@@ -304,13 +304,15 @@ struct RuleSetsView: View {
     // MARK: - Outbound Helpers
 
     private var availableOutbounds: [String] {
-        appState.configEngine.config.outbounds.compactMap { outbound in
+        var result = appState.configEngine.config.outbounds.compactMap { outbound -> String? in
             switch outbound {
             case .selector(let s): return s.tag
             case .direct(let d): return d.tag
             default: return nil
             }
         }
+        result.append("REJECT")
+        return result
     }
 
     private func outboundForRuleSet(tag: String) -> String? {
@@ -319,6 +321,8 @@ struct RuleSetsView: View {
             guard let ruleSetRefs = rule["rule_set"]?.arrayValue else { continue }
             let tags = ruleSetRefs.compactMap { $0.stringValue }
             if tags.contains(tag) {
+                // Check for reject action
+                if rule["action"]?.stringValue == "reject" { return "REJECT" }
                 return rule["outbound"]?.stringValue
             }
         }
@@ -327,16 +331,37 @@ struct RuleSetsView: View {
 
     private func changeOutbound(forRuleSetTag tag: String, to newOutbound: String) {
         var rules = appState.configEngine.config.route.rules ?? []
+        var found = false
         for i in rules.indices {
             guard let ruleSetRefs = rules[i]["rule_set"]?.arrayValue else { continue }
             let tags = ruleSetRefs.compactMap { $0.stringValue }
             if tags.contains(tag) {
                 if case .object(var dict) = rules[i] {
-                    dict["outbound"] = .string(newOutbound)
+                    if newOutbound == "REJECT" {
+                        dict["action"] = .string("reject")
+                        dict.removeValue(forKey: "outbound")
+                    } else {
+                        dict["action"] = .string("route")
+                        dict["outbound"] = .string(newOutbound)
+                    }
                     rules[i] = .object(dict)
                 }
+                found = true
                 break
             }
+        }
+        // If no existing rule references this tag, create one
+        if !found {
+            var ruleDict: [String: JSONValue] = [
+                "rule_set": .array([.string(tag)]),
+            ]
+            if newOutbound == "REJECT" {
+                ruleDict["action"] = .string("reject")
+            } else {
+                ruleDict["action"] = .string("route")
+                ruleDict["outbound"] = .string(newOutbound)
+            }
+            rules.append(.object(ruleDict))
         }
         appState.configEngine.config.route.rules = rules
         try? appState.configEngine.save(restartRequired: true)

@@ -13,6 +13,7 @@ struct AddRuleSheet: View {
     private let initialDomain: String
     private let initialIP: String
     private let externalDismiss: (() -> Void)?
+    private let editingIndex: Int?  // non-nil = editing existing rule at this config index
 
     @State private var ruleType: String = "DOMAIN-SUFFIX"
     @State private var ruleValue: String = ""
@@ -24,12 +25,22 @@ struct AddRuleSheet: View {
 
     private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR", "PROCESS-NAME"]
 
-    /// Standalone init (used from RulesView via sheet)
+    /// Standalone init (add new rule)
     init() {
         self.initialHost = ""
         self.initialDomain = ""
         self.initialIP = ""
         self.externalDismiss = nil
+        self.editingIndex = nil
+    }
+
+    /// Edit existing rule at config index
+    init(editingIndex: Int) {
+        self.initialHost = ""
+        self.initialDomain = ""
+        self.initialIP = ""
+        self.externalDismiss = nil
+        self.editingIndex = editingIndex
     }
 
     /// Prefilled init (used from ConnectionsView)
@@ -38,6 +49,7 @@ struct AddRuleSheet: View {
         self.initialDomain = domain
         self.initialIP = ip
         self.externalDismiss = onDismiss
+        self.editingIndex = nil
     }
 
     private func close() {
@@ -75,7 +87,7 @@ struct AddRuleSheet: View {
         VStack(spacing: 0) {
             // Title
             HStack {
-                Text("添加规则")
+                Text(editingIndex != nil ? "编辑规则" : "添加规则")
                     .font(.headline)
                 Spacer()
                 Button { close() } label: {
@@ -212,16 +224,58 @@ struct AddRuleSheet: View {
             if selectedRuleSetTag.isEmpty, let first = customRuleSets.first {
                 selectedRuleSetTag = first
             }
-            if selectedOutbound.isEmpty || !availableOutbounds.contains(selectedOutbound) {
-                selectedOutbound = availableOutbounds.first ?? "Proxy"
-            }
-            if !initialHost.isEmpty {
+
+            // Load existing rule data when editing
+            if let idx = editingIndex {
+                loadExistingRule(at: idx)
+            } else if !initialHost.isEmpty {
                 ruleType = "DOMAIN-SUFFIX"
                 ruleValue = initialDomain.isEmpty ? initialHost : initialDomain
             } else if !initialIP.isEmpty {
                 ruleType = "IP-CIDR"
                 ruleValue = initialIP + "/32"
             }
+
+            if selectedOutbound.isEmpty || !availableOutbounds.contains(selectedOutbound) {
+                selectedOutbound = availableOutbounds.first ?? "Proxy"
+            }
+        }
+    }
+
+    // MARK: - Load Existing Rule
+
+    private func loadExistingRule(at index: Int) {
+        let configRules = appState.configEngine.config.route.rules ?? []
+        guard index >= 0 && index < configRules.count else { return }
+        let rule = configRules[index]
+
+        // Determine type and value
+        let typeMapping: [(key: String, type: String)] = [
+            ("domain_suffix", "DOMAIN-SUFFIX"),
+            ("domain", "DOMAIN"),
+            ("domain_keyword", "DOMAIN-KEYWORD"),
+            ("ip_cidr", "IP-CIDR"),
+            ("process_name", "PROCESS-NAME"),
+        ]
+        for (key, typeName) in typeMapping {
+            if let val = rule[key] {
+                ruleType = typeName
+                switch val {
+                case .array(let arr):
+                    ruleValue = arr.compactMap { $0.stringValue }.joined(separator: ", ")
+                case .string(let s):
+                    ruleValue = s
+                default: break
+                }
+                break
+            }
+        }
+
+        // Determine outbound
+        if rule["action"]?.stringValue == "reject" {
+            selectedOutbound = "REJECT"
+        } else if let outbound = rule["outbound"]?.stringValue {
+            selectedOutbound = outbound
         }
     }
 
@@ -275,11 +329,12 @@ struct AddRuleSheet: View {
 
     /// Write directly to config.json route.rules
     private func saveAsLocalRule() {
+        // Handle multiple values separated by comma
+        let values = ruleValue.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         var ruleDict: [String: JSONValue] = [
-            singboxKey: .array([.string(ruleValue)]),
+            singboxKey: .array(values.map { .string($0) }),
         ]
 
-        // REJECT uses action "reject", others use action "route" + outbound
         if selectedOutbound == "REJECT" {
             ruleDict["action"] = .string("reject")
         } else {
@@ -288,15 +343,18 @@ struct AddRuleSheet: View {
         }
 
         let newRule = JSONValue.object(ruleDict)
-
         var rules = appState.configEngine.config.route.rules ?? []
-        // Insert after system rules (sniff, hijack-dns, ip_is_private) but before service rules
-        // so user-defined rules have highest priority among routing rules
-        let insertIdx = rules.firstIndex(where: { rule in
-            // Find the first rule that has rule_set or domain/domain_suffix (= a routing rule, not system)
-            rule["rule_set"] != nil || rule["domain"] != nil || rule["domain_suffix"] != nil
-        }) ?? rules.count
-        rules.insert(newRule, at: insertIdx)
+
+        if let editIdx = editingIndex, editIdx >= 0 && editIdx < rules.count {
+            // Update existing rule
+            rules[editIdx] = newRule
+        } else {
+            // Insert new rule after system rules, before service rules
+            let insertIdx = rules.firstIndex(where: { rule in
+                rule["rule_set"] != nil || rule["domain"] != nil || rule["domain_suffix"] != nil
+            }) ?? rules.count
+            rules.insert(newRule, at: insertIdx)
+        }
         appState.configEngine.config.route.rules = rules
 
         do {
