@@ -183,6 +183,14 @@
 "settings.helper.not_installed" = "Not installed";
 "settings.helper.install" = "Install Helper";
 "settings.helper.reinstall" = "Reinstall Helper";
+"settings.open_config_dir" = "Open Config Directory";
+"settings.config_dir_description" = "BoxX configuration and proxy data storage location";
+
+// Menu Bar
+"menu.open_config_dir" = "Open Config Directory";
+"menu.show_main_window" = "Show Main Window";
+"menu.outbound_mode" = "Outbound Mode";
+"menu.mode.current" = "Current: %@";
 
 // Errors
 "error.title" = "Error";

@@ -183,6 +183,14 @@
 "settings.helper.not_installed" = "未安装";
 "settings.helper.install" = "安装助手";
 "settings.helper.reinstall" = "重新安装助手";
+"settings.open_config_dir" = "打开配置目录";
+"settings.config_dir_description" = "BoxX 配置和代理数据存储位置";
+
+// Menu Bar
+"menu.open_config_dir" = "打开配置目录";
+"menu.show_main_window" = "显示主窗口";
+"menu.outbound_mode" = "出站模式";
+"menu.mode.current" = "当前: %@";
 
 // Errors
 "error.title" = "错误";

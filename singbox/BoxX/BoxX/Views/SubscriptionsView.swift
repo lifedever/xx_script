@@ -7,8 +7,7 @@ struct SubscriptionsView: View {
     @State private var showAddSheet = false
     @State private var editingSubscription: Subscription? = nil
     @State private var isUpdating = false
-    @State private var updateLog: [String] = []
-    @State private var updateStatus: String? = nil
+    @State private var updateResults: [String: SubscriptionUpdateStatus] = [:]
 
     private let manager = SubscriptionManager()
 
@@ -37,6 +36,7 @@ struct SubscriptionsView: View {
                         ForEach(subscriptions) { sub in
                             SubscriptionCard(
                                 subscription: sub,
+                                status: updateResults[sub.name],
                                 onEdit: { editingSubscription = sub },
                                 onDelete: { deleteSubscription(sub) }
                             )
@@ -64,11 +64,6 @@ struct SubscriptionsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        if let status = updateStatus {
-                            Label(status, systemImage: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.green)
-                        }
                         Button {
                             Task { await saveAndUpdate() }
                         } label: {
@@ -80,43 +75,6 @@ struct SubscriptionsView: View {
                 }
                 .padding()
                 .background(.bar)
-
-                // Update log
-                if !updateLog.isEmpty {
-                    Divider()
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack {
-                            Text(String(localized: "subs.progress_title"))
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button {
-                                updateLog.removeAll()
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
-
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 1) {
-                                ForEach(updateLog.indices, id: \.self) { i in
-                                    Text(updateLog[i])
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                        }
-                        .frame(height: 120)
-                    }
-                    .background(.bar)
-                }
             }
         }
         .sheet(isPresented: $showAddSheet) {
@@ -150,42 +108,47 @@ struct SubscriptionsView: View {
     private func saveAndUpdate() async {
         saveSubscriptions()
         isUpdating = true
-        updateStatus = nil
-        updateLog.removeAll()
+        updateResults.removeAll()
         defer { isUpdating = false }
 
-        // Use SubscriptionService to update each subscription
         let subService = appState.subscriptionService
         for sub in subscriptions {
             guard let url = URL(string: sub.url) else {
-                updateLog.append("Invalid URL for \(sub.name)")
+                updateResults[sub.name] = .failure("Invalid URL")
                 continue
             }
-            updateLog.append("Updating \(sub.name)...")
+            updateResults[sub.name] = .updating
             do {
                 let count = try await subService.updateSubscription(name: sub.name, url: url)
-                updateLog.append("\(sub.name): \(count) nodes")
+                updateResults[sub.name] = .success(count)
             } catch {
-                updateLog.append("\(sub.name): \(error.localizedDescription)")
+                updateResults[sub.name] = .failure(error.localizedDescription)
             }
         }
 
         if appState.isRunning {
-            updateLog.append("Reloading sing-box...")
             _ = await appState.xpcClient.reload()
-            updateLog.append("Done.")
         }
 
-        updateStatus = String(localized: "subs.update_complete")
+        // Clear success status after a delay
         try? await Task.sleep(for: .seconds(5))
-        updateStatus = nil
+        updateResults.removeAll()
     }
+}
+
+// MARK: - Update Status
+
+enum SubscriptionUpdateStatus {
+    case updating
+    case success(Int)
+    case failure(String)
 }
 
 // MARK: - Subscription Card
 
 struct SubscriptionCard: View {
     let subscription: Subscription
+    let status: SubscriptionUpdateStatus?
     let onEdit: () -> Void
     let onDelete: () -> Void
 
@@ -201,8 +164,17 @@ struct SubscriptionCard: View {
                     .padding(.top, 2)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(subscription.name)
-                        .font(.body.bold())
+                    HStack {
+                        Text(subscription.name)
+                            .font(.body.bold())
+
+                        Spacer()
+
+                        // Status indicator
+                        if let status {
+                            statusBadge(status)
+                        }
+                    }
 
                     Text(subscription.url)
                         .font(.caption.monospaced())
@@ -210,7 +182,7 @@ struct SubscriptionCard: View {
                         .textSelection(.enabled)
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding(4)
         }
@@ -226,6 +198,25 @@ struct SubscriptionCard: View {
                 .stroke(isHovering ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
         )
         .onHover { isHovering = $0 }
+    }
+
+    @ViewBuilder
+    private func statusBadge(_ status: SubscriptionUpdateStatus) -> some View {
+        switch status {
+        case .updating:
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 16, height: 16)
+        case .success(let count):
+            Label("\(count) nodes", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .failure(let msg):
+            Label(msg, systemImage: "xmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(1)
+        }
     }
 }
 
