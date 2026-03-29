@@ -5,19 +5,19 @@ import SwiftUI
 final class MenuBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let appState: AppState
+    private var cachedGroups: [ProxyGroup] = []
 
     init(appState: AppState) {
         self.appState = appState
         super.init()
         setupStatusItem()
+        Task { await fetchAndRebuild() }
     }
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         updateIcon()
-        let menu = NSMenu()
-        menu.delegate = self
-        statusItem.menu = menu
+        rebuildMenuFromCache()
     }
 
     func updateIcon() {
@@ -25,30 +25,33 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: icon, accessibilityDescription: "BoxX")
     }
 
-    // Called when menu is about to open - rebuild with fresh data
+    /// Fetch proxy groups from Clash API, then rebuild menu synchronously
+    func fetchAndRebuild() async {
+        cachedGroups = (try? await appState.api.getProxies()) ?? []
+        rebuildMenuFromCache()
+    }
+
+    // Menu about to open: show cached menu immediately, refresh in background for staleness
     nonisolated func menuWillOpen(_ menu: NSMenu) {
         Task { @MainActor in
-            await self.refreshMenu()
+            await self.fetchAndRebuild()
         }
     }
 
-    func refreshMenu() async {
+    /// Build menu synchronously from cached data — no async, no delay
+    private func rebuildMenuFromCache() {
         let menu = NSMenu()
         menu.delegate = self
 
-        // -- Status header --
+        // ── Status header ──
         let statusTitle = appState.isRunning ? "BoxX  ● 运行中" : "BoxX  ○ 已停止"
-        let headerItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
-        headerItem.isEnabled = false
-        menu.addItem(headerItem)
+        let si = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
+        si.isEnabled = false
+        menu.addItem(si)
         menu.addItem(.separator())
 
-        // -- Outbound mode --
+        // ── Outbound mode ──
         let modeMenu = NSMenu()
-        var currentMode = "rule"
-        if let config = try? await appState.api.getConfig() {
-            currentMode = config.mode ?? "rule"
-        }
         for mode in ["rule", "global", "direct"] {
             let label: String
             switch mode {
@@ -59,10 +62,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             }
             let item = NSMenuItem(title: label, action: #selector(switchMode(_:)), keyEquivalent: "")
             item.target = self
-            item.representedObject = mode as NSString
-            if mode == currentMode {
-                item.state = .on
-            }
+            item.representedObject = mode
             modeMenu.addItem(item)
         }
         let modeItem = NSMenuItem(title: "出站模式", action: nil, keyEquivalent: "")
@@ -70,45 +70,34 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(modeItem)
         menu.addItem(.separator())
 
-        // -- Proxy groups --
-        let groups = (try? await appState.api.getProxies()) ?? []
-        let selectorGroups = groups.filter { $0.type == "Selector" }
+        // ── Proxy groups ──
+        let selectorGroups = cachedGroups.filter { $0.type == "Selector" }
         let classified = classifyGroups(selectorGroups)
 
-        // Top-level groups
         for group in classified.top {
             menu.addItem(makeGroupMenuItem(group))
         }
         if !classified.top.isEmpty { menu.addItem(.separator()) }
 
-        // Services section
         if !classified.services.isEmpty {
             menu.addItem(makeSectionHeader("服务分流"))
-            for group in classified.services {
-                menu.addItem(makeGroupMenuItem(group))
-            }
+            for group in classified.services { menu.addItem(makeGroupMenuItem(group)) }
             menu.addItem(.separator())
         }
 
-        // Regions section
         if !classified.regions.isEmpty {
             menu.addItem(makeSectionHeader("地区节点"))
-            for group in classified.regions {
-                menu.addItem(makeGroupMenuItem(group))
-            }
+            for group in classified.regions { menu.addItem(makeGroupMenuItem(group)) }
             menu.addItem(.separator())
         }
 
-        // Subscriptions section
         if !classified.subscriptions.isEmpty {
             menu.addItem(makeSectionHeader("订阅分组"))
-            for group in classified.subscriptions {
-                menu.addItem(makeGroupMenuItem(group))
-            }
+            for group in classified.subscriptions { menu.addItem(makeGroupMenuItem(group)) }
             menu.addItem(.separator())
         }
 
-        // -- Bottom actions --
+        // ── Bottom actions ──
         let updateItem = NSMenuItem(title: "更新订阅", action: #selector(updateSubscriptions), keyEquivalent: "")
         updateItem.target = self
         menu.addItem(updateItem)
@@ -144,40 +133,21 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         return item
     }
 
-    // MARK: - Group Menu Item with Right-Aligned Node Name
+    // MARK: - Group Menu Item with Custom View
 
     private func makeGroupMenuItem(_ group: ProxyGroup) -> NSMenuItem {
         let item = NSMenuItem()
         let currentNode = group.now ?? "–"
 
-        // Attributed title with right-aligned tab stop (Surge-style)
-        let fullText = "\(group.name)\t\(currentNode)"
+        let view = ProxyGroupMenuItemView(
+            groupName: group.name,
+            nodeName: currentNode,
+            width: 320,
+            height: 22
+        )
+        item.view = view
 
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.tabStops = [
-            NSTextTab(textAlignment: .right, location: 280),
-        ]
-
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.menuFont(ofSize: 14),
-            .paragraphStyle: paragraphStyle,
-        ]
-
-        let attrStr = NSMutableAttributedString(string: fullText, attributes: attrs)
-
-        // Make the right part (after tab) secondary color
-        let tabRange = (fullText as NSString).range(of: "\t")
-        if tabRange.location != NSNotFound {
-            let rightRange = NSRange(
-                location: tabRange.location + 1,
-                length: (fullText as NSString).length - tabRange.location - 1
-            )
-            attrStr.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: rightRange)
-        }
-
-        item.attributedTitle = attrStr
-
-        // Submenu with nodes
+        // Create submenu with nodes
         let submenu = NSMenu()
         for node in group.displayAll {
             let nodeItem = NSMenuItem(title: node, action: #selector(selectNode(_:)), keyEquivalent: "")
@@ -203,15 +173,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
-        let serviceNames: Set<String> = [
-            "OpenAI", "Google", "YouTube", "Netflix",
-            "Disney", "TikTok", "Microsoft", "Notion",
-            "Apple", "Telegram", "Spotify", "Twitter",
-            "GitHub", "Steam", "Twitch", "Claude",
-            "Gemini", "ChatGPT",
-        ]
+        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix", "Disney", "TikTok", "Microsoft", "Notion", "Apple", "Telegram", "Spotify", "Twitter", "GitHub", "Steam", "Twitch", "Claude", "Gemini", "ChatGPT"]
         let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇹🇼", "🌍"]
-        let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾"]
+        let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾", "其他"]
 
         var result = ClassifiedGroups()
         var classifiedIDs = Set<String>()
@@ -220,9 +184,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             if group.name.hasPrefix("📦") {
                 result.subscriptions.append(group)
                 classifiedIDs.insert(group.id)
-            } else if regionPrefixes.contains(where: { group.name.hasPrefix($0) })
-                || regionNames.contains(where: { group.name.contains($0) })
-            {
+            } else if regionPrefixes.contains(where: { group.name.hasPrefix($0) }) || regionNames.contains(where: { group.name.contains($0) }) {
                 result.regions.append(group)
                 classifiedIDs.insert(group.id)
             } else if serviceNames.contains(where: { group.name.contains($0) }) {
@@ -242,9 +204,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func switchMode(_ sender: NSMenuItem) {
         guard let mode = sender.representedObject as? String else { return }
-        Task {
-            try? await appState.api.setMode(mode)
-        }
+        Task { try? await appState.api.setMode(mode) }
     }
 
     @objc private func selectNode(_ sender: NSMenuItem) {
@@ -254,7 +214,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         else { return }
         Task {
             try? await appState.api.selectProxy(group: groupName, name: nodeName)
-            // Persist to ConfigEngine
             if let idx = appState.configEngine.config.outbounds.firstIndex(where: {
                 if case .selector(let s) = $0, s.tag == groupName { return true }
                 return false
@@ -265,6 +224,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                     try? appState.configEngine.save()
                 }
             }
+            await fetchAndRebuild()
         }
     }
 
@@ -289,11 +249,82 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             window.makeKeyAndOrderFront(nil)
             return
         }
-        // If no window found, try opening via SwiftUI environment
-        // The Window scene with id "main" should auto-create when activated
     }
 
     @objc private func quitApp() {
         NSApplication.shared.terminate(nil)
+    }
+}
+
+// MARK: - Custom NSView for Surge-style menu item
+
+final class ProxyGroupMenuItemView: NSView {
+    private let groupName: String
+    private let nodeName: String
+    private var trackingArea: NSTrackingArea?
+    private var isHighlighted = false
+
+    init(groupName: String, nodeName: String, width: CGFloat, height: CGFloat) {
+        self.groupName = groupName
+        self.nodeName = nodeName
+        super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = trackingArea { removeTrackingArea(existing) }
+        trackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self)
+        addTrackingArea(trackingArea!)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isHighlighted = true
+        needsDisplay = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHighlighted = false
+        needsDisplay = true
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: frame.width, height: frame.height)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if isHighlighted {
+            NSColor.controlAccentColor.setFill()
+            let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 4, yRadius: 4)
+            path.fill()
+        }
+
+        let padding: CGFloat = 14
+        let arrowSpace: CGFloat = 18
+        let font = NSFont.menuFont(ofSize: 14)
+        let textColor = isHighlighted ? NSColor.white : NSColor.labelColor
+        let secondaryColor = isHighlighted ? NSColor.white.withAlphaComponent(0.8) : NSColor.secondaryLabelColor
+
+        // Left: group name
+        let leftAttrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
+        let leftStr = NSAttributedString(string: groupName, attributes: leftAttrs)
+        let leftSize = leftStr.size()
+        leftStr.draw(at: NSPoint(x: padding, y: (bounds.height - leftSize.height) / 2))
+
+        // Arrow ❯ (right edge)
+        let arrowFont = NSFont.systemFont(ofSize: 10, weight: .semibold)
+        let arrowAttrs: [NSAttributedString.Key: Any] = [.font: arrowFont, .foregroundColor: secondaryColor]
+        let arrowStr = NSAttributedString(string: "❯", attributes: arrowAttrs)
+        let arrowSize = arrowStr.size()
+        let arrowX = bounds.width - padding + 2
+        arrowStr.draw(at: NSPoint(x: arrowX, y: (bounds.height - arrowSize.height) / 2))
+
+        // Right: current node (right-aligned, flush before arrow)
+        let rightAttrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: secondaryColor]
+        let rightStr = NSAttributedString(string: nodeName, attributes: rightAttrs)
+        let rightSize = rightStr.size()
+        let rightX = arrowX - arrowSpace - rightSize.width + 8
+        rightStr.draw(at: NSPoint(x: max(rightX, leftSize.width + padding + 10), y: (bounds.height - rightSize.height) / 2))
     }
 }
