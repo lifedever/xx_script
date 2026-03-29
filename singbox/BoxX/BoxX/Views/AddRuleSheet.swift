@@ -49,14 +49,19 @@ struct AddRuleSheet: View {
     }
 
     /// All selector/direct outbounds from config for the target picker
+    /// Special actions that aren't outbounds but valid rule targets
+    private static let specialActions = ["REJECT"]
+
     private var availableOutbounds: [String] {
-        appState.configEngine.config.outbounds.compactMap { outbound in
+        var result = appState.configEngine.config.outbounds.compactMap { outbound -> String? in
             switch outbound {
             case .selector(let s): return s.tag
             case .direct(let d): return d.tag
             default: return nil
             }
         }
+        result.append(contentsOf: Self.specialActions)
+        return result
     }
 
     /// Custom rule set tags (direct-custom, proxy-custom, ai-custom, etc.)
@@ -272,9 +277,15 @@ struct AddRuleSheet: View {
     private func saveAsLocalRule() {
         var ruleDict: [String: JSONValue] = [
             singboxKey: .array([.string(ruleValue)]),
-            "action": .string("route"),
-            "outbound": .string(selectedOutbound),
         ]
+
+        // REJECT uses action "reject", others use action "route" + outbound
+        if selectedOutbound == "REJECT" {
+            ruleDict["action"] = .string("reject")
+        } else {
+            ruleDict["action"] = .string("route")
+            ruleDict["outbound"] = .string(selectedOutbound)
+        }
 
         let newRule = JSONValue.object(ruleDict)
 
