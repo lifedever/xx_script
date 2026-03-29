@@ -22,13 +22,13 @@ final class SingBoxManager {
 
     /// Start sing-box — calls `box.sh start` via sudo
     func start(configPath: String) async throws {
-        try runSudo("\(boxScript) start")
+        try await runSudo("\(boxScript) start")
         try await waitForAPI(timeout: 30)
     }
 
     /// Stop sing-box — calls `box.sh stop` via sudo
     func stop() async throws {
-        try runSudo("\(boxScript) stop")
+        try await runSudo("\(boxScript) stop")
         // Wait for it to actually stop
         for _ in 0..<20 {
             try await Task.sleep(for: .milliseconds(300))
@@ -39,7 +39,7 @@ final class SingBoxManager {
 
     /// Restart sing-box — calls `box.sh fix` (stop + flush DNS + start)
     func restart(configPath: String) async throws {
-        try runSudo("\(boxScript) fix")
+        try await runSudo("\(boxScript) fix")
         try await waitForAPI(timeout: 30)
     }
 
@@ -60,15 +60,25 @@ final class SingBoxManager {
         throw SingBoxError.startFailed("Clash API not reachable after \(timeout) seconds")
     }
 
-    private func runSudo(_ command: String) throws {
+    private func runSudo(_ command: String) async throws {
         let script = "do shell script \"\(command)\" with administrator privileges"
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script]
-        try process.run()
-        process.waitUntilExit()
-        if process.terminationStatus != 0 {
-            throw SingBoxError.startFailed("Authorization cancelled or failed")
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            DispatchQueue.global().async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                process.arguments = ["-e", script]
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    if process.terminationStatus != 0 {
+                        continuation.resume(throwing: SingBoxError.startFailed("Authorization cancelled or failed"))
+                    } else {
+                        continuation.resume()
+                    }
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
         }
     }
 }
