@@ -56,21 +56,21 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         if appState.isRunning {
             let str = NSMutableAttributedString()
             str.append(NSAttributedString(string: "BoxX  ", attributes: [
-                .font: NSFont.menuFont(ofSize: 14),
+                .font: NSFont.menuFont(ofSize: 0),
                 .foregroundColor: NSColor.secondaryLabelColor,
             ]))
             str.append(NSAttributedString(string: "●", attributes: [
-                .font: NSFont.systemFont(ofSize: 10),
+                .font: NSFont.systemFont(ofSize: 8),
                 .foregroundColor: NSColor.systemGreen,
             ]))
             str.append(NSAttributedString(string: " 运行中", attributes: [
-                .font: NSFont.menuFont(ofSize: 14),
+                .font: NSFont.menuFont(ofSize: 0),
                 .foregroundColor: NSColor.secondaryLabelColor,
             ]))
             si.attributedTitle = str
         } else {
             si.attributedTitle = NSAttributedString(string: "BoxX  ○ 已停止", attributes: [
-                .font: NSFont.menuFont(ofSize: 14),
+                .font: NSFont.menuFont(ofSize: 0),
                 .foregroundColor: NSColor.secondaryLabelColor,
             ])
         }
@@ -415,7 +415,7 @@ final class ProxyGroupMenuItemView: NSView {
 
         let padding: CGFloat = 14
         let arrowSpace: CGFloat = 18
-        let font = NSFont.menuFont(ofSize: 14)
+        let font = NSFont.menuFont(ofSize: 0)  // System default menu font
         let textColor = isHighlighted ? NSColor.white : NSColor.labelColor
         let secondaryColor = isHighlighted ? NSColor.white.withAlphaComponent(0.8) : NSColor.secondaryLabelColor
 
@@ -426,7 +426,7 @@ final class ProxyGroupMenuItemView: NSView {
         leftStr.draw(at: NSPoint(x: padding, y: (bounds.height - leftSize.height) / 2))
 
         // Arrow ❯ (right edge)
-        let arrowFont = NSFont.systemFont(ofSize: 10, weight: .semibold)
+        let arrowFont = NSFont.systemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize - 2, weight: .medium)
         let arrowAttrs: [NSAttributedString.Key: Any] = [.font: arrowFont, .foregroundColor: secondaryColor]
         let arrowStr = NSAttributedString(string: "❯", attributes: arrowAttrs)
         let arrowSize = arrowStr.size()
