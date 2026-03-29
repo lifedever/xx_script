@@ -81,6 +81,29 @@ class ConfigEngine: @unchecked Sendable {
         var runtime = config
         let allProxyNodes = proxies.values.flatMap { $0 }
         runtime.outbounds.append(contentsOf: allProxyNodes)
+
+        // Validate: remove references to non-existent outbounds from selectors/urltest
+        let allTags = Set(runtime.outbounds.map { $0.tag })
+        for i in runtime.outbounds.indices {
+            switch runtime.outbounds[i] {
+            case .selector(var s):
+                let before = s.outbounds.count
+                s.outbounds = s.outbounds.filter { allTags.contains($0) }
+                if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
+                if s.outbounds.count != before {
+                    runtime.outbounds[i] = .selector(s)
+                }
+            case .urltest(var u):
+                let before = u.outbounds.count
+                u.outbounds = u.outbounds.filter { allTags.contains($0) }
+                if u.outbounds.isEmpty { u.outbounds = ["DIRECT"] }
+                if u.outbounds.count != before {
+                    runtime.outbounds[i] = .urltest(u)
+                }
+            default: break
+            }
+        }
+
         return runtime
     }
 
