@@ -20,6 +20,8 @@
 "menu.uninstall_helper" = "Uninstall Helper";
 "menu.helper_uninstalled" = "Helper Uninstalled";
 "menu.helper_uninstall_success" = "Privileged Helper has been uninstalled.";
+"menu.copy_proxy_env" = "Copy Proxy Env";
+"menu.proxy_env_copied" = "Proxy environment variables copied to clipboard";
 
 // Sidebar
 "sidebar.overview" = "Overview";
@@ -27,6 +29,7 @@
 "sidebar.rules" = "Rules";
 "sidebar.connections" = "Connections";
 "sidebar.logs" = "Logs";
+"sidebar.subscriptions" = "Subscriptions";
 
 // Overview
 "overview.status" = "Status";
@@ -106,6 +109,18 @@
 "addrule.cancel" = "Cancel";
 "addrule.save" = "Save Rule";
 "addrule.success" = "Rule saved to: %@";
+
+// Subscriptions
+"subs.title" = "Subscriptions";
+"subs.add" = "Add Subscription";
+"subs.edit" = "Edit Subscription";
+"subs.name" = "Name";
+"subs.url" = "Subscription URL";
+"subs.save" = "Save";
+"subs.cancel" = "Cancel";
+"subs.delete" = "Delete";
+"subs.empty" = "No subscriptions configured";
+"subs.empty_hint" = "Add a subscription to get started";
 
 // Logs
 "logs.auto_scroll" = "Auto-scroll";

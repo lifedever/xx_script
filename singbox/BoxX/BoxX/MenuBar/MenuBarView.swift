@@ -88,6 +88,18 @@ struct MenuBarView: View {
             }
             .disabled(isUpdatingSubscriptions)
 
+            // Copy Proxy Env
+            Button(String(localized: "menu.copy_proxy_env")) {
+                let envString = "export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890"
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(envString, forType: .string)
+                showNSAlert(
+                    title: String(localized: "menu.copy_proxy_env"),
+                    message: String(localized: "menu.proxy_env_copied"),
+                    style: .informational
+                )
+            }
+
             Divider()
 
             // Proxy groups — categorized

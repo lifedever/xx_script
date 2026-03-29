@@ -20,6 +20,8 @@
 "menu.uninstall_helper" = "卸载特权助手";
 "menu.helper_uninstalled" = "已卸载";
 "menu.helper_uninstall_success" = "特权助手已卸载。";
+"menu.copy_proxy_env" = "复制代理环境变量";
+"menu.proxy_env_copied" = "代理环境变量已复制到剪贴板";
 
 // Sidebar
 "sidebar.overview" = "概览";
@@ -27,6 +29,7 @@
 "sidebar.rules" = "规则";
 "sidebar.connections" = "连接";
 "sidebar.logs" = "日志";
+"sidebar.subscriptions" = "订阅";
 
 // Overview
 "overview.status" = "状态";
@@ -106,6 +109,18 @@
 "addrule.cancel" = "取消";
 "addrule.save" = "保存规则";
 "addrule.success" = "规则已保存到: %@";
+
+// Subscriptions
+"subs.title" = "订阅管理";
+"subs.add" = "添加订阅";
+"subs.edit" = "编辑订阅";
+"subs.name" = "名称";
+"subs.url" = "订阅地址";
+"subs.save" = "保存";
+"subs.cancel" = "取消";
+"subs.delete" = "删除";
+"subs.empty" = "暂无订阅";
+"subs.empty_hint" = "添加订阅以开始使用";
 
 // Logs
 "logs.auto_scroll" = "自动滚动";

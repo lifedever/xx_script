@@ -6,6 +6,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case rules
     case connections
     case logs
+    case subscriptions
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .rules: return String(localized: "sidebar.rules")
         case .connections: return String(localized: "sidebar.connections")
         case .logs: return String(localized: "sidebar.logs")
+        case .subscriptions: return String(localized: "sidebar.subscriptions")
         }
     }
 
@@ -26,6 +28,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .rules: return "list.bullet"
         case .connections: return "link"
         case .logs: return "doc.text"
+        case .subscriptions: return "antenna.radiowaves.left.and.right"
         }
     }
 }
@@ -62,6 +65,9 @@ struct MainView: View {
                 case .logs:
                     LogsView()
                         .navigationTitle(String(localized: "sidebar.logs"))
+                case .subscriptions:
+                    SubscriptionsView()
+                        .navigationTitle(String(localized: "sidebar.subscriptions"))
                 }
             } else {
                 Text("Select a section")

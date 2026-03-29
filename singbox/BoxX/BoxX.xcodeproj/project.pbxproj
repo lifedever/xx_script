@@ -19,6 +19,7 @@
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
 		6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1938ECE20FFDCBC5DA86303 /* MainView.swift */; };
 		7491BE185917A2B7C49A4FDB /* RuleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */; };
+		756B6D09C0FD568A95FC21FF /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6156B3F16794AB2995DC2AE8 /* SubscriptionManager.swift */; };
 		7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A786DA30C59DB926BE25E5A /* Assets.xcassets */; };
 		8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */; };
@@ -36,6 +37,7 @@
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
 		D6E71EB2B460AF350CA00140 /* ProxyModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */; };
 		D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C202DBB07E3609789CAD3C7 /* SingBoxManager.swift */; };
+		DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */; };
 		E6795C17D7CDED2E5E416334 /* ConfigGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040E1FEFB36E4C33EED1A5C3 /* ConfigGenerator.swift */; };
 		E90CA122DD57879F17A9FDA6 /* ClashWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */; };
 		ED796EFF6EB83CE60430DA4E /* RingBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */; };
@@ -60,6 +62,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsView.swift; sourceTree = "<group>"; };
 		040E1FEFB36E4C33EED1A5C3 /* ConfigGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigGenerator.swift; sourceTree = "<group>"; };
 		08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBufferTests.swift; sourceTree = "<group>"; };
 		0BD7F2BEBB0D0D08B6687582 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -76,6 +79,7 @@
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
 		5402AF02BFFEE79DF3A8DE7B /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6156B3F16794AB2995DC2AE8 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionModels.swift; sourceTree = "<group>"; };
 		7D75DB00D57E74D03D75F000 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxXApp.swift; sourceTree = "<group>"; };
@@ -120,6 +124,7 @@
 				8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */,
 				9E5AAE6B4AD6073A521B5D4E /* RuleManager.swift */,
 				1C202DBB07E3609789CAD3C7 /* SingBoxManager.swift */,
+				6156B3F16794AB2995DC2AE8 /* SubscriptionManager.swift */,
 				167EFFD13A60A868D1FABC99 /* WakeObserver.swift */,
 			);
 			path = Services;
@@ -183,6 +188,7 @@
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
 				D67DE93C42F2614F14BE4375 /* RulesView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
+				022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -385,6 +391,8 @@
 				CA555942B8B8494999381A5F /* RulesView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */,
+				756B6D09C0FD568A95FC21FF /* SubscriptionManager.swift in Sources */,
+				DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */,
 				0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
