@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0255518187AAF67045A1E397 /* ServicesConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96305C33FEFC382F3403938A /* ServicesConfigView.swift */; };
 		025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		069C68571727339D4CD04366 /* InboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA03BDC9BCFC3FF757537A7 /* InboundConfig.swift */; };
 		0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EFFD13A60A868D1FABC99 /* WakeObserver.swift */; };
@@ -122,7 +121,6 @@
 		84EE3620F4C56C3918C1C969 /* ServiceConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceConfigManager.swift; sourceTree = "<group>"; };
 		8CAEE62A30EDCED844892451 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 		948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		96305C33FEFC382F3403938A /* ServicesConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicesConfigView.swift; sourceTree = "<group>"; };
 		97686E1935EF18A1381BBA97 /* SwiftData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftData.framework; path = System/Library/Frameworks/SwiftData.framework; sourceTree = SDKROOT; };
 		978990E5B126418AE87D12CB /* SingBoxConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxConfig.swift; sourceTree = "<group>"; };
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -283,7 +281,6 @@
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
 				D67DE93C42F2614F14BE4375 /* RulesView.swift */,
-				96305C33FEFC382F3403938A /* ServicesConfigView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 				022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */,
 			);
@@ -529,7 +526,6 @@
 				2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */,
 				CA555942B8B8494999381A5F /* RulesView.swift in Sources */,
 				60852C3CA026FF44D7AD200A /* ServiceConfigManager.swift in Sources */,
-				0255518187AAF67045A1E397 /* ServicesConfigView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */,
 				EA7D5850BAD79996E1D08848 /* SingBoxJSONParser.swift in Sources */,

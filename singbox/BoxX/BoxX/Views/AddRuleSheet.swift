@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct AddRuleSheet: View {
-    let initialHost: String
-    let initialDomain: String
-    let initialIP: String
-    let onDismiss: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private let initialHost: String
+    private let initialDomain: String
+    private let initialIP: String
+    private let externalDismiss: (() -> Void)?
 
     @State private var ruleType: String = "DOMAIN-SUFFIX"
     @State private var ruleValue: String = ""
@@ -15,11 +17,28 @@ struct AddRuleSheet: View {
     private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR"]
     private let targets = ["Proxy", "DIRECT", "AI"]
 
+    /// Standalone init (used from RulesView via sheet)
+    init() {
+        self.initialHost = ""
+        self.initialDomain = ""
+        self.initialIP = ""
+        self.externalDismiss = nil
+    }
+
+    /// Prefilled init (used from ConnectionsView)
     init(host: String, domain: String, ip: String, onDismiss: @escaping () -> Void) {
         self.initialHost = host
         self.initialDomain = domain
         self.initialIP = ip
-        self.onDismiss = onDismiss
+        self.externalDismiss = onDismiss
+    }
+
+    private func close() {
+        if let externalDismiss {
+            externalDismiss()
+        } else {
+            dismiss()
+        }
     }
 
     var body: some View {
@@ -29,7 +48,7 @@ struct AddRuleSheet: View {
                 Text(String(localized: "addrule.title"))
                     .font(.headline)
                 Spacer()
-                Button { onDismiss() } label: {
+                Button { close() } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
                 }
@@ -49,22 +68,7 @@ struct AddRuleSheet: View {
                     }
                 }
                 .onChange(of: ruleType) { _, newType in
-                    // Auto-fill value based on type
-                    switch newType {
-                    case "DOMAIN-SUFFIX":
-                        ruleValue = initialDomain
-                    case "DOMAIN":
-                        ruleValue = initialHost
-                    case "DOMAIN-KEYWORD":
-                        // Extract keyword from domain
-                        let parts = initialDomain.split(separator: ".")
-                        ruleValue = parts.first.map(String.init) ?? initialDomain
-                    case "IP-CIDR":
-                        ruleValue = initialIP.isEmpty ? initialHost : initialIP
-                        if !ruleValue.contains("/") { ruleValue += "/32" }
-                    default:
-                        break
-                    }
+                    autoFillValue(for: newType)
                 }
 
                 // Rule value (editable)
@@ -127,7 +131,7 @@ struct AddRuleSheet: View {
             HStack {
                 Spacer()
                 Button(String(localized: "addrule.cancel")) {
-                    onDismiss()
+                    close()
                 }
                 .keyboardShortcut(.cancelAction)
 
@@ -141,16 +145,35 @@ struct AddRuleSheet: View {
         }
         .frame(width: 480, height: 520)
         .onAppear {
-            // Set initial values
             if !initialHost.isEmpty && !initialIP.isEmpty {
                 ruleType = "DOMAIN-SUFFIX"
                 ruleValue = initialDomain
             } else if !initialIP.isEmpty {
                 ruleType = "IP-CIDR"
                 ruleValue = initialIP + "/32"
-            } else {
+            } else if !initialHost.isEmpty {
                 ruleValue = initialHost
             }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func autoFillValue(for newType: String) {
+        guard !initialHost.isEmpty || !initialIP.isEmpty else { return }
+        switch newType {
+        case "DOMAIN-SUFFIX":
+            ruleValue = initialDomain
+        case "DOMAIN":
+            ruleValue = initialHost
+        case "DOMAIN-KEYWORD":
+            let parts = initialDomain.split(separator: ".")
+            ruleValue = parts.first.map(String.init) ?? initialDomain
+        case "IP-CIDR":
+            ruleValue = initialIP.isEmpty ? initialHost : initialIP
+            if !ruleValue.contains("/") { ruleValue += "/32" }
+        default:
+            break
         }
     }
 
@@ -210,9 +233,8 @@ struct AddRuleSheet: View {
             isSuccess = true
             let files = result.filesModified.joined(separator: ", ")
             resultMessage = String(format: String(localized: "addrule.success"), files)
-            // Auto close after a moment
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                onDismiss()
+                close()
             }
         } else {
             isSuccess = false
