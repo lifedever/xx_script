@@ -1,27 +1,16 @@
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    var appState: AppState?
-    var singBoxManager: SingBoxManager?
-    var api: ClashAPI?
-    var configGenerator: ConfigGenerator?
-    var wakeObserver: WakeObserver?
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard let appState, let singBoxManager, let api, let configGenerator else { return }
         Task { @MainActor in
-            await singBoxManager.refreshStatus()
-            appState.isRunning = singBoxManager.isRunning
-            appState.pid = singBoxManager.pid
-            appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
+            let appState = AppState.shared
+            let manager = SingBoxManager.shared
 
-            let observer = WakeObserver(
-                singBoxManager: singBoxManager,
-                api: api,
-                configPath: configGenerator.configPath
-            )
-            self.wakeObserver = observer
-            await observer.startObserving()
+            // Check status on launch
+            await manager.refreshStatus()
+            appState.isRunning = manager.isRunning
+            appState.pid = manager.pid
+            appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
         }
     }
 }
@@ -29,10 +18,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct BoxXApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var appState = AppState()
-    @State private var singBoxManager = SingBoxManager.shared
-    @State private var configGenerator = ConfigGenerator()
+    private let appState = AppState.shared
+    private let singBoxManager = SingBoxManager.shared
+    private let configGenerator = ConfigGenerator()
     private let api = ClashAPI()
+    @State private var wakeObserver: WakeObserver?
 
     var body: some Scene {
         MenuBarExtra {
@@ -42,11 +32,16 @@ struct BoxXApp: App {
                 api: api
             )
             .environment(appState)
-            .onAppear {
-                appDelegate.appState = appState
-                appDelegate.singBoxManager = singBoxManager
-                appDelegate.api = api
-                appDelegate.configGenerator = configGenerator
+            .task {
+                // Setup WakeObserver once
+                guard wakeObserver == nil else { return }
+                let observer = WakeObserver(
+                    singBoxManager: singBoxManager,
+                    api: api,
+                    configPath: configGenerator.configPath
+                )
+                wakeObserver = observer
+                await observer.startObserving()
             }
         } label: {
             Image(systemName: appState.isRunning ? "shippingbox.fill" : "shippingbox")
@@ -65,16 +60,15 @@ struct BoxXApp: App {
             )) {
                 Button(String(localized: "error.ok"), role: .cancel) { appState.showError = false }
             } message: {
-                Text(appState.errorMessage ?? "An unknown error occurred.")
+                Text(appState.errorMessage ?? "")
             }
             .onAppear {
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate()
             }
             .onDisappear {
-                // Only go back to accessory if settings window isn't open
-                let hasVisibleWindow = NSApp.windows.contains { $0.isVisible && $0.identifier?.rawValue != "" }
-                if !hasVisibleWindow {
+                let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "BoxX" && $0.title != "" }
+                if !hasOtherWindow {
                     NSApp.setActivationPolicy(.accessory)
                 }
             }
@@ -89,10 +83,8 @@ struct BoxXApp: App {
                     NSApp.activate()
                 }
                 .onDisappear {
-                    let hasVisibleWindow = NSApp.windows.contains {
-                        $0.isVisible && $0.title != "" && $0.title != String(localized: "menu.settings")
-                    }
-                    if !hasVisibleWindow {
+                    let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "" }
+                    if !hasOtherWindow {
                         NSApp.setActivationPolicy(.accessory)
                     }
                 }

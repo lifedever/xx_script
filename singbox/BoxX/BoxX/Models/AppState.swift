@@ -3,6 +3,8 @@ import SwiftUI
 @MainActor
 @Observable
 final class AppState {
+    static let shared = AppState()
+
     var isRunning = false
     var pid: Int32 = 0
     var isGenerating = false
