@@ -30,7 +30,12 @@ class SubscriptionService: @unchecked Sendable {
         try configEngine.saveProxies(name: name, nodes: outbounds)
 
         // 5. Auto-group and update selector references in config
-        let regionGroups = grouper.groupByRegion(outbounds)
+        var patterns = configEngine.loadGroupPatterns()
+        if patterns.isEmpty {
+            patterns = grouper.defaultPatterns()
+            configEngine.saveGroupPatterns(patterns)
+        }
+        let regionGroups = grouper.groupByPatterns(outbounds, patterns: patterns)
         updateSelectorGroups(
             regionGroups: regionGroups,
             subscriptionName: name,

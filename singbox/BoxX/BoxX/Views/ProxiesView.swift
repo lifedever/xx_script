@@ -150,8 +150,8 @@ struct ProxiesView: View {
                                 Spacer()
                                 Text("节点数")
                                     .frame(width: 60, alignment: .center)
-                                Text("")
-                                    .frame(width: 60)
+                                Text("操作")
+                                    .frame(width: 70, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -272,26 +272,47 @@ struct ProxiesView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .center)
 
-            // Select button
-            Button("选择") {
-                popoverGroup = group.name
+            // Edit + Delete buttons
+            HStack(spacing: 4) {
+                Button {
+                    editingGroupTag = group.name
+                    showGroupEdit = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .help("编辑")
+
+                Button {
+                    deletingGroupTag = group.name
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundStyle(.red.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help("删除")
             }
-            .controlSize(.small)
-            .frame(width: 60)
-            .popover(isPresented: Binding(
-                get: { popoverGroup == group.name },
-                set: { if !$0 { popoverGroup = nil } }
-            )) {
-                NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
-                    selectNode(group: group.name, node: node)
-                    popoverGroup = nil
-                })
-                .frame(width: 280, height: 400)
-            }
+            .frame(width: 70, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            popoverGroup = group.name
+        }
+        .popover(isPresented: Binding(
+            get: { popoverGroup == group.name },
+            set: { if !$0 { popoverGroup = nil } }
+        )) {
+            NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
+                selectNode(group: group.name, node: node)
+                popoverGroup = nil
+            })
+            .frame(width: 280, height: 400)
+        }
         .contextMenu {
             Button {
                 editingGroupTag = group.name

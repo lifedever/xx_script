@@ -2,6 +2,13 @@
 import Foundation
 import Observation
 
+// MARK: - GroupPattern
+
+struct GroupPattern: Codable, Equatable, Sendable {
+    var mode: String  // "keyword" or "regex"
+    var patterns: [String]
+}
+
 private extension Notification.Name {
     static let configFileDidChange = Notification.Name("com.boxx.configFileDidChange")
 }
@@ -129,6 +136,90 @@ class ConfigEngine: @unchecked Sendable {
         if let observer = watcherObserver {
             NotificationCenter.default.removeObserver(observer)
             watcherObserver = nil
+        }
+    }
+
+    // MARK: - Group Patterns
+
+    private var groupPatternsURL: URL { baseDir.appendingPathComponent("group-patterns.json") }
+
+    func loadGroupPatterns() -> [String: GroupPattern] {
+        guard let data = try? Data(contentsOf: groupPatternsURL) else { return [:] }
+        return (try? JSONDecoder().decode([String: GroupPattern].self, from: data)) ?? [:]
+    }
+
+    func saveGroupPatterns(_ patterns: [String: GroupPattern]) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(patterns) else { return }
+        try? data.write(to: groupPatternsURL, options: .atomic)
+    }
+
+    // MARK: - Rename Group
+
+    /// Rename a strategy group tag across all config references.
+    func renameGroup(oldTag: String, newTag: String) {
+        // 1. Update the outbound's own tag
+        for i in config.outbounds.indices {
+            if config.outbounds[i].tag == oldTag {
+                switch config.outbounds[i] {
+                case .selector(var s):
+                    s.tag = newTag
+                    config.outbounds[i] = .selector(s)
+                case .urltest(var u):
+                    u.tag = newTag
+                    config.outbounds[i] = .urltest(u)
+                default:
+                    break
+                }
+            }
+        }
+
+        // 2. Update references in other selector/urltest outbounds lists
+        for i in config.outbounds.indices {
+            switch config.outbounds[i] {
+            case .selector(var s):
+                if let idx = s.outbounds.firstIndex(of: oldTag) {
+                    s.outbounds[idx] = newTag
+                    config.outbounds[i] = .selector(s)
+                }
+                if s.default == oldTag {
+                    s.default = newTag
+                    config.outbounds[i] = .selector(s)
+                }
+            case .urltest(var u):
+                if let idx = u.outbounds.firstIndex(of: oldTag) {
+                    u.outbounds[idx] = newTag
+                    config.outbounds[i] = .urltest(u)
+                }
+            default:
+                break
+            }
+        }
+
+        // 3. Update route.rules outbound references
+        if var rules = config.route.rules {
+            for i in rules.indices {
+                if case .object(var dict) = rules[i],
+                   case .string(let outbound) = dict["outbound"],
+                   outbound == oldTag {
+                    dict["outbound"] = .string(newTag)
+                    rules[i] = .object(dict)
+                }
+            }
+            config.route.rules = rules
+        }
+
+        // 4. Update route.final if it references oldTag
+        if config.route.final_ == oldTag {
+            config.route.final_ = newTag
+        }
+
+        // 5. Rename key in group-patterns.json
+        var patterns = loadGroupPatterns()
+        if let pattern = patterns.removeValue(forKey: oldTag) {
+            patterns[newTag] = pattern
+            saveGroupPatterns(patterns)
         }
     }
 }

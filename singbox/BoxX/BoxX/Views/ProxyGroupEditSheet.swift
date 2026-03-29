@@ -14,18 +14,21 @@ struct ProxyGroupEditSheet: View {
     @State private var testInterval: String = "300s"
     @State private var showDeleteConfirmation = false
 
+    // Match pattern fields
+    @State private var matchMode: String = "keyword"  // "keyword" or "regex"
+    @State private var matchPatternsText: String = ""  // comma-separated
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(existingTag != nil ? "编辑策略组" : "新建策略组")
                 .font(.headline)
 
-            // Name
+            // Name (always editable)
             HStack {
                 Text("名称")
                     .frame(width: 80, alignment: .leading)
                 TextField("例如: 📺YouTube", text: $tag)
                     .textFieldStyle(.roundedBorder)
-                    .disabled(existingTag != nil)
             }
 
             // Type picker
@@ -55,6 +58,30 @@ struct ProxyGroupEditSheet: View {
                         .frame(width: 100)
                 }
             }
+
+            // Match patterns section
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("自动匹配")
+                        .font(.subheadline.bold())
+                    Spacer()
+                    Picker("", selection: $matchMode) {
+                        Text("关键词匹配").tag("keyword")
+                        Text("正则匹配").tag("regex")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 200)
+                }
+
+                TextField("关键词，用逗号分隔（如: 香港,HK,Hong Kong）", text: $matchPatternsText)
+                    .textFieldStyle(.roundedBorder)
+
+                Text("订阅更新时，节点名包含任一关键词将自动加入此策略组")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
 
             // Outbounds selection
             Text("包含的出站（节点/策略组）")
@@ -92,7 +119,7 @@ struct ProxyGroupEditSheet: View {
                 }
                 .padding(4)
             }
-            .frame(maxHeight: 300)
+            .frame(maxHeight: 250)
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 6))
 
@@ -113,7 +140,7 @@ struct ProxyGroupEditSheet: View {
             }
         }
         .padding()
-        .frame(width: 450, height: 550)
+        .frame(width: 500, height: 620)
         .onAppear { loadExisting() }
         .alert("确认删除", isPresented: $showDeleteConfirmation) {
             Button("取消", role: .cancel) {}
@@ -175,9 +202,21 @@ struct ProxyGroupEditSheet: View {
             default: break
             }
         }
+
+        // Load match patterns
+        let patterns = appState.configEngine.loadGroupPatterns()
+        if let pattern = patterns[existingTag] {
+            matchMode = pattern.mode
+            matchPatternsText = pattern.patterns.joined(separator: ", ")
+        }
     }
 
     private func saveGroup() {
+        // Handle rename if tag changed
+        if let existingTag, existingTag != tag {
+            appState.configEngine.renameGroup(oldTag: existingTag, newTag: tag)
+        }
+
         let outbound: Outbound
         if groupType == "urltest" {
             outbound = .urltest(URLTestOutbound(tag: tag, outbounds: selectedOutbounds, url: testURL, interval: testInterval))
@@ -185,12 +224,27 @@ struct ProxyGroupEditSheet: View {
             outbound = .selector(SelectorOutbound(tag: tag, outbounds: selectedOutbounds))
         }
 
-        if let existingTag,
-           let idx = appState.configEngine.config.outbounds.firstIndex(where: { $0.tag == existingTag }) {
+        if let idx = appState.configEngine.config.outbounds.firstIndex(where: { $0.tag == tag }) {
+            appState.configEngine.config.outbounds[idx] = outbound
+        } else if let existingTag,
+                  let idx = appState.configEngine.config.outbounds.firstIndex(where: { $0.tag == existingTag }) {
             appState.configEngine.config.outbounds[idx] = outbound
         } else {
             appState.configEngine.config.outbounds.append(outbound)
         }
+
+        // Save match patterns
+        var patterns = appState.configEngine.loadGroupPatterns()
+        let patternList = matchPatternsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if !patternList.isEmpty {
+            patterns[tag] = GroupPattern(mode: matchMode, patterns: patternList)
+        } else {
+            patterns.removeValue(forKey: tag)
+        }
+        appState.configEngine.saveGroupPatterns(patterns)
 
         try? appState.configEngine.save(restartRequired: true)
     }
@@ -198,6 +252,12 @@ struct ProxyGroupEditSheet: View {
     private func deleteGroup() {
         guard let existingTag else { return }
         appState.configEngine.config.outbounds.removeAll { $0.tag == existingTag }
+
+        // Also remove from group-patterns.json
+        var patterns = appState.configEngine.loadGroupPatterns()
+        patterns.removeValue(forKey: existingTag)
+        appState.configEngine.saveGroupPatterns(patterns)
+
         try? appState.configEngine.save(restartRequired: true)
     }
 }
