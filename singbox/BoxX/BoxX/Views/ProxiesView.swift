@@ -12,6 +12,7 @@ struct ProxiesView: View {
     @State private var showGroupEdit = false
     @State private var editingGroupTag: String?
     @State private var deletingGroupTag: String?
+    @State private var selectedGroup: String?
 
     // MARK: - Group Classification
 
@@ -151,7 +152,7 @@ struct ProxiesView: View {
                                 Text("节点数")
                                     .frame(width: 60, alignment: .center)
                                 Text("操作")
-                                    .frame(width: 70, alignment: .center)
+                                    .frame(width: 100, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -232,6 +233,8 @@ struct ProxiesView: View {
 
     private func groupRow(_ group: ProxyGroup) -> some View {
         let rowIndex = allRows.firstIndex(where: { $0.id == group.id }) ?? 0
+        let isSelected = selectedGroup == group.name
+
         return HStack(spacing: 0) {
             // Name
             Text(group.name)
@@ -243,7 +246,7 @@ struct ProxiesView: View {
             typeBadge(for: group)
                 .frame(width: 80, alignment: .leading)
 
-            // Current node + delay dot
+            // Current node + delay (clickable to switch)
             HStack(spacing: 6) {
                 if let now = group.now, !now.isEmpty {
                     Circle()
@@ -257,12 +260,29 @@ struct ProxiesView: View {
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(delayColor(d))
                     }
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 } else {
                     Text("—")
                         .foregroundStyle(.tertiary)
                 }
             }
             .frame(minWidth: 200, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                popoverGroup = group.name
+            }
+            .popover(isPresented: Binding(
+                get: { popoverGroup == group.name },
+                set: { if !$0 { popoverGroup = nil } }
+            )) {
+                NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
+                    selectNode(group: group.name, node: node)
+                    popoverGroup = nil
+                })
+                .frame(width: 280, height: 400)
+            }
 
             Spacer()
 
@@ -272,59 +292,39 @@ struct ProxiesView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .center)
 
-            // Edit + Delete buttons
-            HStack(spacing: 4) {
-                Button {
+            // 编辑 + 删除 text buttons
+            HStack(spacing: 8) {
+                Button("编辑") {
                     editingGroupTag = group.name
                     showGroupEdit = true
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.caption)
                 }
+                .font(.caption)
                 .buttonStyle(.plain)
-                .help("编辑")
+                .foregroundStyle(.blue)
 
-                Button {
+                Button("删除") {
                     deletingGroupTag = group.name
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.caption)
-                        .foregroundStyle(.red.opacity(0.7))
                 }
+                .font(.caption)
                 .buttonStyle(.plain)
-                .help("删除")
+                .foregroundStyle(.red)
             }
-            .frame(width: 70, alignment: .center)
+            .frame(width: 100, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        .background(
+            isSelected
+                ? AnyShapeStyle(Color.accentColor.opacity(0.15))
+                : (rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+        )
         .contentShape(Rectangle())
         .onTapGesture {
-            popoverGroup = group.name
-        }
-        .popover(isPresented: Binding(
-            get: { popoverGroup == group.name },
-            set: { if !$0 { popoverGroup = nil } }
-        )) {
-            NodeSelectionPopover(group: group, delays: delays, onSelect: { node in
-                selectNode(group: group.name, node: node)
-                popoverGroup = nil
-            })
-            .frame(width: 280, height: 400)
+            selectedGroup = (selectedGroup == group.name) ? nil : group.name
         }
         .contextMenu {
-            Button {
-                editingGroupTag = group.name
-                showGroupEdit = true
-            } label: {
-                Label("编辑", systemImage: "pencil")
-            }
-            Button(role: .destructive) {
-                deletingGroupTag = group.name
-            } label: {
-                Label("删除", systemImage: "trash")
-            }
+            Button("编辑") { editingGroupTag = group.name; showGroupEdit = true }
+            Button("删除", role: .destructive) { deletingGroupTag = group.name }
         }
     }
 

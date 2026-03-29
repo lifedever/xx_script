@@ -72,7 +72,7 @@ struct RuleSetsView: View {
                             Text("出站")
                                 .frame(width: 100, alignment: .leading)
                             Text("操作")
-                                .frame(width: 90, alignment: .center)
+                                .frame(width: 120, alignment: .center)
                         }
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
@@ -91,50 +91,28 @@ struct RuleSetsView: View {
                 .padding()
             }
         }
-        .popover(item: Binding(
+        .sheet(item: Binding(
             get: { editingRuleSetTag.map { EditingTag(tag: $0) } },
             set: { editingRuleSetTag = $0?.tag }
         )) { item in
-            outboundEditPopover(tag: item.tag)
+            RuleSetEditSheet(
+                tag: item.tag,
+                currentOutbound: outboundForRuleSet(tag: item.tag) ?? "Proxy",
+                availableOutbounds: availableOutbounds,
+                onSave: { newOutbound in
+                    changeOutbound(forRuleSetTag: item.tag, to: newOutbound)
+                    editingRuleSetTag = nil
+                },
+                onCancel: { editingRuleSetTag = nil }
+            )
         }
     }
 
-    // MARK: - Popover ID wrapper
+    // MARK: - Sheet ID wrapper
 
     private struct EditingTag: Identifiable {
         let tag: String
         var id: String { tag }
-    }
-
-    // MARK: - Outbound Edit Popover
-
-    private func outboundEditPopover(tag: String) -> some View {
-        VStack(spacing: 12) {
-            Text("修改出站策略")
-                .font(.headline)
-
-            Picker("出站", selection: $editingOutbound) {
-                ForEach(availableOutbounds, id: \.self) { name in
-                    Text(name).tag(name)
-                }
-            }
-            .labelsHidden()
-
-            HStack {
-                Button("取消") {
-                    editingRuleSetTag = nil
-                }
-                .keyboardShortcut(.cancelAction)
-
-                Button("保存") {
-                    changeOutbound(forRuleSetTag: tag, to: editingOutbound)
-                    editingRuleSetTag = nil
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding()
-        .frame(width: 220)
     }
 
     // MARK: - Row View
@@ -204,41 +182,32 @@ struct RuleSetsView: View {
             }
             .frame(width: 100, alignment: .leading)
 
-            // Action buttons: edit + delete + refresh
-            HStack(spacing: 4) {
-                Button {
+            // 编辑 + 删除 + 刷新
+            HStack(spacing: 6) {
+                Button("编辑") {
                     editingOutbound = outboundForRuleSet(tag: tag) ?? availableOutbounds.first ?? "Proxy"
                     editingRuleSetTag = tag
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.caption)
                 }
+                .font(.caption)
                 .buttonStyle(.plain)
-                .help("编辑出站")
+                .foregroundStyle(.blue)
 
-                Button {
+                Button("删除") {
                     deleteRuleSet(at: index, tag: tag)
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.caption)
-                        .foregroundStyle(.red.opacity(0.7))
                 }
+                .font(.caption)
                 .buttonStyle(.plain)
-                .help("删除")
+                .foregroundStyle(.red)
 
-                // Refresh / status indicator for remote
+                // Refresh status for remote
                 if let status = ruleSetUpdateStatus[tag] {
                     switch status {
                     case .updating:
-                        ProgressView().controlSize(.small)
+                        ProgressView().controlSize(.mini)
                     case .success:
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.caption)
+                        Image(systemName: "checkmark").font(.caption2).foregroundStyle(.green)
                     case .failed:
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.red)
-                            .font(.caption)
+                        Image(systemName: "xmark").font(.caption2).foregroundStyle(.red)
                     case .idle:
                         ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
                     }
@@ -246,7 +215,7 @@ struct RuleSetsView: View {
                     ruleSetRefreshButton(tag: tag, url: url, isRemote: isRemote)
                 }
             }
-            .frame(width: 90, alignment: .center)
+            .frame(width: 120, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -392,5 +361,54 @@ struct RuleSetsView: View {
                   let url = rs["url"]?.stringValue else { continue }
             await updateRuleSet(tag: tag, url: url)
         }
+    }
+}
+
+// MARK: - Rule Set Edit Sheet
+
+struct RuleSetEditSheet: View {
+    let tag: String
+    @State var currentOutbound: String
+    let availableOutbounds: [String]
+    let onSave: (String) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("编辑规则集")
+                .font(.headline)
+
+            HStack {
+                Text("规则集")
+                    .frame(width: 80, alignment: .leading)
+                Text(tag)
+                    .font(.body.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Text("出站策略")
+                    .frame(width: 80, alignment: .leading)
+                Picker("", selection: $currentOutbound) {
+                    ForEach(availableOutbounds, id: \.self) { name in
+                        Text(name).tag(name)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 200)
+            }
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("取消") { onCancel() }
+                    .keyboardShortcut(.cancelAction)
+                Button("保存") { onSave(currentOutbound) }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(width: 400)
     }
 }

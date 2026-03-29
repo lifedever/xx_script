@@ -77,7 +77,7 @@ struct RouteRulesView: View {
                                 Text("策略组")
                                     .frame(width: 140, alignment: .leading)
                                 Text("操作")
-                                    .frame(width: 70, alignment: .center)
+                                    .frame(width: 100, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -168,31 +168,26 @@ struct RouteRulesView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 140, alignment: .leading)
 
-            // Edit + Delete buttons
-            HStack(spacing: 4) {
+            // 编辑 + 删除 text buttons
+            HStack(spacing: 8) {
                 if !isSystem {
-                    Button {
+                    Button("编辑") {
                         editingRuleIndex = rule.id
                         showAddRule = true
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.caption)
                     }
+                    .font(.caption)
                     .buttonStyle(.plain)
-                    .help("编辑")
+                    .foregroundStyle(.blue)
 
-                    Button {
+                    Button("删除") {
                         deleteRule(at: rule.id)
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.caption)
-                            .foregroundStyle(.red.opacity(0.7))
                     }
+                    .font(.caption)
                     .buttonStyle(.plain)
-                    .help("删除")
+                    .foregroundStyle(.red)
                 }
             }
-            .frame(width: 70, alignment: .center)
+            .frame(width: 100, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
