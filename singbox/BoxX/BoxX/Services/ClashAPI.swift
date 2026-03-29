@@ -68,6 +68,41 @@ actor ClashAPI {
         _ = try await patch("/configs", body: body)
     }
 
+    /// Test which rule a domain matches by making a real connection through the proxy
+    func testRule(domain: String) async -> RuleTestResult? {
+        // Make a test request through sing-box proxy port
+        let proxyConfig = URLSessionConfiguration.ephemeral
+        proxyConfig.connectionProxyDictionary = [
+            kCFNetworkProxiesHTTPEnable: true,
+            kCFNetworkProxiesHTTPProxy: "127.0.0.1",
+            kCFNetworkProxiesHTTPPort: 7890,
+        ] as [String: Any]
+        proxyConfig.timeoutIntervalForRequest = 5
+        let proxySession = URLSession(configuration: proxyConfig)
+        defer { proxySession.invalidateAndCancel() }
+
+        // Fire request (don't care about result, just need the connection to appear)
+        _ = try? await proxySession.data(from: URL(string: "http://\(domain)")!)
+
+        // Wait a bit then check connections
+        try? await Task.sleep(for: .milliseconds(500))
+
+        guard let snapshot = try? await getConnections() else { return nil }
+        if let conn = snapshot.connections?.first(where: {
+            $0.metadata.host.lowercased() == domain.lowercased() ||
+            $0.host.lowercased() == domain.lowercased()
+        }) {
+            return RuleTestResult(
+                domain: domain,
+                rule: conn.rule,
+                outbound: conn.outbound,
+                chain: conn.chain,
+                destinationIP: conn.metadata.destinationIP
+            )
+        }
+        return nil
+    }
+
     func isReachable() async -> Bool {
         do { _ = try await get("/"); return true } catch { return false }
     }
@@ -141,6 +176,14 @@ struct ClashConfig: Codable {
         case allowLan = "allow-lan"
         case logLevel = "log-level"
     }
+}
+
+struct RuleTestResult {
+    let domain: String
+    let rule: String
+    let outbound: String
+    let chain: String
+    let destinationIP: String
 }
 
 enum ClashAPIError: Error, LocalizedError {

@@ -8,14 +8,15 @@ struct SubscriptionsView: View {
     @State private var showAddSheet = false
     @State private var editingSubscription: Subscription? = nil
     @State private var isUpdating = false
+    @State private var updateLog: [String] = []
     @State private var updateStatus: String? = nil
 
     private let manager = SubscriptionManager()
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
             if subscriptions.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.system(size: 48))
                         .foregroundStyle(.secondary)
@@ -25,25 +26,38 @@ struct SubscriptionsView: View {
                     Text(String(localized: "subs.empty_hint"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                    Button(String(localized: "subs.add")) {
+                        showAddSheet = true
+                    }
+                    .controlSize(.large)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(subscriptions) { sub in
-                        SubscriptionRow(subscription: sub)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                editingSubscription = sub
-                            }
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(subscriptions) { sub in
+                            SubscriptionCard(
+                                subscription: sub,
+                                onEdit: { editingSubscription = sub },
+                                onDelete: { deleteSubscription(sub) }
+                            )
+                        }
                     }
-                    .onDelete(perform: deleteSubscriptions)
+                    .padding()
                 }
-            }
-        }
-        .navigationTitle(String(localized: "subs.title"))
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+
+                Divider()
+
+                // Bottom action bar
                 HStack {
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Label(String(localized: "subs.add"), systemImage: "plus")
+                    }
+
+                    Spacer()
+
                     if isUpdating {
                         ProgressView()
                             .scaleEffect(0.7)
@@ -51,37 +65,61 @@ struct SubscriptionsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
+                        if let status = updateStatus {
+                            Label(status, systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
                         Button {
                             Task { await saveAndUpdate() }
                         } label: {
-                            Label(String(localized: "subs.save_and_update"), systemImage: "arrow.down.circle.fill")
+                            Label(String(localized: "subs.save_and_update"), systemImage: "arrow.triangle.2.circlepath")
                         }
+                        .controlSize(.large)
                         .disabled(isUpdating)
                     }
-                    Button {
-                        showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
                 }
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if let status = updateStatus {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text(status)
-                        .font(.caption)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
                 .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .background(.bar)
+
+                // Update log
+                if !updateLog.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text(String(localized: "subs.progress_title"))
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button {
+                                updateLog.removeAll()
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.top, 8)
+
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 1) {
+                                ForEach(updateLog.indices, id: \.self) { i in
+                                    Text(updateLog[i])
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                        }
+                        .frame(height: 120)
+                    }
+                    .background(.bar)
+                }
             }
         }
-        .animation(.easeInOut, value: updateStatus)
         .sheet(isPresented: $showAddSheet) {
             SubscriptionEditSheet(subscription: nil) { newSub in
                 subscriptions.append(newSub)
@@ -101,8 +139,8 @@ struct SubscriptionsView: View {
         }
     }
 
-    private func deleteSubscriptions(at offsets: IndexSet) {
-        subscriptions.remove(atOffsets: offsets)
+    private func deleteSubscription(_ sub: Subscription) {
+        subscriptions.removeAll { $0.name == sub.name }
         saveSubscriptions()
     }
 
@@ -114,44 +152,80 @@ struct SubscriptionsView: View {
         saveSubscriptions()
         isUpdating = true
         updateStatus = nil
+        updateLog.removeAll()
         defer { isUpdating = false }
-        for await _ in configGenerator.generate() {}
+
+        for await line in configGenerator.generate() {
+            updateLog.append(line)
+        }
+
         if singBoxManager.isRunning {
+            updateLog.append("Restarting sing-box...")
             try? await singBoxManager.restart(configPath: configGenerator.configPath)
+            updateLog.append("Done.")
         }
-        withAnimation {
-            updateStatus = String(localized: "subs.update_complete")
-        }
-        try? await Task.sleep(for: .seconds(3))
-        withAnimation {
-            updateStatus = nil
-        }
+
+        updateStatus = String(localized: "subs.update_complete")
+        try? await Task.sleep(for: .seconds(5))
+        updateStatus = nil
     }
 }
 
-struct SubscriptionRow: View {
-    let subscription: Subscription
+// MARK: - Subscription Card
 
-    private var maskedURL: String {
-        let url = subscription.url
-        if url.count > 30 {
-            return String(url.prefix(30)) + "..."
-        }
-        return url
-    }
+struct SubscriptionCard: View {
+    let subscription: Subscription
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    @State private var showDeleteConfirm = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(subscription.name)
-                .font(.headline)
-            Text(maskedURL)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "shippingbox.fill")
+                        .foregroundStyle(Color.accentColor)
+                    Text(subscription.name)
+                        .font(.headline)
+                    Spacer()
+
+                    Button { onEdit() } label: {
+                        Image(systemName: "pencil")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(String(localized: "subs.edit"))
+
+                    Button { showDeleteConfirm = true } label: {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help(String(localized: "subs.delete"))
+                    .confirmationDialog(
+                        String(localized: "subs.delete_confirm"),
+                        isPresented: $showDeleteConfirm
+                    ) {
+                        Button(String(localized: "subs.delete"), role: .destructive) {
+                            onDelete()
+                        }
+                    }
+                }
+
+                // Full URL — selectable, no truncation
+                Text(subscription.url)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .lineLimit(3)
+            }
+            .padding(4)
         }
-        .padding(.vertical, 2)
     }
 }
+
+// MARK: - Edit Sheet
 
 struct SubscriptionEditSheet: View {
     let subscription: Subscription?
@@ -171,37 +245,35 @@ struct SubscriptionEditSheet: View {
     var isEditing: Bool { subscription != nil }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 16) {
             Text(isEditing ? String(localized: "subs.edit") : String(localized: "subs.add"))
                 .font(.headline)
-                .padding(.top, 20)
-                .padding(.bottom, 16)
 
             Form {
                 TextField(String(localized: "subs.name"), text: $name)
+                    .textFieldStyle(.roundedBorder)
                 TextField(String(localized: "subs.url"), text: $url)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.body.monospaced())
             }
-            .padding(.horizontal)
+            .formStyle(.grouped)
 
             HStack {
-                Button(String(localized: "subs.cancel")) {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
-
+                Button(String(localized: "subs.cancel")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
-
                 Button(String(localized: "subs.save")) {
-                    let sub = Subscription(name: name, url: url)
-                    onSave(sub)
+                    onSave(Subscription(name: name.trimmingCharacters(in: .whitespaces),
+                                        url: url.trimmingCharacters(in: .whitespaces)))
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || url.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty ||
+                          url.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal)
-            .padding(.vertical, 16)
         }
-        .frame(width: 420)
+        .padding()
+        .frame(width: 500)
     }
 }

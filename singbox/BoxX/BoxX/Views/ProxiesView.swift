@@ -9,6 +9,9 @@ struct ProxiesView: View {
     @State private var searchText = ""
     @State private var isRefreshing = false
     @State private var expandedGroup: String?
+    @State private var testDomain = ""
+    @State private var isTesting = false
+    @State private var testResult: RuleTestResult?
 
     // Categorize groups
     private var serviceGroups: [ProxyGroup] {
@@ -82,6 +85,14 @@ struct ProxiesView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 16) {
+                        // Rule Test
+                        RuleTestSection(
+                            api: api,
+                            testDomain: $testDomain,
+                            isTesting: $isTesting,
+                            testResult: $testResult
+                        )
+
                         if !serviceGroups.isEmpty {
                             ProxySection(
                                 title: String(localized: "proxies.section.services"),
@@ -342,5 +353,104 @@ struct DelayBadge: View {
         if delay < 200 { return .green }
         if delay < 500 { return .yellow }
         return .orange
+    }
+}
+
+// MARK: - Rule Test Section
+
+struct RuleTestSection: View {
+    let api: ClashAPI
+    @Binding var testDomain: String
+    @Binding var isTesting: Bool
+    @Binding var testResult: RuleTestResult?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass.circle")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+                Text(String(localized: "proxies.rule_test"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 6)
+
+            GroupBox {
+                VStack(spacing: 10) {
+                    HStack {
+                        TextField(String(localized: "proxies.rule_test.placeholder"), text: $testDomain)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body.monospaced())
+                            .onSubmit { Task { await runTest() } }
+
+                        Button {
+                            Task { await runTest() }
+                        } label: {
+                            if isTesting {
+                                ProgressView().scaleEffect(0.6).frame(width: 16, height: 16)
+                            } else {
+                                Text(String(localized: "proxies.rule_test.button"))
+                            }
+                        }
+                        .disabled(testDomain.trimmingCharacters(in: .whitespaces).isEmpty || isTesting)
+                    }
+
+                    if let result = testResult {
+                        Divider()
+                        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                            GridRow {
+                                Text(String(localized: "proxies.rule_test.rule"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(result.rule)
+                                    .font(.caption.monospaced())
+                                    .textSelection(.enabled)
+                            }
+                            GridRow {
+                                Text(String(localized: "proxies.rule_test.outbound"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(result.outbound)
+                                    .font(.caption.bold())
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            GridRow {
+                                Text(String(localized: "proxies.rule_test.chain"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(result.chain)
+                                    .font(.caption.monospaced())
+                                    .textSelection(.enabled)
+                            }
+                            if !result.destinationIP.isEmpty {
+                                GridRow {
+                                    Text("IP")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(result.destinationIP)
+                                        .font(.caption.monospaced())
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(4)
+            }
+        }
+    }
+
+    private func runTest() async {
+        let domain = testDomain.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "http://", with: "")
+            .components(separatedBy: "/").first ?? ""
+        guard !domain.isEmpty else { return }
+        isTesting = true
+        testResult = nil
+        testResult = await api.testRule(domain: domain)
+        isTesting = false
     }
 }

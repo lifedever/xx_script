@@ -12,7 +12,7 @@ struct Connection: Identifiable, Codable, Sendable {
 
     var host: String { metadata.host.isEmpty ? metadata.destinationIP : metadata.host }
     var outbound: String { chains.first ?? "" }
-    var chain: String { chains.joined(separator: " -> ") }
+    var chain: String { chains.reversed().joined(separator: " -> ") }
     var network: String { metadata.network.uppercased() }
     var destinationPort: String { metadata.destinationPort }
 

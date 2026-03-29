@@ -72,6 +72,12 @@
 "proxies.section.regions" = "地区节点";
 "proxies.section.subscriptions" = "订阅分组";
 "proxies.section.other" = "其他";
+"proxies.rule_test" = "规则测试";
+"proxies.rule_test.placeholder" = "输入域名 (如 google.com)";
+"proxies.rule_test.button" = "测试";
+"proxies.rule_test.rule" = "匹配规则";
+"proxies.rule_test.outbound" = "出站";
+"proxies.rule_test.chain" = "链路";
 
 // Rules
 "rules.search" = "搜索规则…";
@@ -123,6 +129,8 @@
 "subs.save" = "保存";
 "subs.cancel" = "取消";
 "subs.delete" = "删除";
+"subs.delete_confirm" = "确定要删除此订阅吗？";
+"subs.progress_title" = "更新进度";
 "subs.empty" = "暂无订阅";
 "subs.empty_hint" = "添加订阅以开始使用";
 "subs.save_and_update" = "保存并更新订阅";

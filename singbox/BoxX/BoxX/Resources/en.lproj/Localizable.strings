@@ -72,6 +72,12 @@
 "proxies.section.regions" = "Regions";
 "proxies.section.subscriptions" = "Subscriptions";
 "proxies.section.other" = "Other";
+"proxies.rule_test" = "Rule Test";
+"proxies.rule_test.placeholder" = "Enter domain (e.g. google.com)";
+"proxies.rule_test.button" = "Test";
+"proxies.rule_test.rule" = "Rule";
+"proxies.rule_test.outbound" = "Outbound";
+"proxies.rule_test.chain" = "Chain";
 
 // Rules
 "rules.search" = "Search rules…";
@@ -123,6 +129,8 @@
 "subs.save" = "Save";
 "subs.cancel" = "Cancel";
 "subs.delete" = "Delete";
+"subs.delete_confirm" = "Are you sure you want to delete this subscription?";
+"subs.progress_title" = "Update Progress";
 "subs.empty" = "No subscriptions configured";
 "subs.empty_hint" = "Add a subscription to get started";
 "subs.save_and_update" = "Save & Update Subscriptions";
