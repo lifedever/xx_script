@@ -188,6 +188,86 @@ final class ConfigEngineLoadSaveTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: tempDir.appendingPathComponent("proxies/ToRemove.json").path))
     }
 
+    // MARK: - Rule Priority Tests
+
+    func testUserRuleInsertedBeforeServiceRules() throws {
+        // Simulate a config with system rules + service rules (like BuiltinRuleSet adds)
+        var config = SingBoxConfig(inbounds: [], outbounds: [], route: RouteConfig())
+        config.route.rules = [
+            // System rules (should stay at top)
+            .object(["action": .string("sniff")]),
+            .object(["action": .string("hijack-dns")]),
+            .object(["ip_is_private": .bool(true), "action": .string("route"), "outbound": .string("DIRECT")]),
+            // Service rules (added by BuiltinRuleSet)
+            .object(["rule_set": .array([.string("geosite-youtube")]), "action": .string("route"), "outbound": .string("YouTube")]),
+            .object(["rule_set": .array([.string("geosite-google")]), "action": .string("route"), "outbound": .string("Google")]),
+            .object(["rule_set": .array([.string("geosite-geolocation-!cn")]), "action": .string("route"), "outbound": .string("Proxy")]),
+        ]
+
+        // Simulate adding a user-defined rule (same logic as AddRuleSheet.saveAsLocalRule)
+        let userRule = JSONValue.object([
+            "domain_suffix": .array([.string("example.com")]),
+            "action": .string("route"),
+            "outbound": .string("DIRECT"),
+        ])
+
+        var rules = config.route.rules!
+        let insertIdx = rules.firstIndex(where: { rule in
+            rule["rule_set"] != nil || rule["domain"] != nil || rule["domain_suffix"] != nil
+        }) ?? rules.count
+        rules.insert(userRule, at: insertIdx)
+
+        // Verify: user rule should be at index 3 (after 3 system rules, before service rules)
+        XCTAssertEqual(insertIdx, 3, "User rule should be inserted after system rules")
+        XCTAssertEqual(rules[3]["domain_suffix"]?.arrayValue?.first?.stringValue, "example.com",
+                       "User rule should be at position 3")
+
+        // Verify system rules are still at top
+        XCTAssertEqual(rules[0]["action"]?.stringValue, "sniff")
+        XCTAssertEqual(rules[1]["action"]?.stringValue, "hijack-dns")
+
+        // Verify service rules are after user rule
+        XCTAssertEqual(rules[4]["rule_set"]?.arrayValue?.first?.stringValue, "geosite-youtube")
+        XCTAssertEqual(rules[5]["rule_set"]?.arrayValue?.first?.stringValue, "geosite-google")
+    }
+
+    func testBuiltinRuleSetOrderYouTubeBeforeGoogle() {
+        // Verify that in BuiltinRuleSet.all, YouTube comes before Google
+        let ids = BuiltinRuleSet.all.map(\.id)
+        guard let youtubeIdx = ids.firstIndex(of: "youtube"),
+              let googleIdx = ids.firstIndex(of: "google") else {
+            XCTFail("YouTube and Google must be in BuiltinRuleSet.all")
+            return
+        }
+        XCTAssertLessThan(youtubeIdx, googleIdx,
+                          "YouTube must come before Google to prevent geosite-google from matching youtube.com first")
+    }
+
+    func testMultipleUserRulesInsertedInOrder() throws {
+        var rules: [JSONValue] = [
+            .object(["action": .string("sniff")]),
+            .object(["rule_set": .array([.string("geosite-google")]), "action": .string("route"), "outbound": .string("Google")]),
+        ]
+
+        // Add first user rule
+        let rule1 = JSONValue.object(["domain_suffix": .array([.string("first.com")]), "action": .string("route"), "outbound": .string("DIRECT")])
+        let idx1 = rules.firstIndex(where: { $0["rule_set"] != nil || $0["domain"] != nil || $0["domain_suffix"] != nil }) ?? rules.count
+        rules.insert(rule1, at: idx1)
+
+        // Add second user rule
+        let rule2 = JSONValue.object(["domain": .array([.string("second.com")]), "action": .string("route"), "outbound": .string("Proxy")])
+        let idx2 = rules.firstIndex(where: { $0["rule_set"] != nil || $0["domain"] != nil || $0["domain_suffix"] != nil }) ?? rules.count
+        rules.insert(rule2, at: idx2)
+
+        // Expected order: sniff, rule2(second.com), rule1(first.com), geosite-google
+        // rule2 inserted at position 1 (first rule_set/domain match is rule1 at position 1)
+        // So rule2 goes before rule1 — newer user rules have higher priority
+        XCTAssertEqual(rules[0]["action"]?.stringValue, "sniff")
+        XCTAssertNotNil(rules[1]["domain"] ?? rules[1]["domain_suffix"], "Position 1 should be a user rule")
+        XCTAssertNotNil(rules[2]["domain"] ?? rules[2]["domain_suffix"], "Position 2 should be a user rule")
+        XCTAssertNotNil(rules[3]["rule_set"], "Position 3 should be geosite-google")
+    }
+
     func testDeployRuntime() async throws {
         let configData = try JSONEncoder().encode(SingBoxConfig(
             inbounds: [],

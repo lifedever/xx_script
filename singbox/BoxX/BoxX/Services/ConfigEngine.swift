@@ -61,6 +61,11 @@ class ConfigEngine: @unchecked Sendable {
         let data = try encoder.encode(config)
         try data.write(to: configURL, options: .atomic)
         lastMtime = try FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date
+
+        // Auto-deploy runtime config and reload sing-box
+        Task {
+            try? await deployRuntime()
+        }
     }
 
     // MARK: - Merge & Deploy

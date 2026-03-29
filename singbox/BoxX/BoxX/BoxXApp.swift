@@ -25,6 +25,9 @@ struct BoxXApp: App {
     private let appState = AppState.shared
 
     init() {
+        // Clean up v1 legacy UserDefaults keys that trigger TCC prompts
+        UserDefaults.standard.removeObject(forKey: "scriptDir")
+
         let state = appState
 
         Task { @MainActor in
