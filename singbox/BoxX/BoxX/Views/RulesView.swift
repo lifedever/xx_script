@@ -377,14 +377,14 @@ struct RulesView: View {
                 .foregroundStyle(.tertiary)
                 .frame(width: 60, alignment: .leading)
 
-            // Outbound column (double-click to edit)
+            // Outbound column (inline picker)
             Group {
-                if editingRuleSetTag == tag {
+                let currentOutbound = outboundForRuleSet(tag: tag)
+                if currentOutbound != nil {
                     Picker("", selection: Binding(
-                        get: { outboundForRuleSet(tag: tag) ?? "Proxy" },
+                        get: { currentOutbound ?? "Proxy" },
                         set: { newValue in
                             changeOutbound(forRuleSetTag: tag, to: newValue)
-                            editingRuleSetTag = nil
                         }
                     )) {
                         ForEach(availableOutbounds, id: \.self) { name in
@@ -392,15 +392,14 @@ struct RulesView: View {
                         }
                     }
                     .labelsHidden()
-                    .controlSize(.small)
+                    .controlSize(.mini)
                 } else {
-                    Text(outboundForRuleSet(tag: tag) ?? "未关联")
-                        .font(.caption.monospaced())
-                        .foregroundStyle(outboundForRuleSet(tag: tag) != nil ? .primary : .tertiary)
-                        .onTapGesture(count: 2) { editingRuleSetTag = tag }
+                    Text("未关联")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
             }
-            .frame(width: 120, alignment: .leading)
+            .frame(width: 140, alignment: .leading)
 
             // Refresh / status column
             Group {
