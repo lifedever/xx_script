@@ -1,9 +1,6 @@
 import Foundation
 import Observation
 
-/// sing-box binary path
-private let singBoxPath = "/opt/homebrew/bin/sing-box"
-
 @Observable
 @MainActor
 final class SingBoxManager {
@@ -11,65 +8,60 @@ final class SingBoxManager {
 
     private let clashAPI = ClashAPI()
 
+    private var boxScript: String {
+        let scriptDir = UserDefaults.standard.string(forKey: "scriptDir")
+            ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox")
+        return scriptDir + "/box.sh"
+    }
+
     var isRunning = false
 
-    /// Check if sing-box is running by probing the Clash API
     func refreshStatus() async {
         isRunning = await clashAPI.isReachable()
     }
 
-    /// Start sing-box with admin privileges (single password prompt)
+    /// Start sing-box — calls `box.sh start` via sudo
     func start(configPath: String) async throws {
-        let script = """
-        do shell script "dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; \(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
-        """
-        try runOsascript(script)
-
-        // Wait for Clash API to become reachable
-        for _ in 0..<30 {
-            try await Task.sleep(for: .milliseconds(200))
-            if await clashAPI.isReachable() {
-                isRunning = true
-                return
-            }
-        }
-        throw SingBoxError.startFailed("Clash API not reachable after 6 seconds")
+        try runSudo("\(boxScript) start")
+        try await waitForAPI(timeout: 30)
     }
 
-    /// Stop sing-box with admin privileges (single password prompt)
+    /// Stop sing-box — calls `box.sh stop` via sudo
     func stop() async throws {
-        let script = """
-        do shell script "pkill -x sing-box || true; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null" with administrator privileges
-        """
-        try runOsascript(script)
-
-        // Wait for process to die
+        try runSudo("\(boxScript) stop")
+        // Wait for it to actually stop
         for _ in 0..<20 {
-            try await Task.sleep(for: .milliseconds(200))
+            try await Task.sleep(for: .milliseconds(300))
             if !(await clashAPI.isReachable()) { break }
         }
         isRunning = false
     }
 
-    /// Restart sing-box — single password prompt, includes DNS flush
+    /// Restart sing-box — calls `box.sh fix` (stop + flush DNS + start)
     func restart(configPath: String) async throws {
-        let script = """
-        do shell script "pkill -x sing-box || true; sleep 2; dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; \(singBoxPath) run -c \(configPath) &>/dev/null &" with administrator privileges
-        """
-        try runOsascript(script)
+        try runSudo("\(boxScript) fix")
+        try await waitForAPI(timeout: 30)
+    }
 
-        // Wait for Clash API
-        for _ in 0..<30 {
-            try await Task.sleep(for: .milliseconds(200))
+    private func waitForAPI(timeout: Int) async throws {
+        let attempts = timeout * 2  // check every 500ms
+        for _ in 0..<attempts {
+            try await Task.sleep(for: .milliseconds(500))
             if await clashAPI.isReachable() {
                 isRunning = true
                 return
             }
         }
-        throw SingBoxError.startFailed("Clash API not reachable after restart")
+        // Even if timeout, check once more — it might just be slow
+        if await clashAPI.isReachable() {
+            isRunning = true
+            return
+        }
+        throw SingBoxError.startFailed("Clash API not reachable after \(timeout) seconds")
     }
 
-    private func runOsascript(_ script: String) throws {
+    private func runSudo(_ command: String) throws {
+        let script = "do shell script \"\(command)\" with administrator privileges"
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", script]
