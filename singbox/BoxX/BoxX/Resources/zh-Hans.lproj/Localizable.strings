@@ -22,6 +22,10 @@
 "menu.helper_uninstall_success" = "特权助手已卸载。";
 "menu.copy_proxy_env" = "复制代理环境变量";
 "menu.proxy_env_copied" = "代理环境变量已复制到剪贴板";
+"menu.proxy_mode" = "代理模式";
+"menu.mode.rule" = "规则模式";
+"menu.mode.global" = "全局模式";
+"menu.mode.direct" = "直连模式";
 
 // Sidebar
 "sidebar.overview" = "概览";
@@ -121,6 +125,9 @@
 "subs.delete" = "删除";
 "subs.empty" = "暂无订阅";
 "subs.empty_hint" = "添加订阅以开始使用";
+"subs.save_and_update" = "保存并更新订阅";
+"subs.updating" = "正在更新订阅…";
+"subs.update_complete" = "订阅更新完成";
 
 // Logs
 "logs.auto_scroll" = "自动滚动";

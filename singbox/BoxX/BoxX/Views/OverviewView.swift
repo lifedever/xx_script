@@ -139,10 +139,27 @@ struct OverviewView: View {
                 // System Info Card
                 GroupBox {
                     Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 8) {
-                        systemInfoRow(
-                            label: String(localized: "overview.proxy_mode"),
-                            value: modeDisplayName(clashConfig?.mode)
-                        )
+                        GridRow {
+                            Text(String(localized: "overview.proxy_mode"))
+                                .foregroundStyle(.secondary)
+                                .gridColumnAlignment(.leading)
+                            Picker("", selection: Binding(
+                                get: { clashConfig?.mode ?? "rule" },
+                                set: { newMode in
+                                    Task {
+                                        try? await api.setMode(newMode)
+                                        clashConfig = try? await api.getConfig()
+                                    }
+                                }
+                            )) {
+                                Text(String(localized: "menu.mode.rule")).tag("rule")
+                                Text(String(localized: "menu.mode.global")).tag("global")
+                                Text(String(localized: "menu.mode.direct")).tag("direct")
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            .gridColumnAlignment(.leading)
+                        }
                         Divider()
                         systemInfoRow(
                             label: String(localized: "overview.http_proxy"),

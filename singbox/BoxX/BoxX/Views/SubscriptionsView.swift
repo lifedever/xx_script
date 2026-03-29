@@ -1,9 +1,14 @@
 import SwiftUI
 
 struct SubscriptionsView: View {
+    let configGenerator: ConfigGenerator
+    let singBoxManager: SingBoxManager
+
     @State private var subscriptions: [Subscription] = []
     @State private var showAddSheet = false
     @State private var editingSubscription: Subscription? = nil
+    @State private var isUpdating = false
+    @State private var updateStatus: String? = nil
 
     private let manager = SubscriptionManager()
 
@@ -38,13 +43,45 @@ struct SubscriptionsView: View {
         .navigationTitle(String(localized: "subs.title"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showAddSheet = true
-                } label: {
-                    Image(systemName: "plus")
+                HStack {
+                    if isUpdating {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                        Text(String(localized: "subs.updating"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button {
+                            Task { await saveAndUpdate() }
+                        } label: {
+                            Label(String(localized: "subs.save_and_update"), systemImage: "arrow.down.circle.fill")
+                        }
+                        .disabled(isUpdating)
+                    }
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if let status = updateStatus {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(status)
+                        .font(.caption)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut, value: updateStatus)
         .sheet(isPresented: $showAddSheet) {
             SubscriptionEditSheet(subscription: nil) { newSub in
                 subscriptions.append(newSub)
@@ -71,6 +108,24 @@ struct SubscriptionsView: View {
 
     private func saveSubscriptions() {
         try? manager.save(subscriptions)
+    }
+
+    private func saveAndUpdate() async {
+        saveSubscriptions()
+        isUpdating = true
+        updateStatus = nil
+        defer { isUpdating = false }
+        for await _ in configGenerator.generate() {}
+        if singBoxManager.isRunning {
+            try? await singBoxManager.restart(configPath: configGenerator.configPath)
+        }
+        withAnimation {
+            updateStatus = String(localized: "subs.update_complete")
+        }
+        try? await Task.sleep(for: .seconds(3))
+        withAnimation {
+            updateStatus = nil
+        }
     }
 }
 

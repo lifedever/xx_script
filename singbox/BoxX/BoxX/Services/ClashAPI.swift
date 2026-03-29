@@ -63,6 +63,11 @@ actor ClashAPI {
         return try JSONDecoder().decode(ClashConfig.self, from: data)
     }
 
+    func setMode(_ mode: String) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["mode": mode])
+        _ = try await patch("/configs", body: body)
+    }
+
     func isReachable() async -> Bool {
         do { _ = try await get("/"); return true } catch { return false }
     }
@@ -81,6 +86,19 @@ actor ClashAPI {
     private func put(_ path: String, body: Data) async throws -> Data {
         var request = URLRequest(url: URL(string: baseURL + path)!)
         request.httpMethod = "PUT"
+        request.httpBody = body
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuth(&request)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
+            throw ClashAPIError.httpError((response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
+        return data
+    }
+
+    private func patch(_ path: String, body: Data) async throws -> Data {
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = "PATCH"
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         addAuth(&request)

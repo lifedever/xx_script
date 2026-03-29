@@ -66,7 +66,7 @@ struct MainView: View {
                     LogsView()
                         .navigationTitle(String(localized: "sidebar.logs"))
                 case .subscriptions:
-                    SubscriptionsView()
+                    SubscriptionsView(configGenerator: configGenerator, singBoxManager: singBoxManager)
                         .navigationTitle(String(localized: "sidebar.subscriptions"))
                 }
             } else {

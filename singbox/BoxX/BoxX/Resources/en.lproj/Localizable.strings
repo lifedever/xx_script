@@ -22,6 +22,10 @@
 "menu.helper_uninstall_success" = "Privileged Helper has been uninstalled.";
 "menu.copy_proxy_env" = "Copy Proxy Env";
 "menu.proxy_env_copied" = "Proxy environment variables copied to clipboard";
+"menu.proxy_mode" = "Proxy Mode";
+"menu.mode.rule" = "Rule Mode";
+"menu.mode.global" = "Global Mode";
+"menu.mode.direct" = "Direct Mode";
 
 // Sidebar
 "sidebar.overview" = "Overview";
@@ -121,6 +125,9 @@
 "subs.delete" = "Delete";
 "subs.empty" = "No subscriptions configured";
 "subs.empty_hint" = "Add a subscription to get started";
+"subs.save_and_update" = "Save & Update Subscriptions";
+"subs.updating" = "Updating subscriptions…";
+"subs.update_complete" = "Subscriptions updated successfully";
 
 // Logs
 "logs.auto_scroll" = "Auto-scroll";

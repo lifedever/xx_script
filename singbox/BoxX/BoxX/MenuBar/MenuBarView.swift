@@ -11,6 +11,7 @@ struct MenuBarView: View {
 
     @State private var proxyGroups: [ProxyGroup] = []
     @State private var isUpdatingSubscriptions = false
+    @State private var currentMode: String = "rule"
 
     var body: some View {
         Group {
@@ -98,6 +99,37 @@ struct MenuBarView: View {
                     message: String(localized: "menu.proxy_env_copied"),
                     style: .informational
                 )
+            }
+
+            // Mode submenu
+            Menu(String(localized: "menu.proxy_mode")) {
+                Button {
+                    Task { try? await api.setMode("rule"); await syncStatus() }
+                } label: {
+                    if currentMode == "rule" {
+                        Label(String(localized: "menu.mode.rule"), systemImage: "checkmark")
+                    } else {
+                        Text(String(localized: "menu.mode.rule"))
+                    }
+                }
+                Button {
+                    Task { try? await api.setMode("global"); await syncStatus() }
+                } label: {
+                    if currentMode == "global" {
+                        Label(String(localized: "menu.mode.global"), systemImage: "checkmark")
+                    } else {
+                        Text(String(localized: "menu.mode.global"))
+                    }
+                }
+                Button {
+                    Task { try? await api.setMode("direct"); await syncStatus() }
+                } label: {
+                    if currentMode == "direct" {
+                        Label(String(localized: "menu.mode.direct"), systemImage: "checkmark")
+                    } else {
+                        Text(String(localized: "menu.mode.direct"))
+                    }
+                }
             }
 
             Divider()
@@ -202,6 +234,9 @@ struct MenuBarView: View {
         await singBoxManager.refreshStatus()
         appState.isRunning = singBoxManager.isRunning
         appState.pid = singBoxManager.pid
+        if let config = try? await api.getConfig() {
+            currentMode = config.mode ?? "rule"
+        }
         await refreshProxyGroups()
     }
 
