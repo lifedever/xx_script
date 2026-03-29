@@ -176,7 +176,8 @@ struct MenuBarView: View {
 
     @ViewBuilder
     private func groupSubmenu(_ group: ProxyGroup) -> some View {
-        Menu {
+        let currentNode = group.now ?? "–"
+        Menu("\(group.name)          \(currentNode)") {
             ForEach(group.displayAll, id: \.self) { node in
                 Button {
                     Task { await selectNode(group: group.name, node: node) }
@@ -187,14 +188,6 @@ struct MenuBarView: View {
                         Text(node)
                     }
                 }
-            }
-        } label: {
-            HStack {
-                Text(group.name)
-                Spacer()
-                Text(group.now ?? "–")
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
         }
     }
