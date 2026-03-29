@@ -269,11 +269,20 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     @objc private func startSingBox() {
         Task {
             do {
+                print("[BoxX] Deploying runtime config...")
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                print("[BoxX] Starting sing-box with: \(runtimePath)")
                 try appState.singBoxProcess.start(configPath: runtimePath)
+                print("[BoxX] sing-box started successfully")
             } catch {
-                appState.showAlert(error.localizedDescription)
+                print("[BoxX] ERROR: \(error)")
+                // Show alert as a system notification since main window may not be open
+                let alert = NSAlert()
+                alert.messageText = "启动失败"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .critical
+                alert.runModal()
             }
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
