@@ -35,7 +35,6 @@
 		83473B83FEE9C71B170A7B7D /* config.json in Resources */ = {isa = PBXBuildFile; fileRef = D66DA05B940CC40693AB69E6 /* config.json */; };
 		8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */; };
 		963462A43886911BEC9D2CD8 /* SwiftData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 97686E1935EF18A1381BBA97 /* SwiftData.framework */; };
-		9810895EDCCB6C76A9B284C3 /* XPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00C26C4EA7E274BCAE3ED3DA /* XPCClient.swift */; };
 		9E85A43A0EFE7AD48BA748B9 /* LogConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC97FA8D4B6846EB7C901F48 /* LogConfig.swift */; };
 		A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14648562F958BE7DF9541A7F /* AppState.swift */; };
 		A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819D6CB6D0120EE89E9AFD9D /* BoxXApp.swift */; };
@@ -89,7 +88,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		00C26C4EA7E274BCAE3ED3DA /* XPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCClient.swift; sourceTree = "<group>"; };
 		022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsView.swift; sourceTree = "<group>"; };
 		08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBufferTests.swift; sourceTree = "<group>"; };
 		0BD7F2BEBB0D0D08B6687582 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -195,7 +193,6 @@
 				70E1CBC5CE03DF6787AA4B06 /* SubscriptionFetcher.swift */,
 				B65B5EDDE76159D34C31513B /* SubscriptionService.swift */,
 				167EFFD13A60A868D1FABC99 /* WakeObserver.swift */,
-				00C26C4EA7E274BCAE3ED3DA /* XPCClient.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -538,7 +535,6 @@
 				334B133A0825CF16ABA42884 /* SubscriptionService.swift in Sources */,
 				DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */,
 				0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */,
-				9810895EDCCB6C76A9B284C3 /* XPCClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

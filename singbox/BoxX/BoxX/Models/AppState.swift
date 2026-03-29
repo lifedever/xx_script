@@ -16,14 +16,10 @@ final class AppState {
     let api: ClashAPI
     let subscriptionService: SubscriptionService
 
-    // Keep XPCClient around but unused for now
-    let xpcClient: XPCClient
-
     private init() {
         let baseDir = Self.resolveBaseDir()
         configEngine = ConfigEngine(baseDir: baseDir)
         singBoxProcess = SingBoxProcess()
-        xpcClient = XPCClient()
         api = ClashAPI()
         subscriptionService = SubscriptionService(configEngine: configEngine)
 
