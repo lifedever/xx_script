@@ -286,6 +286,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quitApp() {
+        (NSApp.delegate as? AppDelegate)?.shouldReallyQuit = true
         NSApplication.shared.terminate(nil)
     }
 }

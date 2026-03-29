@@ -24,7 +24,7 @@ struct ConnectionsView: View {
 
     var filteredConnections: [Connection] {
         let sorted = connections.sorted(using: sortOrder)
-        let capped = Array(sorted.prefix(500))
+        let capped = Array(sorted.prefix(2000))
         if searchText.isEmpty { return capped }
         return capped.filter {
             $0.host.localizedCaseInsensitiveContains(searchText) ||
@@ -264,12 +264,30 @@ struct ConnectionsView: View {
         wsTask = Task {
             for await snapshot in wsClient.connectConnections() {
                 if !isPaused {
-                    connections = snapshot.connections ?? []
+                    mergeSnapshot(snapshot)
                     downloadTotal = snapshot.downloadTotal
                     uploadTotal = snapshot.uploadTotal
                 }
             }
         }
+    }
+
+    /// Merge new snapshot into accumulated connections list.
+    /// Updates traffic for existing connections, adds new ones at the top,
+    /// and keeps closed connections visible.
+    private func mergeSnapshot(_ snapshot: ConnectionSnapshot) {
+        let activeConnections = snapshot.connections ?? []
+
+        var updatedConnections = connections
+        for active in activeConnections {
+            if let idx = updatedConnections.firstIndex(where: { $0.id == active.id }) {
+                updatedConnections[idx] = active  // Update traffic data
+            } else {
+                updatedConnections.insert(active, at: 0)  // New connection, add to top
+            }
+        }
+
+        connections = updatedConnections
     }
 }
 

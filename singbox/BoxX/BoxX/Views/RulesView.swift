@@ -7,7 +7,7 @@ struct RulesView: View {
     @State private var searchText = ""
     @State private var isLoading = true
     @State private var showAddRule = false
-    @State private var enabledRuleSetIDs: Set<String> = Set(BuiltinRuleSet.all.map(\.id))
+    @State private var enabledRuleSetIDs: Set<String> = []
 
     var filteredRules: [Rule] {
         if searchText.isEmpty { return rules }
@@ -62,7 +62,10 @@ struct RulesView: View {
                 }
             }
         }
-        .task { await loadRules() }
+        .task {
+            loadEnabledRuleSets()
+            await loadRules()
+        }
         .sheet(isPresented: $showAddRule) {
             AddRuleSheet()
         }
@@ -222,8 +225,10 @@ struct RulesView: View {
                 set: { newValue in
                     if newValue {
                         enabledRuleSetIDs.insert(ruleSet.id)
+                        addRuleSetToConfig(ruleSet)
                     } else {
                         enabledRuleSetIDs.remove(ruleSet.id)
+                        removeRuleSetFromConfig(ruleSet)
                     }
                 }
             ))
@@ -257,6 +262,58 @@ struct RulesView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 12)
         }
+    }
+
+    // MARK: - Rule Set Config Helpers
+
+    private func loadEnabledRuleSets() {
+        let existingTags = Set(
+            (appState.configEngine.config.route.ruleSet ?? [])
+                .compactMap { $0["tag"]?.stringValue }
+        )
+        enabledRuleSetIDs = Set(
+            BuiltinRuleSet.all.filter { ruleSet in
+                ruleSet.geositeNames.allSatisfy { existingTags.contains("geosite-\($0)") }
+            }.map(\.id)
+        )
+    }
+
+    private func addRuleSetToConfig(_ ruleSet: BuiltinRuleSet) {
+        // Add rule_set definitions (geosite remote URLs)
+        var currentRuleSets = appState.configEngine.config.route.ruleSet ?? []
+        for def in ruleSet.ruleSetDefinitions {
+            let tag = def["tag"]?.stringValue ?? ""
+            if !currentRuleSets.contains(where: { $0["tag"]?.stringValue == tag }) {
+                currentRuleSets.append(def)
+            }
+        }
+        appState.configEngine.config.route.ruleSet = currentRuleSets
+
+        // Add route rule
+        var currentRules = appState.configEngine.config.route.rules ?? []
+        currentRules.append(ruleSet.routeRule)
+        appState.configEngine.config.route.rules = currentRules
+
+        try? appState.configEngine.save()
+    }
+
+    private func removeRuleSetFromConfig(_ ruleSet: BuiltinRuleSet) {
+        let tagsToRemove = Set(ruleSet.geositeNames.map { "geosite-\($0)" })
+
+        // Remove rule_set definitions
+        appState.configEngine.config.route.ruleSet?.removeAll { item in
+            guard let tag = item["tag"]?.stringValue else { return false }
+            return tagsToRemove.contains(tag)
+        }
+
+        // Remove route rules that reference these rule sets
+        appState.configEngine.config.route.rules?.removeAll { item in
+            guard let ruleSetRefs = item["rule_set"]?.arrayValue else { return false }
+            let refTags = Set(ruleSetRefs.compactMap { $0.stringValue })
+            return !refTags.isDisjoint(with: tagsToRemove)
+        }
+
+        try? appState.configEngine.save()
     }
 
     // MARK: - Data Loading

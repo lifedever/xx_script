@@ -1,7 +1,22 @@
 import SwiftUI
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var shouldReallyQuit = false
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if shouldReallyQuit { return .terminateNow }
+        // Cmd+Q or window close: just hide windows and stay in menu bar
+        for window in NSApp.windows where window.isVisible {
+            window.close()
+        }
+        NSApp.setActivationPolicy(.accessory)
+        return .terminateCancel
+    }
+}
+
 @main
 struct BoxXApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     private let appState = AppState.shared
 
     init() {
