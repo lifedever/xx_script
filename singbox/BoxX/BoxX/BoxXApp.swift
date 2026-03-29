@@ -24,6 +24,9 @@ struct BoxXApp: App {
                 state.isRunning = await state.api.isReachable()
             }
 
+            // Create AppKit menu bar (NSStatusItem + NSMenu for Surge-style layout)
+            MenuBarHolder.shared.controller = MenuBarController(appState: state)
+
             // Start adaptive polling
             StatusPoller.shared.start(appState: state)
 
@@ -37,13 +40,6 @@ struct BoxXApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarView()
-                .environment(appState)
-        } label: {
-            Image(systemName: appState.isRunning ? "shippingbox.fill" : "shippingbox")
-        }
-
         Window("BoxX", id: "main") {
             MainView()
                 .environment(appState)
@@ -82,6 +78,13 @@ struct BoxXApp: App {
     }
 }
 
+/// Holds a strong reference to the AppKit MenuBarController so the NSStatusItem stays alive.
+@MainActor
+final class MenuBarHolder {
+    static let shared = MenuBarHolder()
+    var controller: MenuBarController?
+}
+
 /// Adaptive status polling -- fast when stopped, slow when running
 @MainActor
 final class StatusPoller {
@@ -111,6 +114,7 @@ final class StatusPoller {
     func nudge(appState: AppState) {
         Task { @MainActor in
             appState.isRunning = await checkStatus(appState: appState)
+            MenuBarHolder.shared.controller?.updateIcon()
             if appState.isRunning {
                 scheduleSlowPoll(appState: appState)
             } else {
@@ -125,6 +129,7 @@ final class StatusPoller {
             Task { @MainActor in
                 guard let self else { return }
                 appState.isRunning = await self.checkStatus(appState: appState)
+                MenuBarHolder.shared.controller?.updateIcon()
                 if appState.isRunning {
                     self.scheduleSlowPoll(appState: appState)
                 }
@@ -138,6 +143,7 @@ final class StatusPoller {
             Task { @MainActor in
                 guard let self else { return }
                 appState.isRunning = await self.checkStatus(appState: appState)
+                MenuBarHolder.shared.controller?.updateIcon()
                 if !appState.isRunning {
                     self.scheduleFastPoll(appState: appState)
                 }
