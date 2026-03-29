@@ -223,7 +223,25 @@ import Foundation
 final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
     private var singBoxProcess: Process?
 
+    private let serialQueue = DispatchQueue(label: "com.boxx.helper.serial")
+
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
+        // Validate caller's code signature
+        let pid = connection.processIdentifier
+        var code: SecCode?
+        let attrs = [kSecGuestAttributePid: pid] as CFDictionary
+        guard SecCodeCopyGuestWithAttributes(nil, attrs, [], &code) == errSecSuccess,
+              let secCode = code else {
+            return false
+        }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(secCode, [], &info) == errSecSuccess,
+              let dict = info as? [String: Any],
+              let bundleId = dict["identifier"] as? String,
+              bundleId == "com.boxx.app" else {
+            return false
+        }
+
         connection.exportedInterface = NSXPCInterface(with: HelperProtocol.self)
         connection.exportedObject = self
         connection.resume()
@@ -231,84 +249,88 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
     }
 
     func startSingBox(configPath: String, withReply reply: @escaping (Bool, String?) -> Void) {
-        // Validate config path is under expected directory
-        guard configPath.contains("/singbox/") && configPath.hasSuffix(".json") else {
-            reply(false, "Invalid config path")
-            return
-        }
-
-        guard FileManager.default.fileExists(atPath: HelperConstants.singBoxPath) else {
-            reply(false, "sing-box not found at \(HelperConstants.singBoxPath)")
-            return
-        }
-
-        // Stop existing process if any
-        if let proc = singBoxProcess, proc.isRunning {
-            proc.terminate()
-            usleep(500_000)
-            if proc.isRunning { proc.interrupt() }
-            singBoxProcess = nil
-        }
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: HelperConstants.singBoxPath)
-        process.arguments = ["run", "-c", configPath]
-        process.environment = ["PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"]
-        // Set umask so cache.db is readable by the user
-        umask(0o022)
-
-        do {
-            try process.run()
-            singBoxProcess = process
-            // Give it a moment to start
-            usleep(1_000_000)
-            if process.isRunning {
-                reply(true, nil)
-            } else {
-                reply(false, "sing-box exited immediately (code \(process.terminationStatus))")
+        serialQueue.async { [self] in
+            // Validate config path is under expected directory
+            guard configPath.contains("/singbox/") && configPath.hasSuffix(".json") else {
+                reply(false, "Invalid config path")
+                return
             }
-        } catch {
-            reply(false, error.localizedDescription)
+
+            guard FileManager.default.fileExists(atPath: HelperConstants.singBoxPath) else {
+                reply(false, "sing-box not found at \(HelperConstants.singBoxPath)")
+                return
+            }
+
+            // Stop existing process if any
+            if let proc = singBoxProcess, proc.isRunning {
+                proc.terminate()
+                usleep(500_000)
+                if proc.isRunning { kill(proc.processIdentifier, SIGKILL) }
+                singBoxProcess = nil
+            }
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: HelperConstants.singBoxPath)
+            process.arguments = ["run", "-c", configPath]
+            process.environment = ["PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"]
+            // Set umask so cache.db is readable by the user
+            umask(0o022)
+
+            do {
+                try process.run()
+                singBoxProcess = process
+                // Give it a moment to start
+                usleep(1_000_000)
+                if process.isRunning {
+                    reply(true, nil)
+                } else {
+                    reply(false, "sing-box exited immediately (code \(process.terminationStatus))")
+                }
+            } catch {
+                reply(false, error.localizedDescription)
+            }
         }
     }
 
     func stopSingBox(withReply reply: @escaping (Bool, String?) -> Void) {
-        guard let proc = singBoxProcess, proc.isRunning else {
-            // Also try to find and kill any orphan sing-box process
-            let finder = Process()
-            finder.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-            finder.arguments = ["-f", "sing-box run"]
-            let pipe = Pipe()
-            finder.standardOutput = pipe
-            try? finder.run()
-            finder.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !output.isEmpty {
-                for pidStr in output.components(separatedBy: "\n") {
-                    if let pid = Int32(pidStr) {
-                        kill(pid, SIGTERM)
+        serialQueue.async { [self] in
+            guard let proc = singBoxProcess, proc.isRunning else {
+                // Also try to find and kill any orphan sing-box process
+                let finder = Process()
+                finder.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+                finder.arguments = ["-f", "sing-box run"]
+                let pipe = Pipe()
+                finder.standardOutput = pipe
+                try? finder.run()
+                finder.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !output.isEmpty {
+                    for pidStr in output.components(separatedBy: "\n") {
+                        if let pid = Int32(pidStr) {
+                            kill(pid, SIGTERM)
+                        }
                     }
+                    usleep(1_000_000)
                 }
-                usleep(1_000_000)
+                singBoxProcess = nil
+                reply(true, nil)
+                return
+            }
+
+            proc.terminate() // SIGTERM
+            // Wait up to 2 seconds for graceful shutdown
+            usleep(2_000_000)
+            if proc.isRunning {
+                kill(proc.processIdentifier, SIGKILL) // actual SIGKILL, not SIGINT
             }
             singBoxProcess = nil
-            reply(true, nil)
-            return
-        }
-
-        proc.terminate()
-        // Wait up to 2 seconds for graceful shutdown
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
-            if proc.isRunning {
-                proc.interrupt() // SIGKILL
-            }
-            self?.singBoxProcess = nil
             reply(true, nil)
         }
     }
 
     func getStatus(withReply reply: @escaping (Bool, Int32) -> Void) {
+        serialQueue.async { [self] in
         if let proc = singBoxProcess, proc.isRunning {
             reply(true, proc.processIdentifier)
             return
@@ -328,6 +350,7 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         } else {
             reply(false, 0)
         }
+        } // end serialQueue
     }
 }
 
@@ -723,7 +746,7 @@ final class ProxyModelsTests: XCTestCase {
 // singbox/BoxX/BoxX/Models/ProxyModels.swift
 import Foundation
 
-struct ProxyGroup: Identifiable, Codable {
+struct ProxyGroup: Identifiable, Codable, Sendable {
     var id: String { name }
     let name: String
     let type: String
@@ -733,7 +756,7 @@ struct ProxyGroup: Identifiable, Codable {
     var displayAll: [String] { all ?? [] }
 }
 
-struct ProxyNode: Identifiable, Codable {
+struct ProxyNode: Identifiable, Codable, Sendable {
     var id: String { name }
     let name: String
     let type: String
@@ -744,17 +767,17 @@ struct ProxyNode: Identifiable, Codable {
     }
 }
 
-struct DelayHistory: Codable {
+struct DelayHistory: Codable, Sendable {
     let time: String
     let delay: Int
 }
 
 /// Full response from GET /proxies
-struct ProxiesResponse: Codable {
+struct ProxiesResponse: Codable, Sendable {
     let proxies: [String: ProxyDetail]
 }
 
-struct ProxyDetail: Codable {
+struct ProxyDetail: Codable, Sendable {
     let name: String
     let type: String
     let now: String?
@@ -768,7 +791,7 @@ struct ProxyDetail: Codable {
 // singbox/BoxX/BoxX/Models/ConnectionModels.swift
 import Foundation
 
-struct Connection: Identifiable, Codable {
+struct Connection: Identifiable, Codable, Sendable {
     let id: String
     let chains: [String]
     let download: Int64
@@ -791,7 +814,7 @@ struct Connection: Identifiable, Codable {
     }
 }
 
-struct ConnectionMetadata: Codable {
+struct ConnectionMetadata: Codable, Sendable {
     let destinationIP: String
     let destinationPort: String
     let dnsMode: String
@@ -803,7 +826,7 @@ struct ConnectionMetadata: Codable {
     let type: String
 }
 
-struct ConnectionSnapshot: Codable {
+struct ConnectionSnapshot: Codable, Sendable {
     let connections: [Connection]?
     let downloadTotal: Int64
     let uploadTotal: Int64
@@ -828,7 +851,7 @@ struct LogEntry: Identifiable {
     }
 }
 
-struct LogMessage: Codable {
+struct LogMessage: Codable, Sendable {
     let type: String   // log level
     let payload: String // message
 }
@@ -838,7 +861,7 @@ struct LogMessage: Codable {
 // singbox/BoxX/BoxX/Models/Rule.swift
 import Foundation
 
-struct Rule: Identifiable, Codable {
+struct Rule: Identifiable, Codable, Sendable {
     let id: Int
     let type: String
     let payload: String
@@ -865,7 +888,7 @@ struct Rule: Identifiable, Codable {
     }
 }
 
-struct RulesResponse: Codable {
+struct RulesResponse: Codable, Sendable {
     let rules: [Rule]
 }
 ```
@@ -1119,8 +1142,18 @@ import Foundation
 final class ClashWebSocket: NSObject, @unchecked Sendable {
     private let baseURL: String
     private let secret: String
-    private var task: URLSessionWebSocketTask?
-    private var session: URLSession?
+    private let lock = NSLock()
+    private var _task: URLSessionWebSocketTask?
+    private var _session: URLSession?
+
+    private var task: URLSessionWebSocketTask? {
+        get { lock.withLock { _task } }
+        set { lock.withLock { _task = newValue } }
+    }
+    private var session: URLSession? {
+        get { lock.withLock { _session } }
+        set { lock.withLock { _session = newValue } }
+    }
 
     init(baseURL: String = "http://127.0.0.1:9091", secret: String = "") {
         self.baseURL = baseURL.replacingOccurrences(of: "http://", with: "ws://")
@@ -1267,11 +1300,11 @@ git commit -m "feat(BoxX): add WebSocket streams for logs and connections"
 import Foundation
 import ServiceManagement
 
-@MainActor
 final class HelperManager: @unchecked Sendable {
     static let shared = HelperManager()
 
-    private var xpcConnection: NSXPCConnection?
+    private let lock = NSLock()
+    private var _xpcConnection: NSXPCConnection?
 
     var isHelperInstalled: Bool {
         let service = SMAppService.daemon(plistName: "com.boxx.helper.plist")
@@ -1289,7 +1322,10 @@ final class HelperManager: @unchecked Sendable {
     }
 
     func getProxy() -> HelperProtocol? {
-        if let connection = xpcConnection {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let connection = _xpcConnection {
             return connection.remoteObjectProxy as? HelperProtocol
         }
         let connection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
@@ -1298,16 +1334,18 @@ final class HelperManager: @unchecked Sendable {
             // Connection interrupted but can auto-recover
         }
         connection.invalidationHandler = { [weak self] in
-            self?.xpcConnection = nil
+            self?.lock.withLock { self?._xpcConnection = nil }
         }
         connection.resume()
-        xpcConnection = connection
+        _xpcConnection = connection
         return connection.remoteObjectProxy as? HelperProtocol
     }
 
     func disconnect() {
-        xpcConnection?.invalidate()
-        xpcConnection = nil
+        lock.withLock {
+            _xpcConnection?.invalidate()
+            _xpcConnection = nil
+        }
     }
 }
 ```
@@ -1653,6 +1691,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openWindow) private var openWindow
     let singBoxManager: SingBoxManager
     let configGenerator: ConfigGenerator
     let api: ClashAPI
@@ -1660,6 +1699,8 @@ struct MenuBarView: View {
     @State private var proxyGroups: [ProxyGroup] = []
 
     var body: some View {
+        // Refresh proxy groups when menu opens
+        let _ = Task { await refreshGroups() }
         if appState.isRunning {
             Label("sing-box Running", systemImage: "circle.fill")
                 .foregroundColor(.green)
@@ -1707,17 +1748,13 @@ struct MenuBarView: View {
         Divider()
 
         Button("Open Dashboard") {
+            openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
-            if let window = NSApp.windows.first(where: { $0.title == "BoxX" }) {
-                window.makeKeyAndOrderFront(nil)
-            } else {
-                // Open the window via environment
-                NSApp.sendAction(#selector(NSApplication.showMainWindow), to: nil, from: nil)
-            }
         }
 
-        SettingsLink {
-            Text("Settings...")
+        Button("Settings...") {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
 
         Divider()
@@ -1824,15 +1861,36 @@ struct BoxXApp: App {
 }
 ```
 
-- [ ] **Step 3: Build and verify**
+- [ ] **Step 3: Create placeholder views so the app compiles**
+
+Create minimal placeholder files for all views referenced by BoxXApp.swift that don't exist yet:
+
+```swift
+// singbox/BoxX/BoxX/Views/MainView.swift
+import SwiftUI
+struct MainView: View {
+    let api: ClashAPI; let singBoxManager: SingBoxManager; let configGenerator: ConfigGenerator
+    var body: some View { Text("Dashboard").frame(minWidth: 800, minHeight: 500) }
+}
+```
+
+```swift
+// singbox/BoxX/BoxX/Views/SettingsView.swift
+import SwiftUI
+struct SettingsView: View {
+    var body: some View { Text("Settings").frame(width: 400, height: 300) }
+}
+```
+
+- [ ] **Step 4: Build and verify**
 
 ```bash
 xcodegen generate && xcodebuild -scheme BoxX -configuration Debug build 2>&1 | tail -3
 ```
 
-Expected: BUILD SUCCEEDED (MainView not yet implemented — create a placeholder)
+Expected: BUILD SUCCEEDED
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add singbox/BoxX/
@@ -2097,12 +2155,12 @@ import SwiftUI
 
 struct ProxyGroupCard: View {
     let group: ProxyGroup
+    let delays: [String: Int]
+    let isTesting: Bool
     let onSelect: (String) -> Void
     let onTestLatency: () -> Void
 
     @State private var isExpanded = false
-    @State private var delays: [String: Int] = [:]
-    @State private var isTesting = false
 
     var body: some View {
         GroupBox {
@@ -2201,10 +2259,6 @@ struct ProxyGroupCard: View {
         if delay < 500 { return .yellow }
         return .red
     }
-
-    func updateDelays(_ newDelays: [String: Int]) {
-        delays = newDelays
-    }
 }
 ```
 
@@ -2263,6 +2317,8 @@ struct ProxiesView: View {
                         ForEach(filteredGroups) { group in
                             ProxyGroupCard(
                                 group: group,
+                                delays: delays[group.name] ?? [:],
+                                isTesting: testingGroup == group.name,
                                 onSelect: { node in
                                     Task { await selectNode(group: group.name, node: node) }
                                 },
