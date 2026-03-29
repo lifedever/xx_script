@@ -6,8 +6,26 @@ struct BoxXApp: App {
     private let singBoxManager = SingBoxManager.shared
     private let configGenerator = ConfigGenerator()
     private let api = ClashAPI()
-    @State private var wakeObserver: WakeObserver?
-    @State private var statusTimer: Timer?
+
+    init() {
+        let manager = singBoxManager
+        let state = appState
+        let clashAPI = api
+        let cfgGen = configGenerator
+
+        Task { @MainActor in
+            // Initial status check
+            await manager.refreshStatus()
+            state.isRunning = manager.isRunning
+
+            // Start adaptive polling
+            StatusPoller.shared.start(manager: manager, appState: state)
+
+            // Setup wake observer
+            let observer = WakeObserver(singBoxManager: manager, api: clashAPI, configPath: cfgGen.configPath)
+            await observer.startObserving()
+        }
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -17,10 +35,6 @@ struct BoxXApp: App {
                 api: api
             )
             .environment(appState)
-            .onAppear {
-                startStatusPolling()
-                setupWakeObserver()
-            }
         } label: {
             Image(systemName: appState.isRunning ? "shippingbox.fill" : "shippingbox")
         }
@@ -42,8 +56,9 @@ struct BoxXApp: App {
                     NSApp.mainWindow?.makeKeyAndOrderFront(nil)
                 }
                 .onDisappear {
-                    let hasOtherWindow = NSApp.windows.contains { $0.isVisible && $0.title != "BoxX" && $0.title != "" }
-                    if !hasOtherWindow { NSApp.setActivationPolicy(.accessory) }
+                    if !NSApp.windows.contains(where: { $0.isVisible && $0.title != "BoxX" && $0.title != "" }) {
+                        NSApp.setActivationPolicy(.accessory)
+                    }
                 }
         }
         .defaultSize(width: 900, height: 600)
@@ -53,65 +68,69 @@ struct BoxXApp: App {
                 .environment(appState)
                 .onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate() }
                 .onDisappear {
-                    let has = NSApp.windows.contains { $0.isVisible && $0.title != "" }
-                    if !has { NSApp.setActivationPolicy(.accessory) }
+                    if !NSApp.windows.contains(where: { $0.isVisible && $0.title != "" }) {
+                        NSApp.setActivationPolicy(.accessory)
+                    }
                 }
         }
         .windowResizability(.contentSize)
     }
+}
 
-    private func startStatusPolling() {
-        guard statusTimer == nil else { return }
-        // Initial check
+/// Adaptive status polling — fast when stopped, slow when running
+@MainActor
+final class StatusPoller {
+    static let shared = StatusPoller()
+    private var timer: Timer?
+
+    func start(manager: SingBoxManager, appState: AppState) {
+        guard timer == nil else { return }
+        if appState.isRunning {
+            // Running — poll slowly (30s) just to detect if it stops
+            scheduleSlowPoll(manager: manager, appState: appState)
+        } else {
+            // Stopped — poll fast (3s) until detected
+            scheduleFastPoll(manager: manager, appState: appState)
+        }
+    }
+
+    /// Call this after any operation that changes state (start/stop/restart/wake)
+    func nudge(manager: SingBoxManager, appState: AppState) {
         Task { @MainActor in
-            await singBoxManager.refreshStatus()
-            appState.isRunning = singBoxManager.isRunning
+            await manager.refreshStatus()
+            appState.isRunning = manager.isRunning
+            // Reset timer based on new state
             if appState.isRunning {
-                // Already running — slow poll (30s) just to detect if it stops
-                scheduleSlowPoll()
+                scheduleSlowPoll(manager: manager, appState: appState)
             } else {
-                // Not running — fast poll (3s) until detected
-                scheduleFastPoll()
+                scheduleFastPoll(manager: manager, appState: appState)
             }
         }
     }
 
-    private func scheduleFastPoll() {
-        statusTimer?.invalidate()
-        statusTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
+    private func scheduleFastPoll(manager: SingBoxManager, appState: AppState) {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await singBoxManager.refreshStatus()
-                appState.isRunning = singBoxManager.isRunning
+                await manager.refreshStatus()
+                appState.isRunning = manager.isRunning
                 if appState.isRunning {
-                    // Found it — switch to slow poll
-                    self.scheduleSlowPoll()
+                    self?.scheduleSlowPoll(manager: manager, appState: appState)
                 }
             }
         }
     }
 
-    private func scheduleSlowPoll() {
-        statusTimer?.invalidate()
-        statusTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
+    private func scheduleSlowPoll(manager: SingBoxManager, appState: AppState) {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await singBoxManager.refreshStatus()
-                appState.isRunning = singBoxManager.isRunning
+                await manager.refreshStatus()
+                appState.isRunning = manager.isRunning
                 if !appState.isRunning {
-                    // Lost it — switch to fast poll
-                    self.scheduleFastPoll()
+                    self?.scheduleFastPoll(manager: manager, appState: appState)
                 }
             }
         }
-    }
-
-    private func setupWakeObserver() {
-        guard wakeObserver == nil else { return }
-        let observer = WakeObserver(
-            singBoxManager: singBoxManager,
-            api: api,
-            configPath: configGenerator.configPath
-        )
-        wakeObserver = observer
-        Task { await observer.startObserving() }
     }
 }

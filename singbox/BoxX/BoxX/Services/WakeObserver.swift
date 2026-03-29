@@ -7,6 +7,11 @@ actor WakeObserver {
     private let configPath: String
     private var isRecovering = false
     private var observation: NSObjectProtocol?
+    private let logFile: String = {
+        let dir = (UserDefaults.standard.string(forKey: "scriptDir")
+            ?? (NSHomeDirectory() + "/Documents/Dev/myspace/xx_script/singbox"))
+        return dir + "/boxx-wake.log"
+    }()
 
     init(singBoxManager: SingBoxManager, api: ClashAPI, configPath: String) {
         self.singBoxManager = singBoxManager
@@ -38,46 +43,59 @@ actor WakeObserver {
         isRecovering = true
         defer { isRecovering = false }
 
-        // Wait for network interfaces to initialize
+        log("Wake detected, waiting 3s for interfaces...")
         try? await Task.sleep(for: .seconds(3))
 
-        // Is sing-box process alive?
         let apiReachable = await api.isReachable()
+        log("Clash API reachable: \(apiReachable)")
+
         if !apiReachable {
-            // Process dead — update status, can't auto-restart without password
+            log("Process dead, cannot auto-restart")
             await singBoxManager.refreshStatus()
             return
         }
 
-        // Process alive — try recovery without restart:
-        // 1. Flush DNS
+        // Step 1: Flush DNS + close all connections
+        log("Step 1: flush DNS + close connections")
         flushDNS()
-
-        // 2. Close all connections (forces TUN to rebuild)
         try? await api.closeAllConnections()
-
-        // 3. Wait for reconnection
         try? await Task.sleep(for: .seconds(2))
 
-        // 4. Test if external network works
-        if await probeExternalConnectivity() {
-            await singBoxManager.refreshStatus()
-            return
-        }
+        let test1 = await probeExternalConnectivity()
+        log("Step 1 result: \(test1 ? "OK" : "FAIL")")
+        if test1 { await singBoxManager.refreshStatus(); return }
 
-        // 5. Still broken — flush DNS again + close connections + wait longer
+        // Step 2: Retry
+        log("Step 2: retry flush + close")
         flushDNS()
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(3))
 
-        if await probeExternalConnectivity() {
-            await singBoxManager.refreshStatus()
-            return
-        }
+        let test2 = await probeExternalConnectivity()
+        log("Step 2 result: \(test2 ? "OK" : "FAIL")")
+        if test2 { await singBoxManager.refreshStatus(); return }
 
-        // 6. Last resort — restart sing-box (will prompt for password)
+        // Step 3: Restart sing-box (password prompt)
+        log("Step 3: restarting sing-box (password required)")
         try? await singBoxManager.restart(configPath: configPath)
         await singBoxManager.refreshStatus()
+        log("Restart complete, running: \(await singBoxManager.isRunning)")
+    }
+
+    private func log(_ message: String) {
+        let ts = ISO8601DateFormatter().string(from: Date())
+        let line = "[\(ts)] \(message)\n"
+        if let data = line.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logFile) {
+                if let handle = FileHandle(forWritingAtPath: logFile) {
+                    handle.seekToEndOfFile()
+                    handle.write(data)
+                    handle.closeFile()
+                }
+            } else {
+                FileManager.default.createFile(atPath: logFile, contents: data)
+            }
+        }
     }
 
     /// Flush DNS cache
