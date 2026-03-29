@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
+		05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */; };
 		0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EFFD13A60A868D1FABC99 /* WakeObserver.swift */; };
 		0D00DCB833E7B0E79F0D5CAA /* HelperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F3AAAF0B5C1D4F9ABA10C3B /* HelperManager.swift */; };
 		0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */; };
@@ -98,6 +99,7 @@
 		D67DE93C42F2614F14BE4375 /* RulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesView.swift; sourceTree = "<group>"; };
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
+		EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleTestView.swift; sourceTree = "<group>"; };
 		ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModelsTests.swift; sourceTree = "<group>"; };
 		F1938ECE20FFDCBC5DA86303 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		F5BD437B4F6F076959897C90 /* ProxiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxiesView.swift; sourceTree = "<group>"; };
@@ -187,6 +189,7 @@
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
 				D67DE93C42F2614F14BE4375 /* RulesView.swift */,
+				EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 				022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */,
 			);
@@ -388,6 +391,7 @@
 				53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
 				7491BE185917A2B7C49A4FDB /* RuleManager.swift in Sources */,
+				05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */,
 				CA555942B8B8494999381A5F /* RulesView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				D882C1834356CF10C703550F /* SingBoxManager.swift in Sources */,

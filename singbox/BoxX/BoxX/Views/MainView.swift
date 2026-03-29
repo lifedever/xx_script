@@ -3,6 +3,7 @@ import SwiftUI
 enum SidebarItem: String, CaseIterable, Identifiable {
     case overview
     case proxies
+    case ruleTest
     case rules
     case connections
     case logs
@@ -14,6 +15,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .overview: return String(localized: "sidebar.overview")
         case .proxies: return String(localized: "sidebar.proxies")
+        case .ruleTest: return String(localized: "sidebar.rule_test")
         case .rules: return String(localized: "sidebar.rules")
         case .connections: return String(localized: "sidebar.connections")
         case .logs: return String(localized: "sidebar.logs")
@@ -25,6 +27,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .overview: return "chart.bar.doc.horizontal"
         case .proxies: return "network"
+        case .ruleTest: return "arrow.triangle.branch"
         case .rules: return "list.bullet"
         case .connections: return "link"
         case .logs: return "doc.text"
@@ -56,6 +59,9 @@ struct MainView: View {
                 case .proxies:
                     ProxiesView(api: api)
                         .navigationTitle(String(localized: "sidebar.proxies"))
+                case .ruleTest:
+                    RuleTestView(api: api)
+                        .navigationTitle(String(localized: "sidebar.rule_test"))
                 case .rules:
                     RulesView(api: api)
                         .navigationTitle(String(localized: "sidebar.rules"))

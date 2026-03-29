@@ -178,50 +178,43 @@ struct SubscriptionCard: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
-    @State private var showDeleteConfirm = false
+    @State private var isHovering = false
 
     var body: some View {
         GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "shippingbox.fill")
-                        .foregroundStyle(Color.accentColor)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.title3)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 28)
+                    .padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 4) {
                     Text(subscription.name)
-                        .font(.headline)
-                    Spacer()
+                        .font(.body.bold())
 
-                    Button { onEdit() } label: {
-                        Image(systemName: "pencil")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help(String(localized: "subs.edit"))
-
-                    Button { showDeleteConfirm = true } label: {
-                        Image(systemName: "trash")
-                            .foregroundStyle(.red.opacity(0.7))
-                    }
-                    .buttonStyle(.plain)
-                    .help(String(localized: "subs.delete"))
-                    .confirmationDialog(
-                        String(localized: "subs.delete_confirm"),
-                        isPresented: $showDeleteConfirm
-                    ) {
-                        Button(String(localized: "subs.delete"), role: .destructive) {
-                            onDelete()
-                        }
-                    }
+                    Text(subscription.url)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
 
-                // Full URL — selectable, no truncation
-                Text(subscription.url)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .lineLimit(3)
+                Spacer()
             }
             .padding(4)
         }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { onEdit() }
+        .contextMenu {
+            Button(String(localized: "subs.edit")) { onEdit() }
+            Divider()
+            Button(String(localized: "subs.delete"), role: .destructive) { onDelete() }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(isHovering ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
+        .onHover { isHovering = $0 }
     }
 }
 

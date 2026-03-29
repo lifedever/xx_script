@@ -153,12 +153,18 @@ struct ConnectionsView: View {
 
                 // Detail panel
                 if let conn = selectedConnection {
-                    ConnectionDetailPanel(connection: conn, byteFormatter: byteFormatter) {
-                        addRuleConnection = conn
-                        showAddRule = true
-                    } onClose: {
-                        Task { try? await api.closeConnection(id: conn.id) }
-                    }
+                    ConnectionDetailPanel(
+                        connection: conn,
+                        byteFormatter: byteFormatter,
+                        onAddRule: {
+                            addRuleConnection = conn
+                            showAddRule = true
+                        },
+                        onCloseConnection: {
+                            Task { try? await api.closeConnection(id: conn.id) }
+                        },
+                        onDismiss: { selectedID = nil }
+                    )
                 }
             }
         }
@@ -188,66 +194,121 @@ struct ConnectionsView: View {
     }
 }
 
-// MARK: - Detail Panel
+// MARK: - Detail Panel (resizable, closable)
 
 struct ConnectionDetailPanel: View {
     let connection: Connection
     let byteFormatter: ByteCountFormatter
     let onAddRule: () -> Void
-    let onClose: () -> Void
+    let onCloseConnection: () -> Void
+    let onDismiss: () -> Void
+
+    @State private var panelHeight: CGFloat = 200
+    private let minHeight: CGFloat = 120
+    private let maxHeight: CGFloat = 500
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(String(localized: "connections.detail.title"))
-                            .font(.headline)
-                        Spacer()
-                        Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
-                            .controlSize(.small)
-                        Button(String(localized: "connections.ctx.close")) { onClose() }
-                            .controlSize(.small)
-                            .tint(.red)
-                    }
+            // Drag handle + header
+            VStack(spacing: 0) {
+                // Drag bar
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 6)
+                    .padding(.bottom, 4)
 
-                    LazyVGrid(columns: [GridItem(.fixed(100), alignment: .trailing), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 6) {
-                        DetailRow(label: String(localized: "connections.host"), value: connection.host)
-                        DetailRow(label: "IP", value: connection.metadata.destinationIP)
-                        DetailRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
-                        DetailRow(label: String(localized: "connections.network"), value: connection.network)
-                        DetailRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
-                        DetailRow(label: String(localized: "connections.rule"), value: connection.rule)
-                        DetailRow(label: String(localized: "connections.outbound"), value: connection.outbound)
-                        DetailRow(label: String(localized: "connections.chain"), value: connection.chain)
-                        DetailRow(label: String(localized: "connections.detail.source"), value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
-                        DetailRow(label: String(localized: "connections.time"), value: connection.startTimeString)
-                        DetailRow(label: "↓", value: byteFormatter.string(fromByteCount: connection.download))
-                        DetailRow(label: "↑", value: byteFormatter.string(fromByteCount: connection.upload))
-                        if !connection.metadata.processPath.isEmpty {
-                            DetailRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
-                        }
+                HStack {
+                    Text(String(localized: "connections.detail.title"))
+                        .font(.headline)
+
+                    Text(connection.host)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Button(String(localized: "connections.ctx.add_rule")) { onAddRule() }
+                        .controlSize(.small)
+                    Button(String(localized: "connections.ctx.close")) { onCloseConnection() }
+                        .controlSize(.small)
+                        .tint(.red)
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+            .background(.bar)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        let newHeight = panelHeight - value.translation.height
+                        panelHeight = min(max(newHeight, minHeight), maxHeight)
+                    }
+            )
+            .cursor(.resizeUpDown)
+
+            Divider()
+
+            // Content
+            ScrollView {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 8) {
+                    DetailGridRow(label: String(localized: "connections.host"), value: connection.host)
+                    DetailGridRow(label: "IP", value: connection.metadata.destinationIP)
+                    DetailGridRow(label: String(localized: "connections.detail.port"), value: connection.metadata.destinationPort)
+                    DetailGridRow(label: String(localized: "connections.network"), value: connection.network)
+                    DetailGridRow(label: String(localized: "connections.detail.type"), value: connection.metadata.type)
+                    Divider()
+                    DetailGridRow(label: String(localized: "connections.rule"), value: connection.rule)
+                    DetailGridRow(label: String(localized: "connections.outbound"), value: connection.outbound)
+                    DetailGridRow(label: String(localized: "connections.chain"), value: connection.chain)
+                    Divider()
+                    DetailGridRow(label: String(localized: "connections.detail.source"), value: "\(connection.metadata.sourceIP):\(connection.metadata.sourcePort)")
+                    DetailGridRow(label: String(localized: "connections.time"), value: connection.startTimeString)
+                    DetailGridRow(label: "↓ " + String(localized: "connections.download"), value: byteFormatter.string(fromByteCount: connection.download))
+                    DetailGridRow(label: "↑ " + String(localized: "connections.upload"), value: byteFormatter.string(fromByteCount: connection.upload))
+                    if !connection.metadata.processPath.isEmpty {
+                        DetailGridRow(label: String(localized: "connections.detail.process"), value: connection.metadata.processPath)
                     }
                 }
                 .padding()
             }
-            .frame(height: 240)
-            .background(.bar)
+            .frame(height: panelHeight)
+            .background(.background.opacity(0.95))
         }
     }
 }
 
-struct DetailRow: View {
+struct DetailGridRow: View {
     let label: String
     let value: String
 
     var body: some View {
-        Text(label)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        Text(value)
-            .font(.caption.monospaced())
-            .textSelection(.enabled)
+        GridRow {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .gridColumnAlignment(.trailing)
+            Text(value)
+                .font(.caption.monospaced())
+                .textSelection(.enabled)
+                .gridColumnAlignment(.leading)
+        }
+    }
+}
+
+// Cursor modifier for drag handle
+extension View {
+    func cursor(_ cursor: NSCursor) -> some View {
+        onHover { inside in
+            if inside { cursor.push() } else { NSCursor.pop() }
+        }
     }
 }

@@ -34,6 +34,7 @@
 "sidebar.connections" = "连接";
 "sidebar.logs" = "日志";
 "sidebar.subscriptions" = "订阅";
+"sidebar.rule_test" = "规则测试";
 
 // Overview
 "overview.status" = "状态";
@@ -72,12 +73,15 @@
 "proxies.section.regions" = "地区节点";
 "proxies.section.subscriptions" = "订阅分组";
 "proxies.section.other" = "其他";
-"proxies.rule_test" = "规则测试";
-"proxies.rule_test.placeholder" = "输入域名 (如 google.com)";
-"proxies.rule_test.button" = "测试";
-"proxies.rule_test.rule" = "匹配规则";
-"proxies.rule_test.outbound" = "出站";
-"proxies.rule_test.chain" = "链路";
+"ruletest.placeholder" = "输入域名或 URL (如 google.com)";
+"ruletest.button" = "测试";
+"ruletest.clear" = "清空";
+"ruletest.hint" = "测试域名匹配哪条规则";
+"ruletest.hint_detail" = "输入域名并点击测试。\n将通过 sing-box 发起真实连接，获取准确的路由结果。";
+"ruletest.no_match" = "未找到匹配的连接";
+"ruletest.flow.rule" = "匹配规则";
+"ruletest.flow.outbound" = "出站节点";
+"ruletest.flow.chain" = "完整链路";
 
 // Rules
 "rules.search" = "搜索规则…";

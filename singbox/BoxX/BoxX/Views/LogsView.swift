@@ -79,8 +79,8 @@ struct LogsView: View {
                 }
             }
         }
-        .task {
-            startWebSocket()
+        .onAppear {
+            restartWebSocket()
         }
         .onDisappear {
             wsTask?.cancel()
