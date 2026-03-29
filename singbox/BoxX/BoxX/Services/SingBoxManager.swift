@@ -14,19 +14,11 @@ final class SingBoxManager {
     var isExternalProcess = false
 
     func refreshStatus() async {
+        // Simple: if Clash API responds, sing-box is running
         let apiReachable = await clashAPI.isReachable()
         if apiReachable {
-            if helperManager.isHelperInstalled {
-                let helperResult = await checkViaHelper()
-                if helperResult.running {
-                    isRunning = true
-                    pid = helperResult.pid
-                    isExternalProcess = false
-                    return
-                }
-            }
             isRunning = true
-            pid = 0
+            // We don't know the PID without Helper, that's fine
             isExternalProcess = true
             return
         }
@@ -35,70 +27,51 @@ final class SingBoxManager {
         isExternalProcess = false
     }
 
-    private func checkViaHelper() async -> (running: Bool, pid: Int32) {
-        await withTimeout(seconds: 3, defaultValue: (false, 0)) {
-            await withCheckedContinuation { (cont: CheckedContinuation<(Bool, Int32), Never>) in
-                guard let helper = self.helperManager.getProxyWithErrorHandler({ _ in
-                    cont.resume(returning: (false, 0))
-                }) else {
-                    cont.resume(returning: (false, 0))
-                    return
-                }
-                helper.getStatus { running, pid in
-                    cont.resume(returning: (running, pid))
-                }
-            }
-        }
-    }
-
     func start(configPath: String) async throws {
-        // Disconnect old XPC connection to ensure fresh connection
         helperManager.disconnect()
 
-        let result: (Bool, String?) = await withTimeout(seconds: 10, defaultValue: (false, "XPC timeout")) {
-            await withCheckedContinuation { (cont: CheckedContinuation<(Bool, String?), Never>) in
-                guard let helper = self.helperManager.getProxyWithErrorHandler({ error in
-                    cont.resume(returning: (false, error.localizedDescription))
-                }) else {
-                    cont.resume(returning: (false, "Helper not available"))
-                    return
-                }
-                helper.startSingBox(configPath: configPath) { success, error in
-                    cont.resume(returning: (success, error))
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let helper = helperManager.getProxyWithErrorHandler({ error in
+                continuation.resume(throwing: SingBoxError.startFailed(error.localizedDescription))
+            }) else {
+                continuation.resume(throwing: SingBoxError.helperNotAvailable)
+                return
+            }
+            helper.startSingBox(configPath: configPath) { success, error in
+                if success {
+                    Task { @MainActor in
+                        self.isRunning = true
+                        self.isExternalProcess = false
+                    }
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: SingBoxError.startFailed(error ?? "Unknown error"))
                 }
             }
-        }
-
-        if result.0 {
-            isRunning = true
-            await refreshStatus()
-        } else {
-            throw SingBoxError.startFailed(result.1 ?? "Unknown error")
         }
     }
 
     func stop() async throws {
         helperManager.disconnect()
 
-        let result: (Bool, String?) = await withTimeout(seconds: 10, defaultValue: (false, "XPC timeout")) {
-            await withCheckedContinuation { (cont: CheckedContinuation<(Bool, String?), Never>) in
-                guard let helper = self.helperManager.getProxyWithErrorHandler({ error in
-                    cont.resume(returning: (false, error.localizedDescription))
-                }) else {
-                    cont.resume(returning: (false, "Helper not available"))
-                    return
-                }
-                helper.stopSingBox { success, error in
-                    cont.resume(returning: (success, error))
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let helper = helperManager.getProxyWithErrorHandler({ error in
+                continuation.resume(throwing: SingBoxError.stopFailed(error.localizedDescription))
+            }) else {
+                continuation.resume(throwing: SingBoxError.helperNotAvailable)
+                return
+            }
+            helper.stopSingBox { success, error in
+                if success {
+                    Task { @MainActor in
+                        self.isRunning = false
+                        self.pid = 0
+                    }
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: SingBoxError.stopFailed(error ?? "Unknown error"))
                 }
             }
-        }
-
-        if result.0 {
-            isRunning = false
-            pid = 0
-        } else {
-            throw SingBoxError.stopFailed(result.1 ?? "Unknown error")
         }
     }
 
@@ -135,19 +108,6 @@ final class SingBoxManager {
         try await start(configPath: configPath)
     }
 
-    /// Run an async operation with a timeout
-    private func withTimeout<T: Sendable>(seconds: Int, defaultValue: T, operation: @escaping @Sendable () async -> T) async -> T {
-        await withTaskGroup(of: T.self) { group in
-            group.addTask { await operation() }
-            group.addTask {
-                try? await Task.sleep(for: .seconds(seconds))
-                return defaultValue
-            }
-            let result = await group.next() ?? defaultValue
-            group.cancelAll()
-            return result
-        }
-    }
 }
 
 enum SingBoxError: Error, LocalizedError {
