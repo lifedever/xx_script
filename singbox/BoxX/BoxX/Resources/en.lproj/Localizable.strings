@@ -11,6 +11,8 @@
 "menu.settings" = "Settings…";
 "menu.quit" = "Quit BoxX";
 "menu.no_proxy_groups" = "No proxy groups";
+"menu.helper_not_installed" = "Helper not installed";
+"menu.install_helper" = "Install Privileged Helper…";
 
 // Sidebar
 "sidebar.overview" = "Overview";

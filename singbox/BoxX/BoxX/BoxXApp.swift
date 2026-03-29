@@ -60,6 +60,18 @@ struct BoxXApp: App {
                     NSApp.orderFrontStandardAboutPanel(nil)
                 }
             }
+            CommandGroup(after: .appInfo) {
+                if !appState.isHelperInstalled {
+                    Button(String(localized: "menu.install_helper")) {
+                        do {
+                            try HelperManager.shared.installHelper()
+                            appState.isHelperInstalled = true
+                        } catch {
+                            appState.showAlert(error.localizedDescription)
+                        }
+                    }
+                }
+            }
             CommandGroup(replacing: .appTermination) {
                 Button(String(localized: "appmenu.quit")) {
                     NSApplication.shared.terminate(nil)

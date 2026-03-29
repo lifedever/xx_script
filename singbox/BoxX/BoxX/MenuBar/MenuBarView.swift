@@ -1,4 +1,5 @@
 import SwiftUI
+import ServiceManagement
 
 struct MenuBarView: View {
     @Environment(AppState.self) private var appState
@@ -28,6 +29,12 @@ struct MenuBarView: View {
             } else {
                 Label(String(localized: "menu.status.stopped"), systemImage: "circle")
                     .foregroundStyle(Color.secondary)
+            }
+
+            // Helper not installed warning
+            if !appState.isHelperInstalled {
+                Label(String(localized: "menu.helper_not_installed"), systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Color.orange)
             }
 
             Divider()
@@ -66,7 +73,6 @@ struct MenuBarView: View {
                         print("[ConfigGenerator] \(line)")
                     }
                     isUpdatingSubscriptions = false
-                    // Refresh after update
                     await syncStatus()
                 }
             }
@@ -101,6 +107,18 @@ struct MenuBarView: View {
 
             Divider()
 
+            // Install Helper (only when not installed)
+            if !appState.isHelperInstalled {
+                Button(String(localized: "menu.install_helper")) {
+                    do {
+                        try HelperManager.shared.installHelper()
+                        appState.isHelperInstalled = true
+                    } catch {
+                        appState.showAlert(error.localizedDescription)
+                    }
+                }
+            }
+
             // Open Dashboard
             Button(String(localized: "menu.open_dashboard")) {
                 openWindow(id: "main")
@@ -121,13 +139,12 @@ struct MenuBarView: View {
             }
         }
         .task {
-            // Refresh status first, THEN load proxy groups
             await syncStatus()
         }
     }
 
-    /// Sync sing-box status + proxy groups in one shot
     private func syncStatus() async {
+        appState.isHelperInstalled = HelperManager.shared.isHelperInstalled
         await singBoxManager.refreshStatus()
         appState.isRunning = singBoxManager.isRunning
         appState.pid = singBoxManager.pid
@@ -135,8 +152,6 @@ struct MenuBarView: View {
     }
 
     private func refreshProxyGroups() async {
-        // Don't gate on appState.isRunning — just try the API directly
-        // If API is reachable, we have groups. If not, empty.
         do {
             proxyGroups = try await api.getProxies()
         } catch {

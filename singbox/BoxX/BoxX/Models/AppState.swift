@@ -9,6 +9,7 @@ final class AppState {
     var generateOutput: [String] = []
     var errorMessage: String?
     var showError = false
+    var isHelperInstalled = false
 
     func showAlert(_ message: String) {
         errorMessage = message

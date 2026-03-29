@@ -11,6 +11,8 @@
 "menu.settings" = "设置…";
 "menu.quit" = "退出 BoxX";
 "menu.no_proxy_groups" = "无代理组";
+"menu.helper_not_installed" = "特权助手未安装";
+"menu.install_helper" = "安装特权助手…";
 
 // Sidebar
 "sidebar.overview" = "概览";
