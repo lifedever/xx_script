@@ -28,8 +28,8 @@ struct BoxXApp: App {
         // Clean up v1 legacy UserDefaults keys that trigger TCC prompts
         UserDefaults.standard.removeObject(forKey: "scriptDir")
 
-        // Apply saved appearance mode
-        applySavedAppearance()
+        // Apply saved appearance mode (deferred until NSApp is ready)
+        DispatchQueue.main.async { applySavedAppearance() }
 
         let state = appState
 
