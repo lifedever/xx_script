@@ -623,12 +623,14 @@ final class SpeedTestMenuItemView: NSView {
     private var onClick: (() -> Void)?
     private var isTesting = false
 
+    private let icon = NSImageView()
+
     init(groupName: String, onClick: @escaping () -> Void) {
         self.onClick = onClick
         super.init(frame: NSRect(x: 0, y: 0, width: 250, height: 22))
 
-        let icon = NSImageView()
         icon.image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
+        icon.contentTintColor = .secondaryLabelColor
         icon.frame = NSRect(x: 12, y: 3, width: 16, height: 16)
         addSubview(icon)
 
@@ -667,12 +669,15 @@ final class SpeedTestMenuItemView: NSView {
 
     // Highlight on hover
     override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
         if isMouseInside {
             NSColor.selectedContentBackgroundColor.setFill()
             bounds.fill()
             label.textColor = .white
+            icon.contentTintColor = .white
         } else {
             label.textColor = .labelColor
+            icon.contentTintColor = .secondaryLabelColor
         }
     }
 
@@ -682,7 +687,7 @@ final class SpeedTestMenuItemView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let t = trackingArea { removeTrackingArea(t) }
-        trackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self)
+        trackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self)
         addTrackingArea(trackingArea!)
     }
 
