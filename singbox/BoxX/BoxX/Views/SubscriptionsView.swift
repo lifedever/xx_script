@@ -15,6 +15,8 @@ struct SubscriptionsView: View {
     @State private var isUpdating = false
     @State private var updateResults: [String: SubscriptionUpdateStatus] = [:]
     @State private var subscriptionInfos: [String: SubscriptionInfo] = [:]
+    @State private var updateLogs: [String] = []
+    @State private var showLogs = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,6 +52,46 @@ struct SubscriptionsView: View {
                         }
                     }
                     .padding()
+                }
+
+                // Update log panel
+                if !updateLogs.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("更新日志")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("清空") { updateLogs.removeAll() }
+                                .controlSize(.mini)
+                                .buttonStyle(.borderless)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                LazyVStack(alignment: .leading, spacing: 1) {
+                                    ForEach(Array(updateLogs.enumerated()), id: \.offset) { i, log in
+                                        Text(log)
+                                            .font(.caption.monospaced())
+                                            .foregroundStyle(log.contains("Error") || log.contains("失败") ? Color.red : .primary)
+                                            .textSelection(.enabled)
+                                            .id(i)
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                            }
+                            .frame(maxHeight: 120)
+                            .onChange(of: updateLogs.count) { _, _ in
+                                if let last = updateLogs.indices.last {
+                                    proxy.scrollTo(last, anchor: .bottom)
+                                }
+                            }
+                        }
+                    }
+                    .background(.bar)
                 }
 
                 Divider()
@@ -147,20 +189,28 @@ struct SubscriptionsView: View {
         }
     }
 
+    private func log(_ message: String) {
+        let time = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        updateLogs.append("[\(time)] \(message)")
+    }
+
     private func updateSingle(_ sub: Subscription) async {
         guard let url = URL(string: sub.url) else {
             updateResults[sub.name] = .failure("Invalid URL")
             return
         }
         updateResults[sub.name] = .updating
+        log("开始更新: \(sub.name)")
         do {
             let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
             updateResults[sub.name] = .success(result.nodeCount)
+            log("\(sub.name) 更新成功, \(result.nodeCount) 个节点")
             if let info = result.info {
                 subscriptionInfos[sub.name] = info
             }
         } catch {
             updateResults[sub.name] = .failure(error.localizedDescription)
+            log("\(sub.name) 更新失败: \(error.localizedDescription)")
         }
 
         try? await Task.sleep(for: .seconds(5))
@@ -171,27 +221,33 @@ struct SubscriptionsView: View {
         saveSubscriptions()
         isUpdating = true
         updateResults.removeAll()
+        updateLogs.removeAll()
         defer { isUpdating = false }
 
+        log("开始更新全部订阅...")
         let subService = appState.subscriptionService
         for sub in subscriptions {
             guard let url = URL(string: sub.url) else {
                 updateResults[sub.name] = .failure("Invalid URL")
+                log("\(sub.name) URL 无效")
                 continue
             }
             updateResults[sub.name] = .updating
+            log("正在更新: \(sub.name)")
             do {
                 let result = try await subService.updateSubscription(name: sub.name, url: url)
                 updateResults[sub.name] = .success(result.nodeCount)
+                log("\(sub.name) 完成, \(result.nodeCount) 个节点")
                 if let info = result.info {
                     subscriptionInfos[sub.name] = info
                 }
             } catch {
                 updateResults[sub.name] = .failure(error.localizedDescription)
+                log("\(sub.name) 失败: \(error.localizedDescription)")
             }
         }
 
-        // Clear success status after a delay
+        log("全部更新完成")
         try? await Task.sleep(for: .seconds(5))
         updateResults.removeAll()
     }
