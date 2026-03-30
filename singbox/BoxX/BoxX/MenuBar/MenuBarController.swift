@@ -473,7 +473,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         Task {
             for node in group.displayAll {
                 do {
-                    let delay = try await appState.api.getDelay(name: node)
+                    let testURL = UserDefaults.standard.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"
+                    let delay = try await appState.api.getDelay(name: node, url: testURL)
                     delayResults[node] = delay
                 } catch {
                     delayResults[node] = 0

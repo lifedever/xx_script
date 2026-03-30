@@ -24,6 +24,7 @@ struct GeneralSettingsTab: View {
     @Environment(AppState.self) private var appState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("appearanceMode") private var appearanceMode = "system"
+    @AppStorage("speedTestURL") private var speedTestURL = "http://cp.cloudflare.com/generate_204"
     @State private var loginError: String?
 
     var body: some View {
@@ -35,6 +36,12 @@ struct GeneralSettingsTab: View {
             }
             .onChange(of: appearanceMode) { _, newValue in
                 applyAppearance(newValue)
+            }
+
+            Picker("测速 URL", selection: $speedTestURL) {
+                Text("Cloudflare").tag("http://cp.cloudflare.com/generate_204")
+                Text("Google").tag("http://www.gstatic.com/generate_204")
+                Text("Apple").tag("http://captive.apple.com/generate_204")
             }
 
             Toggle(String(localized: "settings.launch_at_login"), isOn: $launchAtLogin)
