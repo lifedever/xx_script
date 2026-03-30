@@ -15,8 +15,6 @@ struct SubscriptionsView: View {
     @State private var isUpdating = false
     @State private var updateResults: [String: SubscriptionUpdateStatus] = [:]
     @State private var subscriptionInfos: [String: SubscriptionInfo] = [:]
-    @State private var updateLogs: [String] = []
-    @State private var showLogs = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -106,9 +104,6 @@ struct SubscriptionsView: View {
         .task {
             await fetchAllSubscriptionInfos()
         }
-        .sheet(isPresented: $showLogs) {
-            UpdateLogSheet(logs: $updateLogs, isUpdating: isUpdating)
-        }
     }
 
     private func deleteSubscription(_ sub: Subscription) {
@@ -152,9 +147,10 @@ struct SubscriptionsView: View {
         }
     }
 
-    private func log(_ message: String) {
+    private func subLog(_ message: String) {
         let time = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-        updateLogs.append("[\(time)] \(message)")
+        let line = "[\(time)] \(message)"
+        NotificationCenter.default.post(name: .subscriptionLogAppend, object: line)
     }
 
     private func updateSingle(_ sub: Subscription) async {
@@ -163,19 +159,18 @@ struct SubscriptionsView: View {
             return
         }
         updateResults[sub.name] = .updating
-        updateLogs.removeAll()
-        showLogs = true
-        log("开始更新: \(sub.name)")
+        NotificationCenter.default.post(name: .subscriptionLogStart, object: nil)
+        subLog("开始更新: \(sub.name)")
         do {
             let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
             updateResults[sub.name] = .success(result.nodeCount)
-            log("\(sub.name) 更新成功, \(result.nodeCount) 个节点")
+            subLog("\(sub.name) 更新成功, \(result.nodeCount) 个节点")
             if let info = result.info {
                 subscriptionInfos[sub.name] = info
             }
         } catch {
             updateResults[sub.name] = .failure(error.localizedDescription)
-            log("\(sub.name) 更新失败: \(error.localizedDescription)")
+            subLog("\(sub.name) 更新失败: \(error.localizedDescription)")
         }
 
         try? await Task.sleep(for: .seconds(5))
@@ -186,34 +181,33 @@ struct SubscriptionsView: View {
         saveSubscriptions()
         isUpdating = true
         updateResults.removeAll()
-        updateLogs.removeAll()
         defer { isUpdating = false }
 
-        showLogs = true
-        log("开始更新全部订阅...")
+        NotificationCenter.default.post(name: .subscriptionLogStart, object: nil)
+        subLog("开始更新全部订阅...")
         let subService = appState.subscriptionService
         for sub in subscriptions {
             guard let url = URL(string: sub.url) else {
                 updateResults[sub.name] = .failure("Invalid URL")
-                log("\(sub.name) URL 无效")
+                subLog("\(sub.name) URL 无效")
                 continue
             }
             updateResults[sub.name] = .updating
-            log("正在更新: \(sub.name)")
+            subLog("正在更新: \(sub.name)")
             do {
                 let result = try await subService.updateSubscription(name: sub.name, url: url)
                 updateResults[sub.name] = .success(result.nodeCount)
-                log("\(sub.name) 完成, \(result.nodeCount) 个节点")
+                subLog("\(sub.name) 完成, \(result.nodeCount) 个节点")
                 if let info = result.info {
                     subscriptionInfos[sub.name] = info
                 }
             } catch {
                 updateResults[sub.name] = .failure(error.localizedDescription)
-                log("\(sub.name) 失败: \(error.localizedDescription)")
+                subLog("\(sub.name) 失败: \(error.localizedDescription)")
             }
         }
 
-        log("全部更新完成")
+        subLog("全部更新完成")
         try? await Task.sleep(for: .seconds(5))
         updateResults.removeAll()
     }
@@ -228,56 +222,6 @@ enum SubscriptionUpdateStatus {
 }
 
 // MARK: - Subscription Card
-
-// MARK: - Update Log Sheet
-
-struct UpdateLogSheet: View {
-    @Binding var logs: [String]
-    let isUpdating: Bool
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("更新日志")
-                    .font(.headline)
-                Spacer()
-                if isUpdating {
-                    ProgressView().controlSize(.small)
-                }
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding()
-
-            Divider()
-
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(logs.enumerated()), id: \.offset) { i, log in
-                            Text(log)
-                                .font(.body.monospaced())
-                                .foregroundStyle(log.contains("失败") ? Color.red : log.contains("完成") ? Color.green : .primary)
-                                .textSelection(.enabled)
-                                .id(i)
-                        }
-                    }
-                    .padding()
-                }
-                .onChange(of: logs.count) { _, _ in
-                    if let last = logs.indices.last {
-                        withAnimation { proxy.scrollTo(last, anchor: .bottom) }
-                    }
-                }
-            }
-        }
-        .frame(width: 500, height: 300)
-    }
-}
 
 struct SubscriptionCard: View {
     let subscription: Subscription

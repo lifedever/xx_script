@@ -130,5 +130,8 @@ struct MainView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openMonitorWindow)) { _ in
             openWindow(id: "monitor")
         }
+        .onReceive(NotificationCenter.default.publisher(for: .subscriptionLogStart)) { _ in
+            openWindow(id: "update-log")
+        }
     }
 }

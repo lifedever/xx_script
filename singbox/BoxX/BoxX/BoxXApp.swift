@@ -148,6 +148,17 @@ struct BoxXApp: App {
         .defaultSize(width: 900, height: 500)
         .handlesExternalEvents(matching: ["monitor"])
 
+        Window("更新日志", id: "update-log") {
+            SubscriptionUpdateLogView()
+                .onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate() }
+                .onDisappear {
+                    if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) {
+                        NSApp.setActivationPolicy(.accessory)
+                    }
+                }
+        }
+        .defaultSize(width: 500, height: 300)
+
         Window(String(localized: "menu.settings"), id: "settings") {
             SettingsView()
                 .environment(appState)
@@ -179,6 +190,8 @@ func openMonitorWindow() {
 
 extension Notification.Name {
     static let openMonitorWindow = Notification.Name("com.boxx.openMonitorWindow")
+    static let subscriptionLogAppend = Notification.Name("com.boxx.subscriptionLogAppend")
+    static let subscriptionLogStart = Notification.Name("com.boxx.subscriptionLogStart")
 }
 
 /// Holds a strong reference to the AppKit MenuBarController so the NSStatusItem stays alive.

@@ -71,6 +71,7 @@
 		FA13DABBE1CB5BDF70828E66 /* ExperimentalConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */; };
 		FCEDFA3F770C35008D856FA3 /* SubscriptionFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E1CBC5CE03DF6787AA4B06 /* SubscriptionFetcher.swift */; };
 		FDC35FBD2B57453A57E1B704 /* JSONValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */; };
+		FFA707EFAC138F990ED0E987 /* SubscriptionUpdateLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 674D89FCFDD9EC08EC12ADA9 /* SubscriptionUpdateLogView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,6 +119,7 @@
 		55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetsView.swift; sourceTree = "<group>"; };
 		5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRulesView.swift; sourceTree = "<group>"; };
 		5A786DA30C59DB926BE25E5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		674D89FCFDD9EC08EC12ADA9 /* SubscriptionUpdateLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionUpdateLogView.swift; sourceTree = "<group>"; };
 		67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuiltinRulesView.swift; sourceTree = "<group>"; };
 		70E1CBC5CE03DF6787AA4B06 /* SubscriptionFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionFetcher.swift; sourceTree = "<group>"; };
 		75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionModels.swift; sourceTree = "<group>"; };
@@ -292,6 +294,7 @@
 				EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 				022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */,
+				674D89FCFDD9EC08EC12ADA9 /* SubscriptionUpdateLogView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -545,6 +548,7 @@
 				36277799D5F3B4516B837900 /* SingBoxProcess.swift in Sources */,
 				FCEDFA3F770C35008D856FA3 /* SubscriptionFetcher.swift in Sources */,
 				334B133A0825CF16ABA42884 /* SubscriptionService.swift in Sources */,
+				FFA707EFAC138F990ED0E987 /* SubscriptionUpdateLogView.swift in Sources */,
 				DED450B7F9568D9FE1B70C96 /* SubscriptionsView.swift in Sources */,
 				0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */,
 			);

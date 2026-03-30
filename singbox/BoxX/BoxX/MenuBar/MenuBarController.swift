@@ -78,6 +78,18 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
         menu.addItem(si)
 
+        // ── Apply config banner ──
+        if appState.pendingReload && appState.isRunning {
+            let reloadItem = NSMenuItem(title: "⚠ 配置已更新，点击应用", action: #selector(applyConfig), keyEquivalent: "")
+            reloadItem.target = self
+            reloadItem.attributedTitle = NSAttributedString(string: "⚠ 配置已更新，点击应用", attributes: [
+                .font: NSFont.menuFont(ofSize: 0),
+                .foregroundColor: NSColor.systemOrange,
+            ])
+            menu.addItem(reloadItem)
+            menu.addItem(.separator())
+        }
+
         // ── 操作 submenu ──
         let opsMenu = NSMenu()
         if appState.isRunning {
@@ -351,21 +363,46 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
     }
 
+    private func menuSubLog(_ message: String) {
+        let time = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        let line = "[\(time)] \(message)"
+        NotificationCenter.default.post(name: .subscriptionLogAppend, object: line)
+    }
+
     @objc private func updateSubscriptions() {
+        NotificationCenter.default.post(name: .subscriptionLogStart, object: nil)
         Task {
             let subs = SubscriptionsView.loadSubscriptions()
+            menuSubLog("开始更新全部订阅...")
             for sub in subs {
-                guard let url = URL(string: sub.url) else { continue }
-                _ = try? await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+                guard let url = URL(string: sub.url) else {
+                    menuSubLog("\(sub.name) URL 无效")
+                    continue
+                }
+                menuSubLog("正在更新: \(sub.name)")
+                do {
+                    let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+                    menuSubLog("\(sub.name) 完成, \(result.nodeCount) 个节点")
+                } catch {
+                    menuSubLog("\(sub.name) 失败: \(error.localizedDescription)")
+                }
             }
+            menuSubLog("全部更新完成")
         }
     }
 
     @objc private func updateSingleSubscription(_ sender: NSMenuItem) {
         guard let sub = sender.representedObject as? Subscription,
               let url = URL(string: sub.url) else { return }
+        NotificationCenter.default.post(name: .subscriptionLogStart, object: nil)
         Task {
-            _ = try? await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+            menuSubLog("开始更新: \(sub.name)")
+            do {
+                let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
+                menuSubLog("\(sub.name) 完成, \(result.nodeCount) 个节点")
+            } catch {
+                menuSubLog("\(sub.name) 失败: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -380,6 +417,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         """
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(env, forType: .string)
+    }
+
+    @objc private func applyConfig() {
+        Task {
+            await appState.applyConfig()
+            await fetchAndRebuild()
+        }
     }
 
     @objc private func openMonitor() {
