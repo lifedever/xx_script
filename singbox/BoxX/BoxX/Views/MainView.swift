@@ -7,7 +7,6 @@ enum SidebarTab: String, CaseIterable {
     case ruleSets = "规则集"
     case builtinRules = "内置规则"
     case ruleTest = "规则测试"
-    case regionGroups = "地区分组"
     case subscriptions = "订阅"
     case settings = "设置"
 

@@ -233,16 +233,34 @@ struct ProxiesView: View {
             .background(Color.gray.opacity(0.06))
     }
 
+    private var regionGroupNames: Set<String> {
+        Set(appState.configEngine.loadGroupPatterns().keys)
+    }
+
     private func groupRow(_ group: ProxyGroup) -> some View {
         let rowIndex = allRows.firstIndex(where: { $0.id == group.id }) ?? 0
         let isSelected = selectedGroup == group.name
+        let isRegionGroup = regionGroupNames.contains(group.name) || group.name == "🌐其他"
+        let isSystemGroup = group.name == "Proxy" || group.name.contains("漏网之鱼")
+        let canDelete = !isRegionGroup && !isSystemGroup
 
         return HStack(spacing: 0) {
-            // Name
-            Text(group.name)
-                .font(.body)
-                .lineLimit(1)
-                .frame(width: 180, alignment: .leading)
+            // Name + description
+            VStack(alignment: .leading, spacing: 0) {
+                Text(group.name)
+                    .font(.body)
+                    .lineLimit(1)
+                if group.name == "Proxy" {
+                    Text("默认出站代理组")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                } else if group.name.contains("漏网之鱼") {
+                    Text("未匹配规则的流量 (final)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(width: 180, alignment: .leading)
 
             // Type badge
             typeBadge(for: group)
@@ -286,12 +304,14 @@ struct ProxiesView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                Button("删除") {
-                    deletingGroupTag = group.name
+                if canDelete {
+                    Button("删除") {
+                        deletingGroupTag = group.name
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.red)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(.red)
             }
             .frame(width: 120, alignment: .center)
         }
@@ -308,7 +328,9 @@ struct ProxiesView: View {
         }
         .contextMenu {
             Button("编辑") { editingGroupTag = group.name; showGroupEdit = true }
-            Button("删除", role: .destructive) { deletingGroupTag = group.name }
+            if canDelete {
+                Button("删除", role: .destructive) { deletingGroupTag = group.name }
+            }
         }
     }
 
