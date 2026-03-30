@@ -388,6 +388,30 @@ class ConfigEngine: @unchecked Sendable {
         try? data.write(to: groupPatternsURL, options: .atomic)
     }
 
+    private var groupOrderURL: URL { baseDir.appendingPathComponent("group-order.json") }
+
+    func loadGroupOrder() -> [String] {
+        guard let data = try? Data(contentsOf: groupOrderURL) else { return [] }
+        return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+    }
+
+    func saveGroupOrder(_ order: [String]) {
+        guard let data = try? JSONEncoder().encode(order) else { return }
+        try? data.write(to: groupOrderURL, options: .atomic)
+    }
+
+    /// Load patterns with stable ordering
+    func loadOrderedGroupKeys() -> [String] {
+        let patterns = loadGroupPatterns()
+        let savedOrder = loadGroupOrder()
+        // Use saved order, append any new keys not in saved order
+        var result = savedOrder.filter { patterns.keys.contains($0) }
+        for key in patterns.keys.sorted() where !result.contains(key) {
+            result.append(key)
+        }
+        return result
+    }
+
     // MARK: - Rename Group
 
     /// Rename a strategy group tag across all config references.

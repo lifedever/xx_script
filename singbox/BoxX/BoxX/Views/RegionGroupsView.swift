@@ -28,20 +28,22 @@ struct RegionGroupsView: View {
             if orderedKeys.isEmpty {
                 emptyState
             } else {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 12)], spacing: 12) {
-                        ForEach(orderedKeys, id: \.self) { key in
-                            if let pattern = patterns[key] {
-                                RegionGroupCard(
-                                    name: key, pattern: pattern,
-                                    onEdit: { editingKey = key },
-                                    onDelete: { deleteGroup(key) }
-                                )
-                            }
+                List {
+                    ForEach(orderedKeys, id: \.self) { key in
+                        if let pattern = patterns[key] {
+                            RegionGroupRow(
+                                name: key, pattern: pattern,
+                                onEdit: { editingKey = key },
+                                onDelete: { deleteGroup(key) }
+                            )
                         }
                     }
-                    .padding()
+                    .onMove { from, to in
+                        orderedKeys.move(fromOffsets: from, toOffset: to)
+                        savePatterns()
+                    }
                 }
+                .listStyle(.plain)
 
                 Divider()
 
@@ -104,12 +106,12 @@ struct RegionGroupsView: View {
 
     private func loadPatterns() {
         patterns = appState.configEngine.loadGroupPatterns()
-        orderedKeys = patterns.keys.sorted()
+        orderedKeys = appState.configEngine.loadOrderedGroupKeys()
     }
 
     private func savePatterns() {
         appState.configEngine.saveGroupPatterns(patterns)
-        // Re-group existing nodes immediately
+        appState.configEngine.saveGroupOrder(orderedKeys)
         try? appState.subscriptionService.regroupExistingNodes()
     }
 
@@ -126,57 +128,43 @@ struct RegionGroupsView: View {
     }
 }
 
-// MARK: - Card
+// MARK: - Row
 
-struct RegionGroupCard: View {
+struct RegionGroupRow: View {
     let name: String
     let pattern: GroupPattern
     let onEdit: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            headerRow
-            keywordTags
-            actionRow
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
+        HStack(spacing: 12) {
+            // Name
+            Text(name)
+                .font(.body)
+                .frame(minWidth: 100, alignment: .leading)
 
-    private var headerRow: some View {
-        HStack {
-            Text(name).font(.headline)
+            // Mode badge
+            let isRegex = pattern.mode == "regex"
+            Text(isRegex ? "正则" : "关键词")
+                .font(.caption2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(isRegex ? Color.purple.opacity(0.12) : Color.blue.opacity(0.12))
+                .foregroundStyle(isRegex ? .purple : .blue)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            // Keywords
+            Text(pattern.patterns.joined(separator: ", "))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
             Spacer()
-            modeBadge
-        }
-    }
 
-    private var modeBadge: some View {
-        let isRegex = pattern.mode == "regex"
-        return Text(isRegex ? "正则" : "关键词")
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(isRegex ? Color.purple.opacity(0.12) : Color.blue.opacity(0.12))
-            .foregroundStyle(isRegex ? .purple : .blue)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-    }
-
-    private var keywordTags: some View {
-        FlowLayout(spacing: 4) {
-            ForEach(pattern.patterns, id: \.self) { keyword in
-                KeywordTag(text: keyword)
-            }
-        }
-    }
-
-    private var actionRow: some View {
-        HStack {
-            Spacer()
             Button("编辑", action: onEdit).controlSize(.small).buttonStyle(.bordered)
             Button("删除", action: onDelete).controlSize(.small).buttonStyle(.bordered).tint(.red)
         }
+        .padding(.vertical, 4)
     }
 }
 

@@ -301,9 +301,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
-        // Read region group names from group-patterns.json
         let patterns = appState.configEngine.loadGroupPatterns()
         let regionGroupNames = Set(patterns.keys)
+        let groupOrder = appState.configEngine.loadOrderedGroupKeys()
 
         var result = ClassifiedGroups()
         var classifiedIDs = Set<String>()
@@ -316,6 +316,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 result.regions.append(group)
                 classifiedIDs.insert(group.id)
             }
+        }
+
+        // Sort regions by saved order
+        result.regions.sort { a, b in
+            let ia = groupOrder.firstIndex(of: a.name) ?? Int.max
+            let ib = groupOrder.firstIndex(of: b.name) ?? Int.max
+            return ia < ib
         }
 
         // Classify remaining by checking if they're service-like (has outbound rule) or general

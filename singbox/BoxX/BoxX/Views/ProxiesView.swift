@@ -36,6 +36,7 @@ struct ProxiesView: View {
     private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
         let patterns = appState.configEngine.loadGroupPatterns()
         let regionGroupNames = Set(patterns.keys)
+        let groupOrder = appState.configEngine.loadOrderedGroupKeys()
 
         var result = ClassifiedGroups()
         var classified = Set<String>()
@@ -48,6 +49,12 @@ struct ProxiesView: View {
                 result.regions.append(group)
                 classified.insert(group.id)
             }
+        }
+
+        result.regions.sort { a, b in
+            let ia = groupOrder.firstIndex(of: a.name) ?? Int.max
+            let ib = groupOrder.firstIndex(of: b.name) ?? Int.max
+            return ia < ib
         }
 
         let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix",
