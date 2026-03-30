@@ -344,6 +344,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                 print("[BoxX] Starting sing-box with: \(runtimePath)")
                 try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+                appState.pendingReload = false
                 print("[BoxX] sing-box started successfully")
             } catch {
                 print("[BoxX] ERROR: \(error)")
@@ -373,6 +374,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                 try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+                appState.pendingReload = false
             } catch {
                 appState.showAlert(error.localizedDescription)
             }

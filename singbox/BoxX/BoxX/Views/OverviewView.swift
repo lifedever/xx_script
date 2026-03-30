@@ -332,6 +332,7 @@ struct OverviewView: View {
             try appState.configEngine.deployRuntime()
             let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
             try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+            appState.pendingReload = false
         } catch {
             appState.showAlert(error.localizedDescription)
         }
@@ -352,6 +353,7 @@ struct OverviewView: View {
             try appState.configEngine.deployRuntime()
             let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
             try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+            appState.pendingReload = false
         } catch {
             appState.showAlert(error.localizedDescription)
         }

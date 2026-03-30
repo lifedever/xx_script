@@ -191,7 +191,7 @@ struct ProxiesView: View {
                                     }
                                 }
                             }
-                            .background(.regularMaterial)
+                            .background(Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
@@ -230,7 +230,7 @@ struct ProxiesView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial.opacity(0.5))
+            .background(Color.gray.opacity(0.06))
     }
 
     private func groupRow(_ group: ProxyGroup) -> some View {
@@ -300,7 +300,7 @@ struct ProxiesView: View {
         .background(
             isSelected
                 ? AnyShapeStyle(Color.accentColor.opacity(0.15))
-                : (rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+                : (rowIndex % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Color.gray.opacity(0.06)))
         )
         .contentShape(Rectangle())
         .onTapGesture {
