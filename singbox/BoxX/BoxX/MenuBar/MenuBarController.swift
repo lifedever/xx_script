@@ -238,11 +238,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         // Create submenu with nodes
         let submenu = NSMenu()
 
-        // Speed test item at top
-        let testItem = NSMenuItem(title: "测速全部", action: #selector(testGroupSpeed(_:)), keyEquivalent: "")
-        testItem.target = self
-        testItem.representedObject = group
-        testItem.image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
+        // Speed test item at top (custom view to prevent menu closing)
+        let testItem = NSMenuItem()
+        let testView = SpeedTestMenuItemView(groupName: group.name) { [weak self] in
+            self?.doTestGroupSpeed(group: group, in: submenu)
+        }
+        testItem.view = testView
         submenu.addItem(testItem)
         submenu.addItem(.separator())
 
@@ -464,11 +465,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         NSPasteboard.general.setString(env, forType: .string)
     }
 
-    @objc private func testGroupSpeed(_ sender: NSMenuItem) {
-        guard let group = sender.representedObject as? ProxyGroup,
-              let submenu = sender.menu else { return }
-        sender.title = "测速中..."
-        sender.isEnabled = false
+    private func doTestGroupSpeed(group: ProxyGroup, in submenu: NSMenu) {
+        // Find the SpeedTestMenuItemView to update its state
+        let testView = submenu.items.first?.view as? SpeedTestMenuItemView
+        testView?.setTesting(true)
 
         Task {
             for node in group.displayAll {
@@ -478,11 +478,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 } catch {
                     delayResults[node] = 0
                 }
-                // Update the menu item in-place
                 updateNodeMenuItem(in: submenu, node: node)
             }
-            sender.title = "测速全部"
-            sender.isEnabled = true
+            testView?.setTesting(false)
         }
     }
 
@@ -614,5 +612,85 @@ final class ProxyGroupMenuItemView: NSView {
         let rightSize = rightStr.size()
         let rightX = arrowX - arrowSpace - rightSize.width + 8
         rightStr.draw(at: NSPoint(x: max(rightX, leftSize.width + padding + 10), y: (bounds.height - rightSize.height) / 2))
+    }
+}
+
+// MARK: - Speed Test Menu Item View (prevents menu from closing on click)
+
+final class SpeedTestMenuItemView: NSView {
+    private let label = NSTextField(labelWithString: "")
+    private let spinner = NSProgressIndicator()
+    private var onClick: (() -> Void)?
+    private var isTesting = false
+
+    init(groupName: String, onClick: @escaping () -> Void) {
+        self.onClick = onClick
+        super.init(frame: NSRect(x: 0, y: 0, width: 250, height: 22))
+
+        let icon = NSImageView()
+        icon.image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
+        icon.frame = NSRect(x: 12, y: 3, width: 16, height: 16)
+        addSubview(icon)
+
+        label.stringValue = "测速全部"
+        label.font = NSFont.menuFont(ofSize: 0)
+        label.sizeToFit()
+        label.frame.origin = NSPoint(x: 32, y: 2)
+        addSubview(label)
+
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.frame = NSRect(x: 32 + label.frame.width + 8, y: 3, width: 16, height: 16)
+        spinner.isHidden = true
+        addSubview(spinner)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func setTesting(_ testing: Bool) {
+        isTesting = testing
+        if testing {
+            label.stringValue = "测速中..."
+            spinner.isHidden = false
+            spinner.startAnimation(nil)
+        } else {
+            label.stringValue = "测速全部"
+            spinner.isHidden = true
+            spinner.stopAnimation(nil)
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard !isTesting else { return }
+        onClick?()
+    }
+
+    // Highlight on hover
+    override func draw(_ dirtyRect: NSRect) {
+        if isMouseInside {
+            NSColor.selectedContentBackgroundColor.setFill()
+            bounds.fill()
+            label.textColor = .white
+        } else {
+            label.textColor = .labelColor
+        }
+    }
+
+    private var isMouseInside = false
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let t = trackingArea { removeTrackingArea(t) }
+        trackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self)
+        addTrackingArea(trackingArea!)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isMouseInside = true; needsDisplay = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isMouseInside = false; needsDisplay = true
     }
 }
