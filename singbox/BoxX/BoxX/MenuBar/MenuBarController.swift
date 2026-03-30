@@ -30,7 +30,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     /// Fetch proxy groups from Clash API, then rebuild menu synchronously
     func fetchAndRebuild() async {
         cachedGroups = (try? await appState.api.getProxies()) ?? []
-        cachedMode = (try? await appState.api.getConfig())?.mode ?? "rule"
+        cachedMode = ((try? await appState.api.getConfig())?.mode ?? "rule").lowercased()
         rebuildMenuFromCache()
     }
 
@@ -94,25 +94,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        // ── 操作 submenu ──
-        let opsMenu = NSMenu()
-        if appState.isRunning {
-            let stopItem = NSMenuItem(title: "停止", action: #selector(stopSingBox), keyEquivalent: "")
-            stopItem.target = self
-            opsMenu.addItem(stopItem)
-            let restartItem = NSMenuItem(title: "重启", action: #selector(restartSingBox), keyEquivalent: "")
-            restartItem.target = self
-            opsMenu.addItem(restartItem)
-        } else {
-            let startItem = NSMenuItem(title: "启动", action: #selector(startSingBox), keyEquivalent: "")
-            startItem.target = self
-            opsMenu.addItem(startItem)
-        }
-        let opsItem = NSMenuItem(title: "操作", action: nil, keyEquivalent: "")
-        opsItem.submenu = opsMenu
-        menu.addItem(opsItem)
-
-        // ── Outbound mode (same group as 操作) ──
+        // ── Outbound mode (top, after status) ──
         let modeMenu = NSMenu()
         for mode in ["rule", "global", "direct"] {
             let label: String
@@ -128,8 +110,23 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             item.state = (mode == cachedMode) ? .on : .off
             modeMenu.addItem(item)
         }
-        let modeItem = NSMenuItem(title: "出站模式", action: nil, keyEquivalent: "")
+        let currentModeLabel: String = {
+            switch cachedMode {
+            case "rule": return "规则模式"
+            case "global": return "全局模式"
+            case "direct": return "直连模式"
+            default: return cachedMode
+            }
+        }()
+        let modeItem = NSMenuItem()
         modeItem.submenu = modeMenu
+        let modeView = ProxyGroupMenuItemView(
+            groupName: "出站模式",
+            nodeName: currentModeLabel,
+            width: 320,
+            height: 22
+        )
+        modeItem.view = modeView
         menu.addItem(modeItem)
         menu.addItem(.separator())
 
@@ -161,13 +158,34 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
 
         // ── Bottom actions ──
+
+        // 操作 submenu
+        let opsMenu = NSMenu()
+        if appState.isRunning {
+            let stopItem = NSMenuItem(title: "停止", action: #selector(stopSingBox), keyEquivalent: "")
+            stopItem.target = self
+            opsMenu.addItem(stopItem)
+            let restartItem = NSMenuItem(title: "重启", action: #selector(restartSingBox), keyEquivalent: "")
+            restartItem.target = self
+            opsMenu.addItem(restartItem)
+            opsMenu.addItem(.separator())
+            let reloadItem = NSMenuItem(title: "热重载", action: #selector(reloadSingBox), keyEquivalent: "")
+            reloadItem.target = self
+            opsMenu.addItem(reloadItem)
+            let flushDNSItem = NSMenuItem(title: "刷新 DNS", action: #selector(flushDNS), keyEquivalent: "")
+            flushDNSItem.target = self
+            opsMenu.addItem(flushDNSItem)
+        } else {
+            let startItem = NSMenuItem(title: "启动", action: #selector(startSingBox), keyEquivalent: "")
+            startItem.target = self
+            opsMenu.addItem(startItem)
+        }
+        opsMenu.addItem(.separator())
         let updateItem = NSMenuItem(title: "更新订阅", action: nil, keyEquivalent: "")
         let updateSubmenu = NSMenu()
-
         let updateAllItem = NSMenuItem(title: "全部更新", action: #selector(updateSubscriptions), keyEquivalent: "")
         updateAllItem.target = self
         updateSubmenu.addItem(updateAllItem)
-
         let subs = SubscriptionsView.loadSubscriptions()
         if !subs.isEmpty {
             updateSubmenu.addItem(.separator())
@@ -178,17 +196,17 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 updateSubmenu.addItem(subItem)
             }
         }
-
         updateItem.submenu = updateSubmenu
-        menu.addItem(updateItem)
-
+        opsMenu.addItem(updateItem)
         let copyEnvItem = NSMenuItem(title: "复制环境变量", action: #selector(copyProxyEnv), keyEquivalent: "")
         copyEnvItem.target = self
-        menu.addItem(copyEnvItem)
-
+        opsMenu.addItem(copyEnvItem)
         let openConfigItem = NSMenuItem(title: "打开配置目录", action: #selector(openConfigDir), keyEquivalent: "")
         openConfigItem.target = self
-        menu.addItem(openConfigItem)
+        opsMenu.addItem(openConfigItem)
+        let opsItem = NSMenuItem(title: "操作", action: nil, keyEquivalent: "")
+        opsItem.submenu = opsMenu
+        menu.addItem(opsItem)
 
         let monitorItem = NSMenuItem(title: "监控", action: #selector(openMonitor), keyEquivalent: "m")
         monitorItem.target = self
@@ -369,7 +387,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func stopSingBox() {
         Task {
+            appState.isRestarting = true
             await appState.singBoxProcess.stop()
+            appState.isRestarting = false
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
         }
@@ -377,22 +397,45 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func restartSingBox() {
         Task {
+            appState.isRestarting = true
             do {
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                 try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+                // 重启后必须刷新 DNS 缓存 + 关闭存量连接，否则系统层面的旧状态会导致上不了网
+                appState.singBoxProcess.flushDNS()
+                try? await appState.api.closeAllConnections()
                 appState.pendingReload = false
             } catch {
                 appState.showAlert(error.localizedDescription)
             }
+            appState.isRestarting = false
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
         }
     }
 
+    @objc private func reloadSingBox() {
+        Task {
+            await appState.singBoxProcess.reload()
+            appState.singBoxProcess.flushDNS()
+            // 关闭所有连接，强制重建
+            try? await appState.api.closeAllConnections()
+            StatusPoller.shared.nudge(appState: appState)
+        }
+    }
+
+    @objc private func flushDNS() {
+        appState.singBoxProcess.flushDNS()
+    }
+
     @objc private func switchMode(_ sender: NSMenuItem) {
         guard let mode = sender.representedObject as? String else { return }
-        Task { try? await appState.api.setMode(mode) }
+        Task {
+            try? await appState.api.setMode(mode)
+            cachedMode = mode
+            rebuildMenuFromCache()
+        }
     }
 
     @objc private func selectNode(_ sender: NSMenuItem) {
@@ -552,8 +595,58 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quitApp() {
-        AppDelegate.shared?.shouldReallyQuit = true
-        NSApplication.shared.terminate(nil)
+        guard appState.isRunning else {
+            // sing-box not running, quit directly
+            AppDelegate.shared?.shouldReallyQuit = true
+            NSApplication.shared.terminate(nil)
+            return
+        }
+
+        // Show a quitting window with loading indicator
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 100),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "BoxX"
+        window.center()
+        window.isReleasedWhenClosed = false
+
+        let stack = NSStackView()
+        stack.orientation = .horizontal
+        stack.spacing = 12
+        stack.alignment = .centerY
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.startAnimation(nil)
+
+        let label = NSTextField(labelWithString: "正在停止 sing-box 服务...")
+        label.font = NSFont.systemFont(ofSize: 13)
+
+        stack.addArrangedSubview(spinner)
+        stack.addArrangedSubview(label)
+
+        window.contentView?.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: window.contentView!.centerYAnchor),
+        ])
+
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        Task {
+            await appState.singBoxProcess.stop()
+            // Wait a moment for process to fully exit
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            window.close()
+            AppDelegate.shared?.shouldReallyQuit = true
+            NSApplication.shared.terminate(nil)
+        }
     }
 }
 

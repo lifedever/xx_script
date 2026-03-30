@@ -10,6 +10,8 @@ struct ProxiesView: View {
     @State private var isRefreshing = false
     @State private var popoverGroup: String?
     @State private var selectedGroup: String?
+    @State private var showAddGroup = false
+    @State private var deletingGroupName: String?
 
     // MARK: - Group Classification
 
@@ -113,6 +115,12 @@ struct ProxiesView: View {
                     Image(systemName: "speedometer")
                 }
                 .help("测速全部")
+                Button {
+                    showAddGroup = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("添加策略组")
             }
             .padding()
 
@@ -150,6 +158,8 @@ struct ProxiesView: View {
                                 Spacer()
                                 Text("节点数")
                                     .frame(width: 60, alignment: .center)
+                                Text("操作")
+                                    .frame(width: 80, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -197,6 +207,24 @@ struct ProxiesView: View {
         .task {
             await refreshGroups()
         }
+        .sheet(isPresented: $showAddGroup) {
+            AddProxyGroupSheet {
+                Task { await refreshGroups() }
+            }
+            .environment(appState)
+        }
+        .confirmationDialog("确认删除", isPresented: .init(
+            get: { deletingGroupName != nil },
+            set: { if !$0 { deletingGroupName = nil } }
+        ), titleVisibility: .visible) {
+            Button("删除", role: .destructive) {
+                if let name = deletingGroupName { deleteGroup(name) }
+                deletingGroupName = nil
+            }
+            Button("取消", role: .cancel) { deletingGroupName = nil }
+        } message: {
+            Text("确定要删除策略组「\(deletingGroupName ?? "")」吗？此操作不可撤销。")
+        }
     }
 
     // MARK: - Table Components
@@ -215,12 +243,18 @@ struct ProxiesView: View {
         Set(appState.configEngine.loadGroupPatterns().keys)
     }
 
+    private var serviceGroupNames: Set<String> {
+        Set(classified.services.map(\.name))
+    }
+
     private func groupRow(_ group: ProxyGroup) -> some View {
         let rowIndex = allRows.firstIndex(where: { $0.id == group.id }) ?? 0
         let isSelected = selectedGroup == group.name
         let isRegionGroup = regionGroupNames.contains(group.name) || group.name == "🌐其他"
         let isSystemGroup = group.name == "Proxy" || group.name.contains("漏网之鱼")
-        let canDelete = !isRegionGroup && !isSystemGroup
+        let isServiceGroup = serviceGroupNames.contains(group.name)
+        let isSubscription = group.name.hasPrefix("📦")
+        let canDelete = !isRegionGroup && !isSystemGroup && !isServiceGroup && !isSubscription
 
         return HStack(spacing: 0) {
             // Name + description
@@ -273,6 +307,16 @@ struct ProxiesView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .center)
 
+            // Actions for user-created groups
+            HStack(spacing: 4) {
+                if canDelete {
+                    Button("删除") { deletingGroupName = group.name }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.red)
+                }
+            }
+            .frame(width: 80, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -494,5 +538,87 @@ struct DelayBadge: View {
         if delay < 150 { return .green }
         if delay <= 300 { return .yellow }
         return .orange
+    }
+}
+
+// MARK: - Add Proxy Group Sheet
+
+struct AddProxyGroupSheet: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    let onSave: () -> Void
+
+    @State private var name = ""
+    @State private var groupType = "selector"
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("添加策略组").font(.headline)
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }.buttonStyle(.plain)
+            }
+            .padding()
+
+            Divider()
+
+            Form {
+                TextField("策略组名称", text: $name)
+                    .textFieldStyle(.roundedBorder)
+
+                Picker("类型", selection: $groupType) {
+                    Text("手动选择 (selector)").tag("selector")
+                    Text("自动最优 (urltest)").tag("urltest")
+                }
+
+                Text("创建后可在策略组列表中看到，节点默认包含 DIRECT")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                if let err = errorMessage {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                }
+            }
+            .formStyle(.grouped)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("保存") { save() }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
+            }
+            .padding()
+        }
+        .frame(width: 400, height: 280)
+    }
+
+    private func save() {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { errorMessage = "请输入名称"; return }
+
+        // Check duplicate
+        if appState.configEngine.config.outbounds.contains(where: { $0.tag == trimmed }) {
+            errorMessage = "已存在同名策略组"; return
+        }
+
+        let outbound: Outbound
+        if groupType == "urltest" {
+            outbound = .urltest(URLTestOutbound(tag: trimmed, outbounds: ["DIRECT"]))
+        } else {
+            outbound = .selector(SelectorOutbound(tag: trimmed, outbounds: ["DIRECT"]))
+        }
+
+        appState.configEngine.config.outbounds.append(outbound)
+        do {
+            try appState.configEngine.save(restartRequired: true)
+            dismiss()
+            onSave()
+        } catch {
+            errorMessage = "保存失败: \(error.localizedDescription)"
+        }
     }
 }

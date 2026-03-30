@@ -23,7 +23,7 @@ struct AddRuleSheet: View {
     @State private var addMode: AddRuleMode = .localRule
     @State private var selectedRuleSetTag: String = ""
 
-    private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR", "PROCESS-NAME"]
+    private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR", "PROCESS-NAME", "PROCESS-PATH"]
 
     /// Standalone init (add new rule)
     init() {
@@ -122,7 +122,7 @@ struct AddRuleSheet: View {
                 }
 
                 // Rule value
-                TextField("匹配值", text: $ruleValue)
+                TextField(ruleValuePlaceholder, text: $ruleValue)
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospaced())
 
@@ -256,6 +256,7 @@ struct AddRuleSheet: View {
             ("domain_keyword", "DOMAIN-KEYWORD"),
             ("ip_cidr", "IP-CIDR"),
             ("process_name", "PROCESS-NAME"),
+            ("process_path", "PROCESS-PATH"),
         ]
         for (key, typeName) in typeMapping {
             if let val = rule[key] {
@@ -281,6 +282,18 @@ struct AddRuleSheet: View {
 
     // MARK: - Helpers
 
+    private var ruleValuePlaceholder: String {
+        switch ruleType {
+        case "DOMAIN-SUFFIX": return "example.com"
+        case "DOMAIN": return "www.example.com"
+        case "DOMAIN-KEYWORD": return "google"
+        case "IP-CIDR": return "192.168.1.0/24"
+        case "PROCESS-NAME": return "Notion"
+        case "PROCESS-PATH": return "/Applications/Notion.app/Contents/MacOS/Notion"
+        default: return "匹配值"
+        }
+    }
+
     private var singboxKey: String {
         switch ruleType {
         case "DOMAIN": return "domain"
@@ -288,6 +301,7 @@ struct AddRuleSheet: View {
         case "DOMAIN-KEYWORD": return "domain_keyword"
         case "IP-CIDR": return "ip_cidr"
         case "PROCESS-NAME": return "process_name"
+        case "PROCESS-PATH": return "process_path"
         default: return "domain_suffix"
         }
     }
@@ -349,10 +363,16 @@ struct AddRuleSheet: View {
             // Update existing rule
             rules[editIdx] = newRule
         } else {
-            // Insert new rule after system rules, before service rules
-            let insertIdx = rules.firstIndex(where: { rule in
-                rule["rule_set"] != nil || rule["domain"] != nil || rule["domain_suffix"] != nil
-            }) ?? rules.count
+            // Insert right after the leading system rules block (sniff, hijack-dns, ip_is_private, reject)
+            // New custom rules always get highest priority
+            let systemActions: Set<String> = ["sniff", "hijack-dns", "reject"]
+            var insertIdx = 0
+            for rule in rules {
+                let action = rule["action"]?.stringValue ?? ""
+                let isSystem = rule["ip_is_private"] != nil || systemActions.contains(action)
+                guard isSystem else { break }
+                insertIdx += 1
+            }
             rules.insert(newRule, at: insertIdx)
         }
         appState.configEngine.config.route.rules = rules

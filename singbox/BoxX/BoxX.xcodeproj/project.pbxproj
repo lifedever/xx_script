@@ -53,8 +53,10 @@
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
 		C0DE38060486AD06C839A330 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2652550012122DCF0C4B9AA2 /* MonitorView.swift */; };
+		C0F01D78529F1CB99C1DDD0D /* DNSRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2305BD26AC7E82D1077AE522 /* DNSRulesView.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
 		C2DA449DAC046D928ADFB90E /* AutoGrouper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1F107044EE7E7A2AC75600 /* AutoGrouper.swift */; };
+		C5F7AEB3B34F905A31E843D8 /* RuleOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72790DF23CDE00B9E32DBC2 /* RuleOverviewView.swift */; };
 		C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */; };
 		C9A87347AF25126EEBD846AF /* BuiltinRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */; };
 		CA6DC01BBEC49CE5915F2F29 /* ClashAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33FF2D74D270C7533F9221B0 /* ClashAPI.swift */; };
@@ -100,6 +102,7 @@
 		167EFFD13A60A868D1FABC99 /* WakeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeObserver.swift; sourceTree = "<group>"; };
 		18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
 		223B0D94A0BDD5B469B1C6D3 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
+		2305BD26AC7E82D1077AE522 /* DNSRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSRulesView.swift; sourceTree = "<group>"; };
 		236316BA886FAF9975D7C310 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
 		2652550012122DCF0C4B9AA2 /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
 		28863DF4368C71D5FFF7A186 /* BoxXHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = BoxXHelper; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -147,6 +150,7 @@
 		C92D36E087DFEB3FE6AC5111 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CD16CD3ADCFA348808284DC0 /* BoxXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoxXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D66DA05B940CC40693AB69E6 /* config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = config.json; sourceTree = "<group>"; };
+		D72790DF23CDE00B9E32DBC2 /* RuleOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleOverviewView.swift; sourceTree = "<group>"; };
 		D8254EFC2D2594D80531A454 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
@@ -282,6 +286,7 @@
 				B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */,
 				67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */,
 				8CAEE62A30EDCED844892451 /* ConnectionsView.swift */,
+				2305BD26AC7E82D1077AE522 /* DNSRulesView.swift */,
 				3233A78B55590B6DFD58E74C /* LogsView.swift */,
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
 				2652550012122DCF0C4B9AA2 /* MonitorView.swift */,
@@ -290,6 +295,7 @@
 				3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */,
 				33F99ED78125A1129112F680 /* RegionGroupsView.swift */,
 				5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */,
+				D72790DF23CDE00B9E32DBC2 /* RuleOverviewView.swift */,
 				55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */,
 				EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
@@ -516,6 +522,7 @@
 				0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */,
 				F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */,
 				E79724C91A58535D716F7685 /* DNSConfig.swift in Sources */,
+				C0F01D78529F1CB99C1DDD0D /* DNSRulesView.swift in Sources */,
 				6D2EBC2502369E291AE320B5 /* DataModels.swift in Sources */,
 				FA13DABBE1CB5BDF70828E66 /* ExperimentalConfig.swift in Sources */,
 				1765CC16E758DB82252599D4 /* FileWatcher.swift in Sources */,
@@ -539,6 +546,7 @@
 				6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */,
 				47453C12227D762DD0C77C18 /* RouteRulesView.swift in Sources */,
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
+				C5F7AEB3B34F905A31E843D8 /* RuleOverviewView.swift in Sources */,
 				2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */,
 				1C6FA3717CEA6BCE3BD20626 /* RuleSetsView.swift in Sources */,
 				05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */,

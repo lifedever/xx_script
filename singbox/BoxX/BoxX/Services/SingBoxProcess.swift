@@ -38,11 +38,20 @@ class SingBoxProcess {
         done
         # Allow current user to send signals to sing-box without password (for hot-reload)
         SUDOERS_FILE="/etc/sudoers.d/boxx-singbox"
-        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /bin/kill -HUP *' > "$SUDOERS_FILE"
+        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /usr/bin/pkill -9 -x sing-box, /bin/kill -HUP *, \(sbPath) run *' > "$SUDOERS_FILE"
         chmod 0440 "$SUDOERS_FILE"
-        # Start sing-box
+        # Rotate logs: rename current log with date, delete logs older than 3 days
+        LOG_DIR="/tmp"
+        LOG_FILE="$LOG_DIR/boxx-singbox.log"
+        if [ -f "$LOG_FILE" ]; then
+            mv "$LOG_FILE" "$LOG_DIR/boxx-singbox-$(date +%Y%m%d-%H%M%S).log"
+        fi
+        find "$LOG_DIR" -name "boxx-singbox-*.log" -mtime +3 -delete 2>/dev/null
+        # Also clean up legacy error log
+        rm -f /tmp/boxx-singbox-error.log
+        # Start sing-box (background, redirect output to log)
         cd '\(escapedConfigDir)'
-        '\(sbPath)' run -c '\(escapedConfigPath)' >/dev/null 2>/tmp/boxx-singbox-error.log &
+        '\(sbPath)' run -c '\(escapedConfigPath)' >>"$LOG_FILE" 2>&1 &
         """
         let launcherPath = "/tmp/boxx-launcher.sh"
 
@@ -87,13 +96,19 @@ class SingBoxProcess {
             print("[BoxX] sing-box running (API slow)")
         } else {
             // Read error log for details
-            let errorLog = (try? String(contentsOfFile: "/tmp/boxx-singbox-error.log", encoding: .utf8)) ?? ""
+            let errorLog = (try? String(contentsOfFile: "/tmp/boxx-singbox.log", encoding: .utf8)) ?? ""
+            // 只看 FATAL 级别，ERROR 级别（NTP 超时、连接断开等）是瞬态的，不代表启动失败
             let fatalLines = errorLog.components(separatedBy: "\n")
-                .filter { $0.contains("FATAL") || $0.contains("ERROR") }
+                .filter { $0.contains("FATAL") }
                 .prefix(3)
                 .joined(separator: "\n")
             let detail = fatalLines.isEmpty ? "sing-box 启动后退出，请检查配置" : fatalLines
             throw SingBoxError.startFailed(detail)
+        }
+
+        // 启动成功后刷新 DNS 缓存，确保系统使用新的 DNS 解析
+        if isRunning {
+            flushDNS()
         }
     }
 
@@ -101,31 +116,26 @@ class SingBoxProcess {
     func stop() async {
         print("[BoxX] Stopping sing-box...")
         await runOnBackground {
-            // Try user-level kill first (no password prompt)
-            self.killExistingSync()
-            Thread.sleep(forTimeInterval: 1)
-
-            // If still running (root process), use osascript
-            if self.findSingBoxPID() != nil {
-                let proc = Process()
-                proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-                proc.arguments = ["-e", "do shell script \"pkill -x sing-box\" with administrator privileges"]
-                proc.standardOutput = FileHandle.nullDevice
-                proc.standardError = FileHandle.nullDevice
-                try? proc.run()
-                proc.waitUntilExit()
-            }
+            // Use sudo pkill (sudoers rule allows this without password)
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+            proc.arguments = ["pkill", "-x", "sing-box"]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
             self.waitForPortReleaseSync()
         }
         isRunning = false
         print("[BoxX] Stopped ✅")
     }
 
-    /// Restart — uses a single osascript call to stop+start (one password prompt)
+    /// Restart — stop via sudo (no password) + start via osascript (reuses existing start logic)
     func restart(configPath: String, mixedPort: Int = 7890) async throws {
         print("[BoxX] Restarting sing-box...")
-        // Reuse start() which already handles killing old processes in its launcher script
-        isRunning = false
+        // stop() uses sudo pkill — no password needed (sudoers rule)
+        await stop()
+        // start() handles everything: kill remaining, start new process
         try await start(configPath: configPath, mixedPort: mixedPort)
     }
 

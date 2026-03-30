@@ -6,6 +6,7 @@ final class AppState {
     static let shared = AppState()
 
     var isRunning = false
+    var isRestarting = false
     var isUpdatingSubscription = false
     var errorMessage: String?
     var showError = false

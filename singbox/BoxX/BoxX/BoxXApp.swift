@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor static var shared: AppDelegate?
@@ -55,9 +56,13 @@ struct BoxXApp: App {
             // Start watching config.json for external changes
             state.configEngine.startWatching()
 
-            // Setup wake observer
+            // Request notification permission
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+
+            // Setup wake observer (must retain reference)
             let observer = WakeObserver(singBoxProcess: state.singBoxProcess, api: state.api, configEngine: state.configEngine)
             await observer.startObserving()
+            WakeObserverHolder.shared.observer = observer
         }
     }
 
@@ -102,6 +107,8 @@ struct BoxXApp: App {
                                 try appState.configEngine.deployRuntime()
                                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                                 try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+                                appState.singBoxProcess.flushDNS()
+                                try? await appState.api.closeAllConnections()
                             } catch {
                                 appState.showAlert(error.localizedDescription)
                             }
@@ -203,6 +210,13 @@ final class MenuBarHolder {
     var controller: MenuBarController?
 }
 
+/// Holds a strong reference to WakeObserver so it's not released by ARC.
+@MainActor
+final class WakeObserverHolder {
+    static let shared = WakeObserverHolder()
+    var observer: WakeObserver?
+}
+
 /// Adaptive status polling -- fast when stopped, slow when running
 @MainActor
 final class StatusPoller {
@@ -252,15 +266,50 @@ final class StatusPoller {
 
     private func scheduleSlowPoll(appState: AppState) {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
+                let wasRunning = appState.isRunning
                 appState.isRunning = await self.checkStatus(appState: appState)
                 MenuBarHolder.shared.controller?.updateIcon()
-                if !appState.isRunning {
+                if wasRunning && !appState.isRunning {
+                    if !appState.isRestarting {
+                        // sing-box unexpectedly stopped — notify user
+                        self.notifyUnexpectedStop()
+                    }
                     self.scheduleFastPoll(appState: appState)
                 }
             }
         }
+    }
+
+    /// 启动后的静默期（秒），期间不触发"意外停止"通知
+    private var launchTime = Date()
+
+    private func notifyUnexpectedStop() {
+        // 启动后 15 秒内不触发通知（给 build-install 流程留出缓冲）
+        if Date().timeIntervalSince(launchTime) < 15 { return }
+
+        // 检查是否正在 build-install 升级中（build.sh 写入的信号文件）
+        if FileManager.default.fileExists(atPath: "/tmp/boxx-upgrading") { return }
+
+        // Write to log file
+        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
+        let logLine = "[\(timestamp)] [BoxX] sing-box unexpectedly stopped. Check /tmp/boxx-singbox.log for details.\n"
+        if let data = logLine.data(using: .utf8) {
+            let logURL = URL(fileURLWithPath: "/tmp/boxx-singbox.log")
+            if let handle = try? FileHandle(forWritingTo: logURL) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                handle.closeFile()
+            }
+        }
+        // macOS notification (UNUserNotificationCenter for macOS 13+)
+        let content = UNMutableNotificationContent()
+        content.title = "BoxX"
+        content.body = "sing-box 服务已意外停止，请检查日志"
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "boxx-unexpected-stop-\(UUID().uuidString)", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 }

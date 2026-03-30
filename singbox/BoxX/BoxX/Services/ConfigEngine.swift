@@ -157,11 +157,6 @@ class ConfigEngine: @unchecked Sendable {
     // MARK: - Save
 
     func save(restartRequired: Bool = true) throws {
-        // Mtime conflict check: if file was externally modified since last load, reload first
-        if let currentMtime = try? FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date,
-           let lastMtime, currentMtime > lastMtime {
-            try load()  // Reload external changes
-        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)
@@ -181,6 +176,16 @@ class ConfigEngine: @unchecked Sendable {
         let allProxyNodes = proxies.values.flatMap { $0 }
         runtime.outbounds.append(contentsOf: allProxyNodes)
 
+        // Enable process detection for monitoring
+        runtime.route.unknownFields["find_process"] = .bool(true)
+
+        // Inject urltest settings from UserDefaults
+        let ud = UserDefaults.standard
+        let testURL = ud.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"
+        let testInterval = ud.string(forKey: "urlTestInterval").flatMap({ $0.isEmpty ? nil : $0 }) ?? "3m"
+        let testTolerance = ud.integer(forKey: "urlTestTolerance")
+        let toleranceValue = testTolerance > 0 ? testTolerance : 50
+
         // Validate: remove references to non-existent outbounds from selectors/urltest
         let allTags = Set(runtime.outbounds.map { $0.tag })
         for i in runtime.outbounds.indices {
@@ -196,9 +201,10 @@ class ConfigEngine: @unchecked Sendable {
                 let before = u.outbounds.count
                 u.outbounds = u.outbounds.filter { allTags.contains($0) }
                 if u.outbounds.isEmpty { u.outbounds = ["DIRECT"] }
-                if u.outbounds.count != before {
-                    runtime.outbounds[i] = .urltest(u)
-                }
+                u.url = testURL
+                u.interval = testInterval
+                u.tolerance = toleranceValue
+                runtime.outbounds[i] = .urltest(u)
             default: break
             }
         }

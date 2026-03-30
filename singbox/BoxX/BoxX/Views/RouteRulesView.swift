@@ -91,9 +91,22 @@ struct RouteRulesView: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
 
+                            let customRules = filteredRules.filter { !Self.systemTypes.contains($0.type) }
+                            let systemRules = filteredRules.filter { Self.systemTypes.contains($0.type) }
+
                             LazyVStack(spacing: 0) {
-                                ForEach(Array(filteredRules.prefix(2000))) { rule in
-                                    ruleRow(rule)
+                                if !customRules.isEmpty {
+                                    sectionHeader("自定义规则")
+                                    ForEach(customRules) { rule in
+                                        ruleRow(rule)
+                                    }
+                                }
+
+                                if !systemRules.isEmpty {
+                                    sectionHeader("系统规则")
+                                    ForEach(systemRules) { rule in
+                                        ruleRow(rule)
+                                    }
                                 }
                             }
                             .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -247,6 +260,16 @@ struct RouteRulesView: View {
         Task { await loadRules() }
     }
 
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.gray.opacity(0.06))
+    }
+
     private func ruleTypeBadge(_ type: String) -> some View {
         Text(type)
             .font(.caption2.monospaced())
@@ -275,6 +298,8 @@ struct RouteRulesView: View {
             return .mint
         case "REJECT":
             return .red
+        case "PROCESS-NAME", "PROCESS-PATH":
+            return .cyan
         case "MODE":
             return .indigo
         default:
@@ -306,6 +331,11 @@ struct RouteRulesView: View {
 
     /// Extract rule type from a JSONValue rule object
     private static func extractRuleType(from rule: JSONValue) -> String {
+        // Handle logical rules (type: "logical" with nested rules)
+        if rule["type"]?.stringValue == "logical" {
+            let action = rule["action"]?.stringValue ?? ""
+            return action.uppercased()
+        }
         let typeKeys: [(key: String, label: String)] = [
             ("domain_suffix", "DOMAIN-SUFFIX"),
             ("domain", "DOMAIN"),
@@ -334,6 +364,21 @@ struct RouteRulesView: View {
 
     /// Extract match payload from a JSONValue rule object
     private static func extractRulePayload(from rule: JSONValue) -> String {
+        // Handle logical rules
+        if rule["type"]?.stringValue == "logical" {
+            if case .array(let subRules) = rule["rules"] {
+                let parts = subRules.compactMap { sub -> String? in
+                    for key in ["protocol", "port"] {
+                        if let val = sub[key] {
+                            return "\(key)=\(val.stringValue ?? "")"
+                        }
+                    }
+                    return nil
+                }
+                return parts.joined(separator: " | ")
+            }
+            return "—"
+        }
         let matchKeys = [
             "domain_suffix", "domain", "domain_keyword", "domain_regex",
             "ip_cidr", "source_ip_cidr", "rule_set", "process_name",

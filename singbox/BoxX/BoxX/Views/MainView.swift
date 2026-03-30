@@ -3,7 +3,9 @@ import SwiftUI
 enum SidebarTab: String, CaseIterable {
     case overview = "概览"
     case proxies = "策略组"
+    case ruleOverview = "规则总览"
     case routeRules = "路由规则"
+    case dnsRules = "DNS 管理"
     case ruleSets = "规则集"
     case builtinRules = "服务分流"
     case ruleTest = "规则测试"
@@ -15,7 +17,9 @@ enum SidebarTab: String, CaseIterable {
         switch self {
         case .overview: return "square.grid.2x2"
         case .proxies: return "network"
+        case .ruleOverview: return "list.number"
         case .routeRules: return "list.bullet.rectangle"
+        case .dnsRules: return "server.rack"
         case .ruleSets: return "tray.2"
         case .builtinRules: return "shield.checkered"
         case .ruleTest: return "target"
@@ -32,7 +36,7 @@ struct MainView: View {
     @State private var selectedTab: SidebarTab = .overview
 
     private var sourceTabs: [SidebarTab] { [.builtinRules, .regionGroups, .subscriptions] }
-    private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .ruleTest] }
+    private var ruleTabs: [SidebarTab] { [.routeRules, .dnsRules, .ruleSets, .ruleTest] }
     private var systemTabs: [SidebarTab] { [.settings] }
 
     @State private var isApplying = false
@@ -79,6 +83,7 @@ struct MainView: View {
             List(selection: $selectedTab) {
                 Label("概览", systemImage: "square.grid.2x2").tag(SidebarTab.overview)
                 Label("策略组", systemImage: "network").tag(SidebarTab.proxies)
+                Label("规则总览", systemImage: "list.number").tag(SidebarTab.ruleOverview)
 
                 Section("分流") {
                     ForEach(sourceTabs, id: \.self) { tab in
@@ -103,15 +108,19 @@ struct MainView: View {
                 }
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 200)
+            .navigationSplitViewColumnWidth(180)
         } detail: {
             switch selectedTab {
             case .overview:
                 OverviewView()
             case .proxies:
                 ProxiesView()
+            case .ruleOverview:
+                RuleOverviewView()
             case .routeRules:
                 RouteRulesView()
+            case .dnsRules:
+                DNSRulesView()
             case .ruleSets:
                 RuleSetsView()
             case .builtinRules:
@@ -126,7 +135,7 @@ struct MainView: View {
                 SettingsView()
             }
         }
-        .frame(minWidth: 800, minHeight: 500)
+        .frame(minWidth: 900, minHeight: 550)
 
         } // end VStack
         .onReceive(NotificationCenter.default.publisher(for: .openMonitorWindow)) { _ in

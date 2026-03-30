@@ -96,17 +96,19 @@ struct URLTestOutbound: Codable, Equatable, Sendable {
     var outbounds: [String]
     var url: String?
     var interval: String?
+    var tolerance: Int?
     var unknownFields: [String: JSONValue] = [:]
 
     private enum CodingKeys: String, CodingKey, CaseIterable {
-        case tag, outbounds, url, interval
+        case tag, outbounds, url, interval, tolerance
     }
 
-    init(tag: String, outbounds: [String], url: String? = nil, interval: String? = nil) {
+    init(tag: String, outbounds: [String], url: String? = nil, interval: String? = nil, tolerance: Int? = nil) {
         self.tag = tag
         self.outbounds = outbounds
         self.url = url
         self.interval = interval
+        self.tolerance = tolerance
     }
 
     init(from decoder: Decoder) throws {
@@ -115,6 +117,7 @@ struct URLTestOutbound: Codable, Equatable, Sendable {
         outbounds = try container.decode([String].self, forKey: .outbounds)
         url = try container.decodeIfPresent(String.self, forKey: .url)
         interval = try container.decodeIfPresent(String.self, forKey: .interval)
+        tolerance = try container.decodeIfPresent(Int.self, forKey: .tolerance)
 
         let knownKeys = Set(CodingKeys.allCases.map { $0.stringValue })
         let dynamicContainer = try decoder.container(keyedBy: DynamicCodingKey.self)
@@ -133,6 +136,7 @@ struct URLTestOutbound: Codable, Equatable, Sendable {
         try container.encode(outbounds, forKey: .outbounds)
         try container.encodeIfPresent(url, forKey: .url)
         try container.encodeIfPresent(interval, forKey: .interval)
+        try container.encodeIfPresent(tolerance, forKey: .tolerance)
 
         var dynamicContainer = encoder.container(keyedBy: DynamicCodingKey.self)
         for (key, value) in unknownFields {

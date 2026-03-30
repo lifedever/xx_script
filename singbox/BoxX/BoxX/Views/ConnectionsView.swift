@@ -3,10 +3,16 @@ import SwiftUI
 struct ConnectionsView: View {
     @Environment(AppState.self) private var appState
 
+    /// External filter from sidebar (app name or host)
+    var groupFilter: String?
+    /// Callback to report connections for sidebar grouping
+    var onConnectionsUpdate: (([Connection]) -> Void)?
+
     @State private var connections: [Connection] = []
     @State private var downloadTotal: Int64 = 0
     @State private var uploadTotal: Int64 = 0
     @State private var searchText = ""
+    @State private var debouncedSearchText = ""
     @State private var wsTask: Task<Void, Never>?
     @State private var sortOrder = [KeyPathComparator(\Connection.start, order: .reverse)]
     @State private var selectedID: Connection.ID?
@@ -25,13 +31,25 @@ struct ConnectionsView: View {
     var filteredConnections: [Connection] {
         let sorted = connections.sorted(using: sortOrder)
         let capped = Array(sorted.prefix(2000))
-        if searchText.isEmpty { return capped }
-        return capped.filter {
-            $0.host.localizedCaseInsensitiveContains(searchText) ||
-            $0.rule.localizedCaseInsensitiveContains(searchText) ||
-            $0.outbound.localizedCaseInsensitiveContains(searchText) ||
-            $0.chain.localizedCaseInsensitiveContains(searchText) ||
-            $0.metadata.processPath.localizedCaseInsensitiveContains(searchText)
+
+        // Apply group filter first
+        let grouped: [Connection]
+        if let filter = groupFilter, !filter.isEmpty {
+            grouped = capped.filter {
+                $0.processName.localizedCaseInsensitiveContains(filter) ||
+                $0.host.localizedCaseInsensitiveContains(filter)
+            }
+        } else {
+            grouped = capped
+        }
+
+        if debouncedSearchText.isEmpty { return grouped }
+        return grouped.filter {
+            $0.host.localizedCaseInsensitiveContains(debouncedSearchText) ||
+            $0.rule.localizedCaseInsensitiveContains(debouncedSearchText) ||
+            $0.outbound.localizedCaseInsensitiveContains(debouncedSearchText) ||
+            $0.chain.localizedCaseInsensitiveContains(debouncedSearchText) ||
+            $0.metadata.processPath.localizedCaseInsensitiveContains(debouncedSearchText)
         }
     }
 
@@ -80,7 +98,12 @@ struct ConnectionsView: View {
                 )
             }
         }
-        .task {
+        .task(id: searchText) {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            debouncedSearchText = searchText
+        }
+        .onAppear {
+            wsTask?.cancel()
             startStreaming()
         }
         .onDisappear {
@@ -322,7 +345,7 @@ struct ConnectionsView: View {
         // Remove closed connections older than 30s
         updatedConnections.removeAll { conn in
             guard conn.isClosed, let closedAt = conn.closedAt else { return false }
-            return now.timeIntervalSince(closedAt) > 600
+            return now.timeIntervalSince(closedAt) > 60
         }
         // Update or add active connections
         for active in activeConnections {
@@ -338,6 +361,7 @@ struct ConnectionsView: View {
         }
 
         connections = updatedConnections
+        onConnectionsUpdate?(updatedConnections)
     }
 }
 
