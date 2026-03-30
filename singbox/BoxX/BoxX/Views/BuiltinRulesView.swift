@@ -70,7 +70,7 @@ struct BuiltinRulesView: View {
                     }
                 }
 
-                Text(ruleSet.defaultOutbound)
+                Text(currentOutbound(for: ruleSet))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -98,6 +98,21 @@ struct BuiltinRulesView: View {
         .opacity(isEnabled ? 1.0 : 0.6)
         .contentShape(Rectangle())
         .onTapGesture { editingRuleSet = ruleSet }
+    }
+
+    /// Read current outbound for a builtin rule set from config (not the hardcoded default)
+    private func currentOutbound(for ruleSet: BuiltinRuleSet) -> String {
+        let rules = appState.configEngine.config.route.rules ?? []
+        let geositeTags = Set(ruleSet.geositeNames.map { "geosite-\($0)" })
+        for rule in rules {
+            guard let refs = rule["rule_set"]?.arrayValue else { continue }
+            let tags = Set(refs.compactMap { $0.stringValue })
+            if !tags.isDisjoint(with: geositeTags) {
+                if rule["action"]?.stringValue == "reject" { return "REJECT" }
+                return rule["outbound"]?.stringValue ?? ruleSet.defaultOutbound
+            }
+        }
+        return ruleSet.defaultOutbound
     }
 
     // MARK: - Rule Set Config Helpers
