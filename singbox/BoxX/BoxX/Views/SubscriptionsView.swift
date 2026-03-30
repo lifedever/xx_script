@@ -54,46 +54,6 @@ struct SubscriptionsView: View {
                     .padding()
                 }
 
-                // Update log panel
-                if !updateLogs.isEmpty {
-                    Divider()
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack {
-                            Text("更新日志")
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button("清空") { updateLogs.removeAll() }
-                                .controlSize(.mini)
-                                .buttonStyle(.borderless)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-
-                        ScrollViewReader { proxy in
-                            ScrollView {
-                                LazyVStack(alignment: .leading, spacing: 1) {
-                                    ForEach(Array(updateLogs.enumerated()), id: \.offset) { i, log in
-                                        Text(log)
-                                            .font(.caption.monospaced())
-                                            .foregroundStyle(log.contains("Error") || log.contains("失败") ? Color.red : .primary)
-                                            .textSelection(.enabled)
-                                            .id(i)
-                                    }
-                                }
-                                .padding(.horizontal, 8)
-                            }
-                            .frame(maxHeight: 120)
-                            .onChange(of: updateLogs.count) { _, _ in
-                                if let last = updateLogs.indices.last {
-                                    proxy.scrollTo(last, anchor: .bottom)
-                                }
-                            }
-                        }
-                    }
-                    .background(.bar)
-                }
-
                 Divider()
 
                 // Bottom action bar
@@ -145,6 +105,9 @@ struct SubscriptionsView: View {
         }
         .task {
             await fetchAllSubscriptionInfos()
+        }
+        .sheet(isPresented: $showLogs) {
+            UpdateLogSheet(logs: $updateLogs, isUpdating: isUpdating)
         }
     }
 
@@ -200,6 +163,8 @@ struct SubscriptionsView: View {
             return
         }
         updateResults[sub.name] = .updating
+        updateLogs.removeAll()
+        showLogs = true
         log("开始更新: \(sub.name)")
         do {
             let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
@@ -224,6 +189,7 @@ struct SubscriptionsView: View {
         updateLogs.removeAll()
         defer { isUpdating = false }
 
+        showLogs = true
         log("开始更新全部订阅...")
         let subService = appState.subscriptionService
         for sub in subscriptions {
@@ -262,6 +228,56 @@ enum SubscriptionUpdateStatus {
 }
 
 // MARK: - Subscription Card
+
+// MARK: - Update Log Sheet
+
+struct UpdateLogSheet: View {
+    @Binding var logs: [String]
+    let isUpdating: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("更新日志")
+                    .font(.headline)
+                Spacer()
+                if isUpdating {
+                    ProgressView().controlSize(.small)
+                }
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+
+            Divider()
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(logs.enumerated()), id: \.offset) { i, log in
+                            Text(log)
+                                .font(.body.monospaced())
+                                .foregroundStyle(log.contains("失败") ? Color.red : log.contains("完成") ? Color.green : .primary)
+                                .textSelection(.enabled)
+                                .id(i)
+                        }
+                    }
+                    .padding()
+                }
+                .onChange(of: logs.count) { _, _ in
+                    if let last = logs.indices.last {
+                        withAnimation { proxy.scrollTo(last, anchor: .bottom) }
+                    }
+                }
+            }
+        }
+        .frame(width: 500, height: 300)
+    }
+}
 
 struct SubscriptionCard: View {
     let subscription: Subscription
