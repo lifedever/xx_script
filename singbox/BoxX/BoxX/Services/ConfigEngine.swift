@@ -130,6 +130,15 @@ class ConfigEngine: @unchecked Sendable {
             try data.write(to: configURL, options: .atomic)
         }
         config = try JSONDecoder().decode(SingBoxConfig.self, from: data)
+
+        // Deduplicate outbound tags (can happen after 🇹🇼→🇨🇳 migration)
+        var seenTags = Set<String>()
+        config.outbounds.removeAll { ob in
+            if seenTags.contains(ob.tag) { return true }
+            seenTags.insert(ob.tag)
+            return false
+        }
+
         lastMtime = try FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date
 
         // Load proxy files
