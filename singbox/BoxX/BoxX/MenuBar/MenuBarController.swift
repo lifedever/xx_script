@@ -466,20 +466,25 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func doTestGroupSpeed(group: ProxyGroup, in submenu: NSMenu) {
-        // Find the SpeedTestMenuItemView to update its state
         let testView = submenu.items.first?.view as? SpeedTestMenuItemView
         testView?.setTesting(true)
 
+        let testURL = UserDefaults.standard.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"
+        let nodes = group.displayAll
+        let api = appState.api
+
         Task {
-            for node in group.displayAll {
-                do {
-                    let testURL = UserDefaults.standard.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"
-                    let delay = try await appState.api.getDelay(name: node, url: testURL)
-                    delayResults[node] = delay
-                } catch {
-                    delayResults[node] = 0
+            await withTaskGroup(of: (String, Int).self) { taskGroup in
+                for node in nodes {
+                    taskGroup.addTask {
+                        let delay = (try? await api.getDelay(name: node, url: testURL)) ?? 0
+                        return (node, delay)
+                    }
                 }
-                updateNodeMenuItem(in: submenu, node: node)
+                for await (node, delay) in taskGroup {
+                    delayResults[node] = delay
+                    updateNodeMenuItem(in: submenu, node: node)
+                }
             }
             testView?.setTesting(false)
         }
