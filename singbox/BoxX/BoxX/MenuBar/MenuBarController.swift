@@ -7,6 +7,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let appState: AppState
     private var cachedGroups: [ProxyGroup] = []
     private var cachedMode: String = "rule"
+    private var delayResults: [String: Int] = [:]  // node name -> delay ms
 
     init(appState: AppState) {
         self.appState = appState
@@ -236,13 +237,52 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         // Create submenu with nodes
         let submenu = NSMenu()
+
+        // Speed test item at top
+        let testItem = NSMenuItem(title: "测速全部", action: #selector(testGroupSpeed(_:)), keyEquivalent: "")
+        testItem.target = self
+        testItem.representedObject = group
+        testItem.image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
+        submenu.addItem(testItem)
+        submenu.addItem(.separator())
+
         for node in group.displayAll {
-            let nodeItem = NSMenuItem(title: node, action: #selector(selectNode(_:)), keyEquivalent: "")
+            let title: String
+            if let delay = delayResults[node] {
+                title = delay > 0 ? "\(node)  \(delay)ms" : "\(node)  超时"
+            } else {
+                title = node
+            }
+            let nodeItem = NSMenuItem(title: "", action: #selector(selectNode(_:)), keyEquivalent: "")
             nodeItem.target = self
             nodeItem.representedObject = ["group": group.name, "node": node] as NSDictionary
             if node == group.now {
                 nodeItem.state = .on
             }
+            // Color-coded delay
+            let attrStr = NSMutableAttributedString(string: node, attributes: [.font: NSFont.menuFont(ofSize: 0)])
+            if let delay = delayResults[node] {
+                let delayText: String
+                let color: NSColor
+                if delay <= 0 {
+                    delayText = "  超时"
+                    color = .systemRed
+                } else if delay < 200 {
+                    delayText = "  \(delay)ms"
+                    color = .systemGreen
+                } else if delay < 500 {
+                    delayText = "  \(delay)ms"
+                    color = .systemOrange
+                } else {
+                    delayText = "  \(delay)ms"
+                    color = .systemRed
+                }
+                attrStr.append(NSAttributedString(string: delayText, attributes: [
+                    .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
+                    .foregroundColor: color,
+                ]))
+            }
+            nodeItem.attributedTitle = attrStr
             submenu.addItem(nodeItem)
         }
         item.submenu = submenu
@@ -422,6 +462,23 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         """
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(env, forType: .string)
+    }
+
+    @objc private func testGroupSpeed(_ sender: NSMenuItem) {
+        guard let group = sender.representedObject as? ProxyGroup else { return }
+        sender.title = "测速中..."
+        sender.isEnabled = false
+        Task {
+            for node in group.displayAll {
+                do {
+                    let delay = try await appState.api.getDelay(name: node)
+                    delayResults[node] = delay
+                } catch {
+                    delayResults[node] = 0  // timeout
+                }
+            }
+            await fetchAndRebuild()
+        }
     }
 
     @objc private func applyConfig() {
