@@ -465,19 +465,51 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func testGroupSpeed(_ sender: NSMenuItem) {
-        guard let group = sender.representedObject as? ProxyGroup else { return }
+        guard let group = sender.representedObject as? ProxyGroup,
+              let submenu = sender.menu else { return }
         sender.title = "测速中..."
         sender.isEnabled = false
+
         Task {
             for node in group.displayAll {
                 do {
                     let delay = try await appState.api.getDelay(name: node)
                     delayResults[node] = delay
                 } catch {
-                    delayResults[node] = 0  // timeout
+                    delayResults[node] = 0
                 }
+                // Update the menu item in-place
+                updateNodeMenuItem(in: submenu, node: node)
             }
-            await fetchAndRebuild()
+            sender.title = "测速全部"
+            sender.isEnabled = true
+        }
+    }
+
+    private func updateNodeMenuItem(in menu: NSMenu, node: String) {
+        for menuItem in menu.items {
+            guard let info = menuItem.representedObject as? NSDictionary,
+                  info["node"] as? String == node else { continue }
+            let attrStr = NSMutableAttributedString(string: node, attributes: [.font: NSFont.menuFont(ofSize: 0)])
+            if let delay = delayResults[node] {
+                let delayText: String
+                let color: NSColor
+                if delay <= 0 {
+                    delayText = "  超时"; color = .systemRed
+                } else if delay < 200 {
+                    delayText = "  \(delay)ms"; color = .systemGreen
+                } else if delay < 500 {
+                    delayText = "  \(delay)ms"; color = .systemOrange
+                } else {
+                    delayText = "  \(delay)ms"; color = .systemRed
+                }
+                attrStr.append(NSAttributedString(string: delayText, attributes: [
+                    .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
+                    .foregroundColor: color,
+                ]))
+            }
+            menuItem.attributedTitle = attrStr
+            break
         }
     }
 
