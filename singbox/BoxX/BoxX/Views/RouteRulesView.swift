@@ -96,7 +96,6 @@ struct RouteRulesView: View {
                                     ruleRow(rule)
                                 }
                             }
-                            .background(.regularMaterial)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
@@ -216,7 +215,7 @@ struct RouteRulesView: View {
         .background(
             isSelected
                 ? AnyShapeStyle(Color.accentColor.opacity(0.15))
-                : (rule.id % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+                : (rule.id % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Color.gray.opacity(0.06)))
         )
         .contentShape(Rectangle())
         .onTapGesture {

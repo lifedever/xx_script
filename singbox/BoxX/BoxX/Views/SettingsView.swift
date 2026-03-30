@@ -23,10 +23,20 @@ struct SettingsView: View {
 struct GeneralSettingsTab: View {
     @Environment(AppState.self) private var appState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @AppStorage("appearanceMode") private var appearanceMode = "system"
     @State private var loginError: String?
 
     var body: some View {
         Form {
+            Picker("外观模式", selection: $appearanceMode) {
+                Text("跟随系统").tag("system")
+                Text("浅色").tag("light")
+                Text("深色").tag("dark")
+            }
+            .onChange(of: appearanceMode) { _, newValue in
+                applyAppearance(newValue)
+            }
+
             Toggle(String(localized: "settings.launch_at_login"), isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, newValue in
                     do {
@@ -66,6 +76,25 @@ struct GeneralSettingsTab: View {
                 .foregroundStyle(.tertiary)
         }
         .formStyle(.grouped)
+        .onAppear { applyAppearance(appearanceMode) }
+    }
+
+    private func applyAppearance(_ mode: String) {
+        switch mode {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        default: NSApp.appearance = nil
+        }
+    }
+}
+
+// MARK: - Apply saved appearance on launch
+func applySavedAppearance() {
+    let mode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"
+    switch mode {
+    case "light": NSApp.appearance = NSAppearance(named: .aqua)
+    case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+    default: NSApp.appearance = nil
     }
 }
 

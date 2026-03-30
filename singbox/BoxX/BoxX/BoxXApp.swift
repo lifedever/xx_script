@@ -28,6 +28,9 @@ struct BoxXApp: App {
         // Clean up v1 legacy UserDefaults keys that trigger TCC prompts
         UserDefaults.standard.removeObject(forKey: "scriptDir")
 
+        // Apply saved appearance mode
+        applySavedAppearance()
+
         let state = appState
 
         Task { @MainActor in

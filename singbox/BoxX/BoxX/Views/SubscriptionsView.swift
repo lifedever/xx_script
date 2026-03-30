@@ -239,15 +239,10 @@ struct SubscriptionCard: View {
                         }
 
                         // Per-subscription update button
-                        Button {
-                            onUpdate()
-                        } label: {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("更新此订阅")
-                        .disabled(status != nil)
+                        Button("更新") { onUpdate() }
+                            .controlSize(.small)
+                            .buttonStyle(.bordered)
+                            .disabled(status != nil)
                     }
 
                     Text(subscription.url)
