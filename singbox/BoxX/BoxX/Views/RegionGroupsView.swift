@@ -28,22 +28,30 @@ struct RegionGroupsView: View {
             if orderedKeys.isEmpty {
                 emptyState
             } else {
-                List {
-                    ForEach(orderedKeys, id: \.self) { key in
-                        if let pattern = patterns[key] {
-                            RegionGroupRow(
-                                name: key, pattern: pattern,
-                                onEdit: { editingKey = key },
-                                onDelete: { deleteGroup(key) }
-                            )
+                // Table header
+                HStack(spacing: 0) {
+                    Text("#").frame(width: 30, alignment: .leading)
+                    Text("名称").frame(width: 140, alignment: .leading)
+                    Text("类型").frame(width: 80, alignment: .leading)
+                    Text("匹配模式").frame(width: 80, alignment: .leading)
+                    Text("匹配规则").frame(minWidth: 160, alignment: .leading)
+                    Spacer()
+                    Text("操作").frame(width: 120, alignment: .center)
+                }
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(orderedKeys.enumerated()), id: \.element) { index, key in
+                            if let pattern = patterns[key] {
+                                regionGroupTableRow(index: index, key: key, pattern: pattern)
+                            }
                         }
                     }
-                    .onMove { from, to in
-                        orderedKeys.move(fromOffsets: from, toOffset: to)
-                        savePatterns()
-                    }
                 }
-                .listStyle(.plain)
 
                 Divider()
 
@@ -104,6 +112,90 @@ struct RegionGroupsView: View {
         .padding(.vertical, 8)
     }
 
+    private func regionGroupTableRow(index: Int, key: String, pattern: GroupPattern) -> some View {
+        let groupType = appState.configEngine.config.outbounds.first(where: { $0.tag == key }).map { ob -> String in
+            switch ob { case .urltest: return "urltest"; default: return "selector" }
+        } ?? "selector"
+
+        return HStack(spacing: 0) {
+            Text(verbatim: "\(index + 1)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 30, alignment: .leading)
+
+            Text(key)
+                .font(.body)
+                .lineLimit(1)
+                .frame(width: 140, alignment: .leading)
+
+            Text(groupType)
+                .font(.caption2.monospaced())
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(groupType == "urltest" ? Color.orange.opacity(0.12) : Color.blue.opacity(0.12))
+                .foregroundStyle(groupType == "urltest" ? Color.orange : Color.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(width: 80, alignment: .leading)
+
+            Text(pattern.mode == "regex" ? "正则" : "关键词")
+                .font(.caption2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(pattern.mode == "regex" ? Color.purple.opacity(0.12) : Color.green.opacity(0.12))
+                .foregroundStyle(pattern.mode == "regex" ? .purple : .green)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(width: 80, alignment: .leading)
+
+            Text(pattern.patterns.joined(separator: ", "))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(minWidth: 160, alignment: .leading)
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                // Move buttons
+                Button { moveUp(index) } label: {
+                    Image(systemName: "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                .disabled(index == 0)
+
+                Button { moveDown(index) } label: {
+                    Image(systemName: "chevron.down")
+                }
+                .buttonStyle(.borderless)
+                .disabled(index == orderedKeys.count - 1)
+
+                Button("编辑") { editingKey = key }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                Button("删除") { deleteGroup(key) }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.red)
+            }
+            .frame(width: 180, alignment: .center)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(index % 2 == 0 ? Color.clear : Color.gray.opacity(0.06))
+    }
+
+    private func moveUp(_ index: Int) {
+        guard index > 0 else { return }
+        orderedKeys.swapAt(index, index - 1)
+        savePatterns()
+    }
+
+    private func moveDown(_ index: Int) {
+        guard index < orderedKeys.count - 1 else { return }
+        orderedKeys.swapAt(index, index + 1)
+        savePatterns()
+    }
+
     private func loadPatterns() {
         patterns = appState.configEngine.loadGroupPatterns()
         orderedKeys = appState.configEngine.loadOrderedGroupKeys()
@@ -128,45 +220,6 @@ struct RegionGroupsView: View {
     }
 }
 
-// MARK: - Row
-
-struct RegionGroupRow: View {
-    let name: String
-    let pattern: GroupPattern
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            // Name
-            Text(name)
-                .font(.body)
-                .frame(minWidth: 100, alignment: .leading)
-
-            // Mode badge
-            let isRegex = pattern.mode == "regex"
-            Text(isRegex ? "正则" : "关键词")
-                .font(.caption2)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(isRegex ? Color.purple.opacity(0.12) : Color.blue.opacity(0.12))
-                .foregroundStyle(isRegex ? .purple : .blue)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-
-            // Keywords
-            Text(pattern.patterns.joined(separator: ", "))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            Spacer()
-
-            Button("编辑", action: onEdit).controlSize(.small).buttonStyle(.bordered)
-            Button("删除", action: onDelete).controlSize(.small).buttonStyle(.bordered).tint(.red)
-        }
-        .padding(.vertical, 4)
-    }
-}
 
 struct KeywordTag: View {
     let text: String

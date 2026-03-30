@@ -9,9 +9,6 @@ struct ProxiesView: View {
     @State private var searchText = ""
     @State private var isRefreshing = false
     @State private var popoverGroup: String?
-    @State private var showGroupEdit = false
-    @State private var editingGroupTag: String?
-    @State private var deletingGroupTag: String?
     @State private var selectedGroup: String?
 
     // MARK: - Group Classification
@@ -116,13 +113,6 @@ struct ProxiesView: View {
                     Image(systemName: "speedometer")
                 }
                 .help("测速全部")
-                Button {
-                    editingGroupTag = nil
-                    showGroupEdit = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .help("新建策略组")
             }
             .padding()
 
@@ -160,8 +150,6 @@ struct ProxiesView: View {
                                 Spacer()
                                 Text("节点数")
                                     .frame(width: 60, alignment: .center)
-                                Text("操作")
-                                    .frame(width: 100, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -208,23 +196,6 @@ struct ProxiesView: View {
         }
         .task {
             await refreshGroups()
-        }
-        .sheet(isPresented: $showGroupEdit) {
-            ProxyGroupEditSheet(existingTag: editingGroupTag)
-        }
-        .alert("确认删除", isPresented: .init(
-            get: { deletingGroupTag != nil },
-            set: { if !$0 { deletingGroupTag = nil } }
-        )) {
-            Button("取消", role: .cancel) { deletingGroupTag = nil }
-            Button("删除", role: .destructive) {
-                if let tag = deletingGroupTag {
-                    deleteGroup(tag)
-                }
-                deletingGroupTag = nil
-            }
-        } message: {
-            Text("确定要删除策略组「\(deletingGroupTag ?? "")」吗？")
         }
     }
 
@@ -302,27 +273,6 @@ struct ProxiesView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .center)
 
-            // 操作按钮
-            HStack(spacing: 6) {
-                if !isRegionGroup {
-                    Button("编辑") {
-                        editingGroupTag = group.name
-                        showGroupEdit = true
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-
-                if canDelete {
-                    Button("删除") {
-                        deletingGroupTag = group.name
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(.red)
-                }
-            }
-            .frame(width: 120, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -334,14 +284,6 @@ struct ProxiesView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             selectedGroup = (selectedGroup == group.name) ? nil : group.name
-        }
-        .contextMenu {
-            if !isRegionGroup {
-                Button("编辑") { editingGroupTag = group.name; showGroupEdit = true }
-            }
-            if canDelete {
-                Button("删除", role: .destructive) { deletingGroupTag = group.name }
-            }
         }
     }
 
