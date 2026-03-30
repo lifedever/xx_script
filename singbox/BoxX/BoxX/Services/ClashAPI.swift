@@ -74,13 +74,19 @@ actor ClashAPI {
         return try JSONDecoder().decode(ClashConfig.self, from: data)
     }
 
+    /// Hot-reload config via Clash API PUT /configs (no restart, no password)
+    func reloadConfig(path: String) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["path": path])
+        _ = try await put("/configs", body: body)
+    }
+
     func setMode(_ mode: String) async throws {
         let body = try JSONSerialization.data(withJSONObject: ["mode": mode])
         _ = try await patch("/configs", body: body)
     }
 
     /// Test which rule a domain matches by making a real connection through the proxy
-    func testRule(domain: String) async -> RuleTestResult? {
+    func testRule(domain: String, proxyPort: Int = 7890) async -> RuleTestResult? {
         let domainLower = domain.lowercased()
 
         // Fire a test request through the HTTP proxy (don't await result)
@@ -88,10 +94,10 @@ actor ClashAPI {
         proxyConfig.connectionProxyDictionary = [
             kCFNetworkProxiesHTTPEnable: true,
             kCFNetworkProxiesHTTPProxy: "127.0.0.1",
-            kCFNetworkProxiesHTTPPort: 7890,
+            kCFNetworkProxiesHTTPPort: proxyPort,
             kCFNetworkProxiesHTTPSEnable: true,
             kCFNetworkProxiesHTTPSProxy: "127.0.0.1",
-            kCFNetworkProxiesHTTPSPort: 7890,
+            kCFNetworkProxiesHTTPSPort: proxyPort,
         ] as [String: Any]
         proxyConfig.timeoutIntervalForRequest = 5
         let proxySession = URLSession(configuration: proxyConfig)

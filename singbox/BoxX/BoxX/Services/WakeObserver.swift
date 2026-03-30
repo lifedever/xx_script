@@ -4,6 +4,7 @@ import AppKit
 actor WakeObserver {
     private let singBoxProcess: SingBoxProcess
     private let api: ClashAPI
+    private let configEngine: ConfigEngine
     private var isRecovering = false
     private var observation: NSObjectProtocol?
     private let logFile: String = {
@@ -15,9 +16,10 @@ actor WakeObserver {
         return "\(dir)/boxx-wake.log"
     }()
 
-    init(singBoxProcess: SingBoxProcess, api: ClashAPI) {
+    init(singBoxProcess: SingBoxProcess, api: ClashAPI, configEngine: ConfigEngine) {
         self.singBoxProcess = singBoxProcess
         self.api = api
+        self.configEngine = configEngine
     }
 
     func startObserving() {
@@ -101,14 +103,15 @@ actor WakeObserver {
     }
 
     private func probeExternalConnectivity() async -> Bool {
+        let port = await MainActor.run { configEngine.mixedPort }
         let config = URLSessionConfiguration.ephemeral
         config.connectionProxyDictionary = [
             kCFNetworkProxiesHTTPEnable: true,
             kCFNetworkProxiesHTTPProxy: "127.0.0.1",
-            kCFNetworkProxiesHTTPPort: 7890,
+            kCFNetworkProxiesHTTPPort: port,
             kCFNetworkProxiesHTTPSEnable: true,
             kCFNetworkProxiesHTTPSProxy: "127.0.0.1",
-            kCFNetworkProxiesHTTPSPort: 7890,
+            kCFNetworkProxiesHTTPSPort: port,
         ] as [String: Any]
         config.timeoutIntervalForRequest = 5
 

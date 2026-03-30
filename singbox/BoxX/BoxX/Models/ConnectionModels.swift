@@ -9,6 +9,12 @@ struct Connection: Identifiable, Codable, Sendable {
     let rule: String
     let rulePayload: String
     let start: String
+    var isClosed: Bool = false
+    var closedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, chains, download, upload, metadata, rule, rulePayload, start
+    }
 
     var host: String { metadata.host.isEmpty ? metadata.destinationIP : metadata.host }
     var outbound: String { chains.first ?? "" }

@@ -6,6 +6,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let appState: AppState
     private var cachedGroups: [ProxyGroup] = []
+    private var cachedMode: String = "rule"
 
     init(appState: AppState) {
         self.appState = appState
@@ -28,6 +29,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     /// Fetch proxy groups from Clash API, then rebuild menu synchronously
     func fetchAndRebuild() async {
         cachedGroups = (try? await appState.api.getProxies()) ?? []
+        cachedMode = (try? await appState.api.getConfig())?.mode ?? "rule"
         rebuildMenuFromCache()
     }
 
@@ -107,6 +109,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             let item = NSMenuItem(title: label, action: #selector(switchMode(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = mode
+            item.state = (mode == cachedMode) ? .on : .off
             modeMenu.addItem(item)
         }
         let modeItem = NSMenuItem(title: "出站模式", action: nil, keyEquivalent: "")
@@ -170,6 +173,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let openConfigItem = NSMenuItem(title: "打开配置目录", action: #selector(openConfigDir), keyEquivalent: "")
         openConfigItem.target = self
         menu.addItem(openConfigItem)
+
+        let monitorItem = NSMenuItem(title: "监控", action: #selector(openMonitor), keyEquivalent: "m")
+        monitorItem.target = self
+        monitorItem.keyEquivalentModifierMask = [.command, .option]
+        menu.addItem(monitorItem)
 
         let showWindowItem = NSMenuItem(title: "显示主窗口", action: #selector(showMainWindow), keyEquivalent: "m")
         showWindowItem.target = self
@@ -238,7 +246,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
         let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix", "Disney", "TikTok", "Microsoft", "Notion", "Apple", "Telegram", "Spotify", "Twitter", "GitHub", "Steam", "Twitch", "Claude", "Gemini", "ChatGPT"]
-        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇹🇼", "🌍"]
+        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇨🇳", "🌍"]
         let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾", "其他"]
 
         var result = ClassifiedGroups()
@@ -273,7 +281,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                 print("[BoxX] Starting sing-box with: \(runtimePath)")
-                try await appState.singBoxProcess.start(configPath: runtimePath)
+                try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
                 print("[BoxX] sing-box started successfully")
             } catch {
                 print("[BoxX] ERROR: \(error)")
@@ -302,7 +310,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             do {
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                try await appState.singBoxProcess.restart(configPath: runtimePath)
+                try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
             } catch {
                 appState.showAlert(error.localizedDescription)
             }
@@ -356,13 +364,20 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func copyProxyEnv() {
+        let inb = appState.configEngine.proxyInbound
+        let httpPort = inb.isMixed ? inb.mixedPort : inb.httpPort
+        let socksPort = inb.isMixed ? inb.mixedPort : inb.socksPort
         let env = """
-        export https_proxy=http://127.0.0.1:7890
-        export http_proxy=http://127.0.0.1:7890
-        export all_proxy=socks5://127.0.0.1:7890
+        export https_proxy=http://127.0.0.1:\(httpPort)
+        export http_proxy=http://127.0.0.1:\(httpPort)
+        export all_proxy=socks5://127.0.0.1:\(socksPort)
         """
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(env, forType: .string)
+    }
+
+    @objc private func openMonitor() {
+        openMonitorWindow()
     }
 
     @objc private func openConfigDir() {
@@ -371,9 +386,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func showMainWindow() {
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         for window in NSApp.windows where window.identifier?.rawValue == "main" || window.title == "BoxX" {
             window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
             return
         }
     }

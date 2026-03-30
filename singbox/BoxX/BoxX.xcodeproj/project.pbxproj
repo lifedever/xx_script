@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		025B6A0E7AE6D1AD095F2436 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
+		05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */; };
 		069C68571727339D4CD04366 /* InboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA03BDC9BCFC3FF757537A7 /* InboundConfig.swift */; };
 		0B6B497093E5A0C9819B0E9A /* WakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EFFD13A60A868D1FABC99 /* WakeObserver.swift */; };
 		0D10454861463E5EEB9DE78A /* ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C6C8DA5E09684647EA1B8F /* ConnectionModels.swift */; };
@@ -50,6 +51,7 @@
 		B67AF501AE3B8D8096D46095 /* OutboundConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2C045DE653866E54C14171 /* OutboundConfigTests.swift */; };
 		B8DDBD2425BD0A0C188D29F0 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BD437B4F6F076959897C90 /* ProxiesView.swift */; };
+		C0DE38060486AD06C839A330 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2652550012122DCF0C4B9AA2 /* MonitorView.swift */; };
 		C28118A8B37F0BD909ABAF5D /* BoxXTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1E0C1D62CC61996C5615F5 /* BoxXTests.swift */; };
 		C2DA449DAC046D928ADFB90E /* AutoGrouper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1F107044EE7E7A2AC75600 /* AutoGrouper.swift */; };
 		C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */; };
@@ -97,6 +99,7 @@
 		18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
 		223B0D94A0BDD5B469B1C6D3 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
 		236316BA886FAF9975D7C310 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		2652550012122DCF0C4B9AA2 /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
 		28863DF4368C71D5FFF7A186 /* BoxXHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = BoxXHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		2AFF60EAC876987ABDF8C54C /* ClashYAMLParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashYAMLParserTests.swift; sourceTree = "<group>"; };
 		2FDFB6CABF9E7205E045907C /* ParsedProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedProxy.swift; sourceTree = "<group>"; };
@@ -147,6 +150,7 @@
 		E43674654CE4FEB3AE5A3CDD /* BuiltinRuleSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuiltinRuleSet.swift; sourceTree = "<group>"; };
 		E48921823F47E8A8BA52DDAB /* SingBoxProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxProcess.swift; sourceTree = "<group>"; };
 		E773F3A6B33BEDE219ED24CB /* SingBoxJSONParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxJSONParserTests.swift; sourceTree = "<group>"; };
+		EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleTestView.swift; sourceTree = "<group>"; };
 		EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteConfig.swift; sourceTree = "<group>"; };
 		ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModelsTests.swift; sourceTree = "<group>"; };
 		F1938ECE20FFDCBC5DA86303 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -276,11 +280,13 @@
 				8CAEE62A30EDCED844892451 /* ConnectionsView.swift */,
 				3233A78B55590B6DFD58E74C /* LogsView.swift */,
 				F1938ECE20FFDCBC5DA86303 /* MainView.swift */,
+				2652550012122DCF0C4B9AA2 /* MonitorView.swift */,
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
 				3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */,
 				5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */,
 				55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */,
+				EB0BC22D00B8DF7A0F201B5E /* RuleTestView.swift */,
 				948AD47BE12ADB6ABA0B02F4 /* SettingsView.swift */,
 				022E190D5DE58AE7AB373CA0 /* SubscriptionsView.swift */,
 			);
@@ -515,6 +521,7 @@
 				AAD0AC2F8AF0311D9A05DD6F /* LogsView.swift in Sources */,
 				6D00AD4A6A04326D33137ED0 /* MainView.swift in Sources */,
 				368388499DF522127CE5843B /* MenuBarController.swift in Sources */,
+				C0DE38060486AD06C839A330 /* MonitorView.swift in Sources */,
 				633D1C59207385917825B026 /* OutboundConfig.swift in Sources */,
 				ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */,
 				AF70DEFEF9561D21C86E583B /* ParsedProxy.swift in Sources */,
@@ -527,6 +534,7 @@
 				411B3E0DBF4B1C99FE5923B5 /* Rule.swift in Sources */,
 				2DF660EAF9B822BD61E3BB70 /* RuleSetManager.swift in Sources */,
 				1C6FA3717CEA6BCE3BD20626 /* RuleSetsView.swift in Sources */,
+				05D2915D5FA01A7CF66E8DF3 /* RuleTestView.swift in Sources */,
 				39EA029175CED929C253468B /* SettingsView.swift in Sources */,
 				60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */,
 				EA7D5850BAD79996E1D08848 /* SingBoxJSONParser.swift in Sources */,

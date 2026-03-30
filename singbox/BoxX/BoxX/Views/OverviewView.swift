@@ -2,12 +2,15 @@ import SwiftUI
 
 struct OverviewView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openWindow) private var openWindow
     @State private var snapshot: ConnectionSnapshot?
     @State private var clashConfig: ClashConfig?
     @State private var isOperating = false
     @State private var statsTimer: Timer?
     @State private var downloadSpeed: Int64 = 0
     @State private var uploadSpeed: Int64 = 0
+    @State private var showPortSheet = false
+    @State private var showRestartAlert = false
 
     private let byteFormatter: ByteCountFormatter = {
         let f = ByteCountFormatter()
@@ -115,7 +118,7 @@ struct OverviewView: View {
                     }
                 }
 
-                // MARK: - Stats row (connections + memory)
+                // MARK: - Stats row (connections + memory + monitor)
                 HStack(spacing: 12) {
                     dashboardCard {
                         HStack(spacing: 10) {
@@ -127,6 +130,9 @@ struct OverviewView: View {
                                     .font(.title3.monospacedDigit().bold())
                             }
                             Spacer()
+                            Button("监控") { openWindow(id: "monitor") }
+                                .controlSize(.small)
+                                .buttonStyle(.bordered)
                         }
                     }
 
@@ -148,7 +154,34 @@ struct OverviewView: View {
 
                 // MARK: - Proxy info
                 HStack(spacing: 12) {
-                    infoCard(icon: "network", iconColor: .blue, title: "HTTP/SOCKS", value: "127.0.0.1:7890")
+                    dashboardCard {
+                        HStack(spacing: 10) {
+                            Image(systemName: "network")
+                                .font(.title2).foregroundStyle(.blue)
+                            let inbound = appState.configEngine.proxyInbound
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(inbound.isMixed ? "HTTP/SOCKS" : "HTTP / SOCKS")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                if inbound.isMixed {
+                                    Text("127.0.0.1:\(inbound.mixedPort)")
+                                        .font(.title3.monospaced().bold())
+                                        .textSelection(.enabled)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Text("HTTP:\(inbound.httpPort)")
+                                        Text("|").foregroundStyle(.secondary)
+                                        Text("SOCKS:\(inbound.socksPort)")
+                                    }
+                                    .font(.title3.monospaced().bold())
+                                    .textSelection(.enabled)
+                                }
+                            }
+                            Spacer()
+                            Button("修改") { showPortSheet = true }
+                                .controlSize(.small)
+                                .buttonStyle(.bordered)
+                        }
+                    }
                     infoCard(icon: "antenna.radiowaves.left.and.right", iconColor: .purple, title: "Clash API",
                              value: appState.configEngine.config.experimental?.clashApi?.externalController ?? "127.0.0.1:9091")
                 }
@@ -192,7 +225,10 @@ struct OverviewView: View {
                             }
                             Spacer()
                             Button {
-                                let env = "export https_proxy=http://127.0.0.1:7890\nexport http_proxy=http://127.0.0.1:7890\nexport all_proxy=socks5://127.0.0.1:7890"
+                                let inb = appState.configEngine.proxyInbound
+                                let httpPort = inb.isMixed ? inb.mixedPort : inb.httpPort
+                                let socksPort = inb.isMixed ? inb.mixedPort : inb.socksPort
+                                let env = "export https_proxy=http://127.0.0.1:\(httpPort)\nexport http_proxy=http://127.0.0.1:\(httpPort)\nexport all_proxy=socks5://127.0.0.1:\(socksPort)"
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(env, forType: .string)
                             } label: {
@@ -212,6 +248,18 @@ struct OverviewView: View {
             if running { startStatsPolling() } else { stopStatsPolling(); resetStats() }
         }
         .onDisappear { stopStatsPolling() }
+        .sheet(isPresented: $showPortSheet) {
+            ProxyPortSheet(onSaved: {
+                if appState.isRunning { showRestartAlert = true }
+            })
+            .environment(appState)
+        }
+        .alert("端口已修改", isPresented: $showRestartAlert) {
+            Button("立即重启") { Task { await doRestart() } }
+            Button("稍后手动重启", role: .cancel) {}
+        } message: {
+            Text("修改监听端口需要重启 sing-box 才能生效，是否立即重启？")
+        }
     }
 
     // MARK: - Card wrapper
@@ -283,7 +331,7 @@ struct OverviewView: View {
         do {
             try appState.configEngine.deployRuntime()
             let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-            try await appState.singBoxProcess.start(configPath: runtimePath)
+            try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
         } catch {
             appState.showAlert(error.localizedDescription)
         }
@@ -303,7 +351,7 @@ struct OverviewView: View {
         do {
             try appState.configEngine.deployRuntime()
             let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-            try await appState.singBoxProcess.restart(configPath: runtimePath)
+            try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
         } catch {
             appState.showAlert(error.localizedDescription)
         }
@@ -316,5 +364,152 @@ struct OverviewView: View {
         snapshot = try? await appState.api.getConnections()
         clashConfig = try? await appState.api.getConfig()
         startStatsPolling()
+    }
+}
+
+// MARK: - Proxy Port Edit Sheet
+
+struct ProxyPortSheet: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    var onSaved: () -> Void
+
+    @State private var isMixed = true
+    @State private var mixedPortText = "7890"
+    @State private var httpPortText = "7890"
+    @State private var socksPortText = "7891"
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("代理端口设置")
+                    .font(.headline)
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+
+            Divider()
+
+            Form {
+                Picker("模式", selection: $isMixed) {
+                    Text("共用端口 (Mixed)").tag(true)
+                    Text("独立端口 (HTTP + SOCKS)").tag(false)
+                }
+                .pickerStyle(.radioGroup)
+
+                if isMixed {
+                    HStack {
+                        Text("监听端口")
+                        Spacer()
+                        TextField("端口", text: $mixedPortText)
+                            .frame(width: 80)
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.center)
+                    }
+                    Text("HTTP 和 SOCKS5 共用同一端口")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack {
+                        Text("HTTP 端口")
+                        Spacer()
+                        TextField("端口", text: $httpPortText)
+                            .frame(width: 80)
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.center)
+                    }
+                    HStack {
+                        Text("SOCKS5 端口")
+                        Spacer()
+                        TextField("端口", text: $socksPortText)
+                            .frame(width: 80)
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+
+                if let err = errorMessage {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                }
+            }
+            .formStyle(.grouped)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("保存") { save() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+            }
+            .padding()
+        }
+        .frame(width: 360)
+        .onAppear {
+            let current = appState.configEngine.proxyInbound
+            isMixed = current.isMixed
+            mixedPortText = "\(current.mixedPort)"
+            httpPortText = "\(current.httpPort)"
+            socksPortText = "\(current.socksPort)"
+        }
+    }
+
+    private func save() {
+        if isMixed {
+            guard let port = Int(mixedPortText), (1...65535).contains(port) else {
+                errorMessage = "端口号无效，请输入 1-65535"
+                return
+            }
+            let newConfig = ConfigEngine.ProxyInboundConfig(
+                isMixed: true, mixedPort: port, httpPort: port, socksPort: port
+            )
+            applyAndDismiss(newConfig)
+        } else {
+            guard let hp = Int(httpPortText), (1...65535).contains(hp) else {
+                errorMessage = "HTTP 端口号无效"
+                return
+            }
+            guard let sp = Int(socksPortText), (1...65535).contains(sp) else {
+                errorMessage = "SOCKS5 端口号无效"
+                return
+            }
+            guard hp != sp else {
+                errorMessage = "HTTP 和 SOCKS5 端口不能相同"
+                return
+            }
+            let newConfig = ConfigEngine.ProxyInboundConfig(
+                isMixed: false, mixedPort: hp, httpPort: hp, socksPort: sp
+            )
+            applyAndDismiss(newConfig)
+        }
+    }
+
+    private func applyAndDismiss(_ newConfig: ConfigEngine.ProxyInboundConfig) {
+        let current = appState.configEngine.proxyInbound
+        // No change
+        if current.isMixed == newConfig.isMixed &&
+            current.mixedPort == newConfig.mixedPort &&
+            current.httpPort == newConfig.httpPort &&
+            current.socksPort == newConfig.socksPort {
+            dismiss()
+            return
+        }
+        appState.configEngine.applyProxyInbound(newConfig)
+        do {
+            try appState.configEngine.save(restartRequired: false)
+            dismiss()
+            onSaved()
+        } catch {
+            errorMessage = "保存失败: \(error.localizedDescription)"
+        }
     }
 }

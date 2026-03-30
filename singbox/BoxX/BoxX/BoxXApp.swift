@@ -53,7 +53,7 @@ struct BoxXApp: App {
             state.configEngine.startWatching()
 
             // Setup wake observer
-            let observer = WakeObserver(singBoxProcess: state.singBoxProcess, api: state.api)
+            let observer = WakeObserver(singBoxProcess: state.singBoxProcess, api: state.api, configEngine: state.configEngine)
             await observer.startObserving()
         }
     }
@@ -98,7 +98,7 @@ struct BoxXApp: App {
                             do {
                                 try appState.configEngine.deployRuntime()
                                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                                try await appState.singBoxProcess.restart(configPath: runtimePath)
+                                try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
                             } catch {
                                 appState.showAlert(error.localizedDescription)
                             }
@@ -112,7 +112,7 @@ struct BoxXApp: App {
                             do {
                                 try appState.configEngine.deployRuntime()
                                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                                try await appState.singBoxProcess.start(configPath: runtimePath)
+                                try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
                             } catch {
                                 appState.showAlert(error.localizedDescription)
                             }
@@ -121,8 +121,29 @@ struct BoxXApp: App {
                     }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                 }
+
+                Divider()
+
+                Button("监控") {
+                    openMonitorWindow()
+                }
+                .keyboardShortcut("m", modifiers: [.command, .option])
             }
         }
+
+        Window("监控", id: "monitor") {
+            MonitorView()
+                .environment(appState)
+                .onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate() }
+                .onDisappear {
+                    if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) {
+                        NSApp.setActivationPolicy(.accessory)
+                    }
+                }
+                .handlesExternalEvents(preferring: ["monitor"], allowing: ["monitor"])
+        }
+        .defaultSize(width: 900, height: 500)
+        .handlesExternalEvents(matching: ["monitor"])
 
         Window(String(localized: "menu.settings"), id: "settings") {
             SettingsView()
@@ -136,6 +157,25 @@ struct BoxXApp: App {
         }
         .windowResizability(.contentSize)
     }
+}
+
+/// Open the monitor window (works from App commands, AppKit menus, and SwiftUI views)
+@MainActor
+func openMonitorWindow() {
+    NSApp.setActivationPolicy(.regular)
+    NSApp.activate(ignoringOtherApps: true)
+    // If monitor window already exists, just bring it forward
+    for window in NSApp.windows where window.title == "监控" {
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        return
+    }
+    // Otherwise post notification so SwiftUI openWindow can handle it
+    NotificationCenter.default.post(name: .openMonitorWindow, object: nil)
+}
+
+extension Notification.Name {
+    static let openMonitorWindow = Notification.Name("com.boxx.openMonitorWindow")
 }
 
 /// Holds a strong reference to the AppKit MenuBarController so the NSStatusItem stays alive.

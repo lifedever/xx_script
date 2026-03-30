@@ -27,8 +27,90 @@ class ConfigEngine: @unchecked Sendable {
     private var watcherObserver: NSObjectProtocol?
 
     /// Called after deployRuntime writes runtime-config.json.
-    /// App sets this to restart sing-box via SingBoxProcess.
-    var onDeployComplete: (() throws -> Void)?
+    var onDeployComplete: (() -> Void)?
+
+    /// Describes the current proxy inbound configuration.
+    struct ProxyInboundConfig {
+        var isMixed: Bool       // true = mixed (HTTP+SOCKS share port), false = separate
+        var mixedPort: Int
+        var httpPort: Int
+        var socksPort: Int
+
+        var displayText: String {
+            if isMixed {
+                return "HTTP/SOCKS  127.0.0.1:\(mixedPort)"
+            } else {
+                return "HTTP  :\(httpPort)  |  SOCKS  :\(socksPort)"
+            }
+        }
+
+        /// The port used for HTTP proxy (for env export, WakeObserver, etc.)
+        var effectiveHTTPPort: Int { isMixed ? mixedPort : httpPort }
+    }
+
+    /// Read the current proxy inbound configuration.
+    var proxyInbound: ProxyInboundConfig {
+        var httpPort = 7890
+        var socksPort = 7891
+        var mixedPort = 7890
+        var hasMixed = false
+        var hasHTTP = false
+        var hasSocks = false
+
+        for inbound in config.inbounds {
+            let type = inbound["type"]?.stringValue
+            let port = inbound["listen_port"]?.numberValue.map { Int($0) } ?? 7890
+            switch type {
+            case "mixed": hasMixed = true; mixedPort = port
+            case "http": hasHTTP = true; httpPort = port
+            case "socks": hasSocks = true; socksPort = port
+            default: break
+            }
+        }
+
+        if hasMixed {
+            return ProxyInboundConfig(isMixed: true, mixedPort: mixedPort, httpPort: mixedPort, socksPort: mixedPort)
+        } else if hasHTTP || hasSocks {
+            return ProxyInboundConfig(isMixed: false, mixedPort: httpPort, httpPort: httpPort, socksPort: socksPort)
+        }
+        return ProxyInboundConfig(isMixed: true, mixedPort: 7890, httpPort: 7890, socksPort: 7890)
+    }
+
+    /// The effective HTTP port (for env export, connectivity checks, etc.)
+    var mixedPort: Int { proxyInbound.effectiveHTTPPort }
+
+    /// Apply new proxy inbound configuration, replacing existing http/socks/mixed inbounds.
+    func applyProxyInbound(_ newConfig: ProxyInboundConfig) {
+        // Remove old proxy inbounds
+        config.inbounds.removeAll {
+            let t = $0["type"]?.stringValue
+            return t == "mixed" || t == "http" || t == "socks"
+        }
+
+        if newConfig.isMixed {
+            config.inbounds.insert(.object([
+                "type": .string("mixed"),
+                "tag": .string("mixed-in"),
+                "listen": .string("127.0.0.1"),
+                "listen_port": .number(Double(newConfig.mixedPort)),
+            ]), at: 0)
+        } else {
+            config.inbounds.insert(contentsOf: [
+                .object([
+                    "type": .string("http"),
+                    "tag": .string("http-in"),
+                    "listen": .string("127.0.0.1"),
+                    "listen_port": .number(Double(newConfig.httpPort)),
+                ]),
+                .object([
+                    "type": .string("socks"),
+                    "tag": .string("socks-in"),
+                    "listen": .string("127.0.0.1"),
+                    "listen_port": .number(Double(newConfig.socksPort)),
+                ]),
+            ], at: 0)
+        }
+    }
 
     init(baseDir: URL) {
         self.config = SingBoxConfig(inbounds: [], outbounds: [], route: RouteConfig())
@@ -38,7 +120,15 @@ class ConfigEngine: @unchecked Sendable {
     // MARK: - Load
 
     func load() throws {
-        let data = try Data(contentsOf: configURL)
+        var data = try Data(contentsOf: configURL)
+        // Migrate 🇹🇼 → 🇨🇳 in config
+        let twFlag = "\u{1F1F9}\u{1F1FC}"
+        let cnFlag = "\u{1F1E8}\u{1F1F3}"
+        if var jsonString = String(data: data, encoding: .utf8), jsonString.contains(twFlag) {
+            jsonString = jsonString.replacingOccurrences(of: twFlag, with: cnFlag)
+            data = jsonString.data(using: .utf8) ?? data
+            try data.write(to: configURL, options: .atomic)
+        }
         config = try JSONDecoder().decode(SingBoxConfig.self, from: data)
         lastMtime = try FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date
 
@@ -178,10 +268,16 @@ class ConfigEngine: @unchecked Sendable {
                 }
             }
             data = try encoder.encode(runtime)
+            // Ensure no 🇹🇼 in runtime config
+            if var jsonString = String(data: data, encoding: .utf8),
+               jsonString.contains("\u{1F1F9}\u{1F1FC}") {
+                jsonString = jsonString.replacingOccurrences(of: "\u{1F1F9}\u{1F1FC}", with: "\u{1F1E8}\u{1F1F3}")
+                data = jsonString.data(using: .utf8) ?? data
+            }
             try data.write(to: runtimeURL, options: .atomic)
             print("[BoxX] Deployed with \(validProxies.count)/\(proxyOutbounds.count) valid proxy nodes")
         }
-        try onDeployComplete?()
+        onDeployComplete?()
     }
 
     // MARK: - Proxy File Management
@@ -190,9 +286,15 @@ class ConfigEngine: @unchecked Sendable {
         try FileManager.default.createDirectory(at: proxiesDir, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(nodes)
+        var data = try encoder.encode(nodes)
+        // Replace 🇹🇼 with 🇨🇳 in node names
+        if var jsonString = String(data: data, encoding: .utf8) {
+            jsonString = jsonString.replacingOccurrences(of: "\u{1F1F9}\u{1F1FC}", with: "\u{1F1E8}\u{1F1F3}")
+            data = jsonString.data(using: .utf8) ?? data
+        }
         try data.write(to: proxiesDir.appendingPathComponent("\(name).json"), options: .atomic)
-        proxies[name] = nodes
+        // Reload replaced nodes
+        proxies[name] = try JSONDecoder().decode([Outbound].self, from: data)
     }
 
     func removeProxies(name: String) throws {
@@ -250,7 +352,18 @@ class ConfigEngine: @unchecked Sendable {
 
     func loadGroupPatterns() -> [String: GroupPattern] {
         guard let data = try? Data(contentsOf: groupPatternsURL) else { return [:] }
-        return (try? JSONDecoder().decode([String: GroupPattern].self, from: data)) ?? [:]
+        // Replace 🇹🇼 with 🇨🇳 in group pattern keys
+        var patterns = (try? JSONDecoder().decode([String: GroupPattern].self, from: data)) ?? [:]
+        let twFlag = "\u{1F1F9}\u{1F1FC}"
+        let cnFlag = "\u{1F1E8}\u{1F1F3}"
+        let keysToFix = patterns.keys.filter { $0.contains(twFlag) }
+        for key in keysToFix {
+            if let value = patterns.removeValue(forKey: key) {
+                patterns[key.replacingOccurrences(of: twFlag, with: cnFlag)] = value
+            }
+        }
+        if !keysToFix.isEmpty { saveGroupPatterns(patterns) }
+        return patterns
     }
 
     func saveGroupPatterns(_ patterns: [String: GroupPattern]) {

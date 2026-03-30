@@ -39,7 +39,7 @@ struct ProxiesView: View {
                                           "Apple", "Telegram", "Spotify", "Twitter",
                                           "GitHub", "Steam", "Twitch", "Claude",
                                           "Gemini", "ChatGPT"]
-        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇹🇼", "🌍"]
+        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇨🇳", "🌍"]
         let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾"]
 
         var result = ClassifiedGroups()

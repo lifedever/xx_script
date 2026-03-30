@@ -9,6 +9,7 @@ final class AppState {
     var isUpdatingSubscription = false
     var errorMessage: String?
     var showError = false
+    var pendingReload = false  // true when config changed but not yet applied
 
     // v2: core services
     let configEngine: ConfigEngine
@@ -23,14 +24,12 @@ final class AppState {
         api = ClashAPI()
         subscriptionService = SubscriptionService(configEngine: configEngine)
 
-        // When config deploys (restartRequired=true), auto restart sing-box
+        // When config deploys and sing-box is running, mark pending reload
         let process = singBoxProcess
-        let rtPath = baseDir.appendingPathComponent("runtime-config.json").path
-        configEngine.onDeployComplete = {
-            // Only restart if sing-box is currently running
+        configEngine.onDeployComplete = { [weak self] in
             guard process.isRunning else { return }
-            Task {
-                try? await process.restart(configPath: rtPath)
+            Task { @MainActor in
+                self?.pendingReload = true
             }
         }
     }
@@ -82,5 +81,12 @@ final class AppState {
     func showAlert(_ message: String) {
         errorMessage = message
         showError = true
+    }
+
+    /// Apply pending config changes via SIGHUP (brief ~1s reconnect)
+    func applyConfig() async {
+        guard isRunning, pendingReload else { return }
+        await singBoxProcess.reload()
+        pendingReload = false
     }
 }

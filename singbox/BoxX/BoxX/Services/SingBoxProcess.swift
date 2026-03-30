@@ -8,7 +8,7 @@ class SingBoxProcess {
     private let singBoxPath = "/opt/homebrew/bin/sing-box"
 
     /// Start sing-box with admin privileges (for TUN). Runs async to avoid blocking UI.
-    func start(configPath: String) async throws {
+    func start(configPath: String, mixedPort: Int = 7890) async throws {
         guard FileManager.default.fileExists(atPath: singBoxPath) else {
             throw SingBoxError.notInstalled
         }
@@ -23,17 +23,23 @@ class SingBoxProcess {
             .replacingOccurrences(of: "'", with: "'\\''")
 
         // Single osascript call: kill old (as root) + start new (as root)
+        // Also set up sudoers rule so current user can send SIGHUP without password (for hot-reload)
+        let currentUser = NSUserName()
         let launcherScript = """
         #!/bin/bash
         # Kill ALL existing sing-box processes
         pkill -x sing-box 2>/dev/null
         sleep 1
         pkill -9 -x sing-box 2>/dev/null
-        # Wait for port 7890 to be released (up to 10 seconds)
+        # Wait for port \(mixedPort) to be released (up to 10 seconds)
         for i in $(seq 1 20); do
-            if ! lsof -i :7890 >/dev/null 2>&1; then break; fi
+            if ! lsof -i :\(mixedPort) >/dev/null 2>&1; then break; fi
             sleep 0.5
         done
+        # Allow current user to send signals to sing-box without password (for hot-reload)
+        SUDOERS_FILE="/etc/sudoers.d/boxx-singbox"
+        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /bin/kill -HUP *' > "$SUDOERS_FILE"
+        chmod 0440 "$SUDOERS_FILE"
         # Start sing-box
         cd '\(escapedConfigDir)'
         '\(sbPath)' run -c '\(escapedConfigPath)' >/dev/null 2>/tmp/boxx-singbox-error.log &
@@ -115,10 +121,26 @@ class SingBoxProcess {
         print("[BoxX] Stopped ✅")
     }
 
-    /// Restart
-    func restart(configPath: String) async throws {
-        await stop()
-        try await start(configPath: configPath)
+    /// Restart — uses a single osascript call to stop+start (one password prompt)
+    func restart(configPath: String, mixedPort: Int = 7890) async throws {
+        print("[BoxX] Restarting sing-box...")
+        // Reuse start() which already handles killing old processes in its launcher script
+        isRunning = false
+        try await start(configPath: configPath, mixedPort: mixedPort)
+    }
+
+    /// Hot-reload config by sending SIGHUP via sudo (no password needed after first start)
+    func reload() async {
+        await runOnBackground {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+            proc.arguments = ["pkill", "-HUP", "-x", "sing-box"]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
+        }
+        print("[BoxX] Config reloaded via SIGHUP")
     }
 
     /// Check if running

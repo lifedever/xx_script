@@ -62,6 +62,7 @@ struct ConnectionsView: View {
                     },
                     onCloseConnection: {
                         Task { try? await appState.api.closeConnection(id: conn.id) }
+                        markClosed(id: conn.id)
                     },
                     onDismiss: { selectedID = nil }
                 )
@@ -157,10 +158,18 @@ struct ConnectionsView: View {
 
     private var connectionTable: some View {
         Table(filteredConnections, selection: $selectedID, sortOrder: $sortOrder) {
+            TableColumn("") { conn in
+                Circle()
+                    .fill(conn.isClosed ? Color.gray.opacity(0.4) : Color.green)
+                    .frame(width: 7, height: 7)
+            }
+            .width(14)
+
             TableColumn(String(localized: "connections.time"), value: \.start) { conn in
                 Text(conn.startTimeString)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 60, ideal: 70)
 
@@ -168,6 +177,7 @@ struct ConnectionsView: View {
                 Text(conn.host)
                     .font(.caption)
                     .lineLimit(1)
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 150, ideal: 220)
 
@@ -179,6 +189,7 @@ struct ConnectionsView: View {
                     .foregroundStyle(conn.network == "UDP" ? Color.orange : Color.blue)
                     .background(conn.network == "UDP" ? Color.orange.opacity(0.12) : Color.blue.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 40, ideal: 50)
 
@@ -186,6 +197,7 @@ struct ConnectionsView: View {
                 Text(conn.processName)
                     .font(.caption)
                     .lineLimit(1)
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 60, ideal: 90)
 
@@ -201,6 +213,7 @@ struct ConnectionsView: View {
                             .lineLimit(1)
                     }
                 }
+                .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 100, ideal: 160)
 
@@ -217,6 +230,7 @@ struct ConnectionsView: View {
                             .font(.caption)
                     }
                 }
+                .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 80, ideal: 100)
 
@@ -224,18 +238,21 @@ struct ConnectionsView: View {
                 Text(connectionChainDisplay(conn))
                     .font(.caption)
                     .lineLimit(1)
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 100, ideal: 150)
 
             TableColumn("\u{2193}") { conn in
                 Text(byteFormatter.string(fromByteCount: conn.download))
                     .font(.caption.monospacedDigit())
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 50, ideal: 70)
 
             TableColumn("\u{2191}") { conn in
                 Text(byteFormatter.string(fromByteCount: conn.upload))
                     .font(.caption.monospacedDigit())
+                    .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 50, ideal: 70)
         }
@@ -253,12 +270,21 @@ struct ConnectionsView: View {
                 Divider()
                 Button(String(localized: "connections.ctx.close")) {
                     Task { try? await appState.api.closeConnection(id: conn.id) }
+                    markClosed(id: conn.id)
                 }
             }
         } primaryAction: { _ in }
     }
 
     // MARK: - Helpers
+
+    private func markClosed(id: String) {
+        if let idx = connections.firstIndex(where: { $0.id == id }) {
+            connections[idx].isClosed = true
+            connections[idx].closedAt = Date()
+        }
+        selectedID = nil
+    }
 
     private func connectionChainDisplay(_ conn: Connection) -> String {
         let reversed = conn.chains.reversed()
@@ -282,14 +308,33 @@ struct ConnectionsView: View {
     /// and keeps closed connections visible.
     private func mergeSnapshot(_ snapshot: ConnectionSnapshot) {
         let activeConnections = snapshot.connections ?? []
+        let activeIDs = Set(activeConnections.map(\.id))
+        let now = Date()
 
         var updatedConnections = connections
+        // Mark connections no longer active as closed
+        for i in updatedConnections.indices {
+            if !updatedConnections[i].isClosed && !activeIDs.contains(updatedConnections[i].id) {
+                updatedConnections[i].isClosed = true
+                updatedConnections[i].closedAt = now
+            }
+        }
+        // Remove closed connections older than 30s
+        updatedConnections.removeAll { conn in
+            guard conn.isClosed, let closedAt = conn.closedAt else { return false }
+            return now.timeIntervalSince(closedAt) > 600
+        }
+        // Update or add active connections
         for active in activeConnections {
             if let idx = updatedConnections.firstIndex(where: { $0.id == active.id }) {
-                updatedConnections[idx] = active  // Update traffic data
+                updatedConnections[idx] = active
             } else {
-                updatedConnections.insert(active, at: 0)  // New connection, add to top
+                updatedConnections.insert(active, at: 0)
             }
+        }
+        // Cap at 500
+        if updatedConnections.count > 500 {
+            updatedConnections = Array(updatedConnections.prefix(500))
         }
 
         connections = updatedConnections

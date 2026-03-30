@@ -10,7 +10,7 @@ struct AutoGrouper: Sendable {
 
     static let regions: [RegionDef] = [
         RegionDef(name: "香港", emoji: "🇭🇰", keywords: ["香港", "hk", "hong kong", "hongkong"]),
-        RegionDef(name: "台湾", emoji: "🇹🇼", keywords: ["台湾", "tw", "taiwan"]),
+        RegionDef(name: "台湾", emoji: "🇨🇳", keywords: ["台湾", "tw", "taiwan"]),
         RegionDef(name: "日本", emoji: "🇯🇵", keywords: ["日本", "jp", "japan", "tokyo"]),
         RegionDef(name: "韩国", emoji: "🇰🇷", keywords: ["韩国", "kr", "korea"]),
         RegionDef(name: "新加坡", emoji: "🇸🇬", keywords: ["新加坡", "sg", "singapore"]),
@@ -21,7 +21,7 @@ struct AutoGrouper: Sendable {
     func defaultPatterns() -> [String: GroupPattern] {
         [
             "🇭🇰香港": GroupPattern(mode: "keyword", patterns: ["香港", "hk", "hong kong", "hongkong"]),
-            "🇹🇼台湾": GroupPattern(mode: "keyword", patterns: ["台湾", "tw", "taiwan"]),
+            "🇨🇳台湾": GroupPattern(mode: "keyword", patterns: ["台湾", "tw", "taiwan"]),
             "🇯🇵日本": GroupPattern(mode: "keyword", patterns: ["日本", "jp", "japan", "tokyo"]),
             "🇰🇷韩国": GroupPattern(mode: "keyword", patterns: ["韩国", "kr", "korea"]),
             "🇸🇬新加坡": GroupPattern(mode: "keyword", patterns: ["新加坡", "sg", "singapore"]),

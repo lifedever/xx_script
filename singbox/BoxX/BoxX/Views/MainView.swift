@@ -6,8 +6,7 @@ enum SidebarTab: String, CaseIterable {
     case routeRules = "路由规则"
     case ruleSets = "规则集"
     case builtinRules = "内置规则"
-    case connections = "请求"
-    case logs = "日志"
+    case ruleTest = "规则测试"
     case subscriptions = "订阅"
     case settings = "设置"
 
@@ -18,32 +17,63 @@ enum SidebarTab: String, CaseIterable {
         case .routeRules: return "list.bullet.rectangle"
         case .ruleSets: return "tray.2"
         case .builtinRules: return "shield.checkered"
-        case .connections: return "arrow.left.arrow.right"
-        case .logs: return "doc.text"
+        case .ruleTest: return "target"
         case .subscriptions: return "antenna.radiowaves.left.and.right"
         case .settings: return "gearshape"
-        }
-    }
-
-    var section: String? {
-        switch self {
-        case .routeRules, .ruleSets, .builtinRules: return "规则"
-        default: return nil
         }
     }
 }
 
 struct MainView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openWindow) private var openWindow
     @State private var selectedTab: SidebarTab = .overview
 
     private var generalTabs: [SidebarTab] { [.overview, .proxies] }
-    private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .builtinRules] }
-    private var monitorTabs: [SidebarTab] { [.connections, .logs] }
+    private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .builtinRules, .ruleTest] }
     private var manageTabs: [SidebarTab] { [.subscriptions, .settings] }
 
+    @State private var isApplying = false
+
     var body: some View {
-        NavigationSplitView {
+        VStack(spacing: 0) {
+            // Pending reload banner
+            if appState.pendingReload && appState.isRunning {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption)
+                    Text("配置已更新，点击应用后生效（约 1-2 秒短暂断网）")
+                        .font(.caption)
+                    Spacer()
+                    if isApplying {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Button("应用配置") {
+                            isApplying = true
+                            Task {
+                                await appState.applyConfig()
+                                isApplying = false
+                            }
+                        }
+                        .controlSize(.small)
+                        .buttonStyle(.borderedProminent)
+                    }
+                    Button {
+                        appState.pendingReload = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.12))
+
+                Divider()
+            }
+
+            NavigationSplitView {
             List(selection: $selectedTab) {
                 ForEach(generalTabs, id: \.self) { tab in
                     Label(tab.rawValue, systemImage: tab.icon).tag(tab)
@@ -55,16 +85,17 @@ struct MainView: View {
                     }
                 }
 
-                Section("监控") {
-                    ForEach(monitorTabs, id: \.self) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
-                    }
-                }
-
                 Section("管理") {
                     ForEach(manageTabs, id: \.self) { tab in
                         Label(tab.rawValue, systemImage: tab.icon).tag(tab)
                     }
+                }
+
+                Section {
+                    Label("监控", systemImage: "waveform.badge.magnifyingglass")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture { openWindow(id: "monitor") }
                 }
             }
             .listStyle(.sidebar)
@@ -81,10 +112,8 @@ struct MainView: View {
                 RuleSetsView()
             case .builtinRules:
                 BuiltinRulesView()
-            case .connections:
-                ConnectionsView()
-            case .logs:
-                LogsView()
+            case .ruleTest:
+                RuleTestView()
             case .subscriptions:
                 SubscriptionsView()
             case .settings:
@@ -92,5 +121,10 @@ struct MainView: View {
             }
         }
         .frame(minWidth: 800, minHeight: 500)
+
+        } // end VStack
+        .onReceive(NotificationCenter.default.publisher(for: .openMonitorWindow)) { _ in
+            openWindow(id: "monitor")
+        }
     }
 }

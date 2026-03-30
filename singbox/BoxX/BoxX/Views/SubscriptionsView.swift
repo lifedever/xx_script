@@ -163,10 +163,6 @@ struct SubscriptionsView: View {
             updateResults[sub.name] = .failure(error.localizedDescription)
         }
 
-        if appState.isRunning {
-            // sing-box restart is handled by ConfigEngine.onDeployComplete
-        }
-
         try? await Task.sleep(for: .seconds(5))
         updateResults.removeValue(forKey: sub.name)
     }
@@ -193,10 +189,6 @@ struct SubscriptionsView: View {
             } catch {
                 updateResults[sub.name] = .failure(error.localizedDescription)
             }
-        }
-
-        if appState.isRunning {
-            // sing-box restart is handled by ConfigEngine.onDeployComplete
         }
 
         // Clear success status after a delay
