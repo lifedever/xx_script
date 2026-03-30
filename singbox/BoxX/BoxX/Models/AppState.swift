@@ -110,6 +110,8 @@ final class AppState {
         }
 
         await singBoxProcess.reload()
+        // Flush macOS DNS cache after reload to help network recovery
+        singBoxProcess.flushDNS()
         pendingReload = false
     }
 }

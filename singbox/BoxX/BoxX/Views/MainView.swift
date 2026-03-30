@@ -5,7 +5,7 @@ enum SidebarTab: String, CaseIterable {
     case proxies = "策略组"
     case routeRules = "路由规则"
     case ruleSets = "规则集"
-    case builtinRules = "内置规则"
+    case builtinRules = "服务分流"
     case ruleTest = "规则测试"
     case regionGroups = "地区分组"
     case subscriptions = "订阅"
@@ -31,9 +31,9 @@ struct MainView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var selectedTab: SidebarTab = .overview
 
-    private var generalTabs: [SidebarTab] { [.overview, .proxies] }
-    private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .builtinRules, .ruleTest] }
-    private var manageTabs: [SidebarTab] { [.regionGroups, .subscriptions, .settings] }
+    private var proxyTabs: [SidebarTab] { [.subscriptions, .regionGroups, .proxies] }
+    private var ruleTabs: [SidebarTab] { [.builtinRules, .routeRules, .ruleSets, .ruleTest] }
+    private var systemTabs: [SidebarTab] { [.settings] }
 
     @State private var isApplying = false
 
@@ -77,8 +77,12 @@ struct MainView: View {
 
             NavigationSplitView {
             List(selection: $selectedTab) {
-                ForEach(generalTabs, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                Label("概览", systemImage: "square.grid.2x2").tag(SidebarTab.overview)
+
+                Section("代理") {
+                    ForEach(proxyTabs, id: \.self) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    }
                 }
 
                 Section("规则") {
@@ -87,13 +91,10 @@ struct MainView: View {
                     }
                 }
 
-                Section("管理") {
-                    ForEach(manageTabs, id: \.self) { tab in
+                Section {
+                    ForEach(systemTabs, id: \.self) { tab in
                         Label(tab.rawValue, systemImage: tab.icon).tag(tab)
                     }
-                }
-
-                Section {
                     Label("监控", systemImage: "waveform.badge.magnifyingglass")
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
