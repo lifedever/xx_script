@@ -28,7 +28,7 @@ struct ProxiesView: View {
     }
 
     private var filtered: [ProxyGroup] {
-        let selectors = groups.filter { $0.type == "Selector" }
+        let selectors = groups.filter { $0.type == "Selector" || $0.type == "URLTest" }
         if searchText.isEmpty { return selectors }
         return selectors.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }

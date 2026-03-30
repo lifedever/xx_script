@@ -134,7 +134,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         // ── Proxy groups ──
-        let selectorGroups = cachedGroups.filter { $0.type == "Selector" }
+        let selectorGroups = cachedGroups.filter { $0.type == "Selector" || $0.type == "URLTest" }
         let classified = classifyGroups(selectorGroups)
 
         for group in classified.top {
