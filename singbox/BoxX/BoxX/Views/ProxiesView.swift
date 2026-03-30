@@ -297,12 +297,14 @@ struct ProxiesView: View {
 
             // 操作按钮
             HStack(spacing: 6) {
-                Button("编辑") {
-                    editingGroupTag = group.name
-                    showGroupEdit = true
+                if !isRegionGroup {
+                    Button("编辑") {
+                        editingGroupTag = group.name
+                        showGroupEdit = true
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
 
                 if canDelete {
                     Button("删除") {
@@ -327,7 +329,9 @@ struct ProxiesView: View {
             selectedGroup = (selectedGroup == group.name) ? nil : group.name
         }
         .contextMenu {
-            Button("编辑") { editingGroupTag = group.name; showGroupEdit = true }
+            if !isRegionGroup {
+                Button("编辑") { editingGroupTag = group.name; showGroupEdit = true }
+            }
             if canDelete {
                 Button("删除", role: .destructive) { deletingGroupTag = group.name }
             }

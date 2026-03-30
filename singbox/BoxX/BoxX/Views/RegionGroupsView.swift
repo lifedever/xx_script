@@ -55,6 +55,7 @@ struct RegionGroupsView: View {
                 orderedKeys.append(name)
                 savePatterns()
             }
+            .environment(appState)
         }
         .sheet(item: $editingKey) { key in
             if let pattern = patterns[key] {
@@ -66,6 +67,7 @@ struct RegionGroupsView: View {
                     patterns[newName] = newPattern
                     savePatterns()
                 }
+                .environment(appState)
             }
         }
     }
@@ -241,11 +243,13 @@ enum RegionGroupEditMode {
 }
 
 struct RegionGroupEditSheet: View {
+    @Environment(AppState.self) private var appState
     let mode: RegionGroupEditMode
     let onSave: (String, GroupPattern) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
+    @State private var groupType = "selector"
     @State private var matchMode = "keyword"
     @State private var patternsText = ""
     @State private var errorMessage: String?
@@ -253,6 +257,27 @@ struct RegionGroupEditSheet: View {
     private var isEditing: Bool {
         if case .edit = mode { return true }
         return false
+    }
+
+    private var allNodes: [String] {
+        appState.configEngine.proxies.values.flatMap { $0.map(\.tag) }
+    }
+
+    private var matchedNodes: [String] {
+        let patternList = patternsText.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+            .filter { !$0.isEmpty }
+        guard !patternList.isEmpty else { return [] }
+        return allNodes.filter { tag in
+            let lower = tag.lowercased()
+            if matchMode == "regex" {
+                return patternList.contains { regex in
+                    tag.range(of: regex, options: .regularExpression) != nil
+                }
+            } else {
+                return patternList.contains { lower.contains($0) }
+            }
+        }
     }
 
     var body: some View {
@@ -272,28 +297,48 @@ struct RegionGroupEditSheet: View {
                 TextField("分组名称（如 🇭🇰香港）", text: $name)
                     .textFieldStyle(.roundedBorder)
 
-                Picker("匹配模式", selection: $matchMode) {
-                    Text("关键词").tag("keyword")
-                    Text("正则表达式").tag("regex")
+                Picker("类型", selection: $groupType) {
+                    Text("手动选择 (selector)").tag("selector")
+                    Text("自动最优 (urltest)").tag("urltest")
                 }
-                .pickerStyle(.segmented)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(matchMode == "keyword" ? "关键词（逗号分隔）" : "正则表达式（逗号分隔）")
-                        .font(.caption).foregroundStyle(.secondary)
+                Section("节点来源") {
+                    Picker("匹配模式", selection: $matchMode) {
+                        Text("关键词").tag("keyword")
+                        Text("正则表达式").tag("regex")
+                    }
+                    .pickerStyle(.segmented)
+
                     TextField(
                         matchMode == "keyword" ? "香港, hk, hong kong" : "(?i)hk|hong.?kong|香港",
                         text: $patternsText
                     )
                     .textFieldStyle(.roundedBorder)
+
+                    if matchMode == "keyword" {
+                        Text("节点名称包含任一关键词即匹配（不区分大小写）")
+                            .font(.caption).foregroundStyle(.tertiary)
+                    } else {
+                        Text("节点名称匹配任一正则表达式即匹配")
+                            .font(.caption).foregroundStyle(.tertiary)
+                    }
                 }
 
-                if matchMode == "keyword" {
-                    Text("节点名称包含任一关键词即匹配（不区分大小写）")
-                        .font(.caption).foregroundStyle(.tertiary)
-                } else {
-                    Text("节点名称匹配任一正则表达式即匹配")
-                        .font(.caption).foregroundStyle(.tertiary)
+                // Node preview
+                let matched = matchedNodes
+                if !matched.isEmpty {
+                    Section("匹配预览: \(matched.count) 个节点") {
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 2) {
+                                ForEach(matched, id: \.self) { node in
+                                    Text(node)
+                                        .font(.caption)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 120)
+                    }
                 }
 
                 if let err = errorMessage {
@@ -311,11 +356,18 @@ struct RegionGroupEditSheet: View {
             }
             .padding()
         }
-        .frame(width: 420)
+        .frame(width: 480, height: 520)
         .onAppear {
             if case .edit(let n, let p) = mode {
                 name = n; matchMode = p.mode
                 patternsText = p.patterns.joined(separator: ", ")
+                // Read current group type from config
+                if let ob = appState.configEngine.config.outbounds.first(where: { $0.tag == n }) {
+                    switch ob {
+                    case .urltest: groupType = "urltest"
+                    default: groupType = "selector"
+                    }
+                }
             }
         }
     }
@@ -327,6 +379,21 @@ struct RegionGroupEditSheet: View {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         guard !patternList.isEmpty else { errorMessage = "请输入至少一个匹配规则"; return }
+
+        // Update group type in config if changed
+        if let idx = appState.configEngine.config.outbounds.firstIndex(where: { $0.tag == trimmedName }) {
+            let existing = appState.configEngine.config.outbounds[idx]
+            if groupType == "urltest" {
+                if case .selector(let s) = existing {
+                    appState.configEngine.config.outbounds[idx] = .urltest(URLTestOutbound(tag: s.tag, outbounds: s.outbounds))
+                }
+            } else {
+                if case .urltest(let u) = existing {
+                    appState.configEngine.config.outbounds[idx] = .selector(SelectorOutbound(tag: u.tag, outbounds: u.outbounds))
+                }
+            }
+        }
+
         dismiss()
         onSave(trimmedName, GroupPattern(mode: matchMode, patterns: patternList))
     }
