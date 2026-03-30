@@ -43,15 +43,20 @@ struct RegionGroupsView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
 
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(orderedKeys.enumerated()), id: \.element) { index, key in
-                            if let pattern = patterns[key] {
-                                regionGroupTableRow(index: index, key: key, pattern: pattern)
-                            }
+                List {
+                    ForEach(Array(orderedKeys.enumerated()), id: \.element) { index, key in
+                        if let pattern = patterns[key] {
+                            regionGroupTableRow(index: index, key: key, pattern: pattern)
+                                .listRowInsets(EdgeInsets())
+                                .listRowSeparator(.hidden)
                         }
                     }
+                    .onMove { from, to in
+                        orderedKeys.move(fromOffsets: from, toOffset: to)
+                        savePatterns()
+                    }
                 }
+                .listStyle(.plain)
 
                 Divider()
 
@@ -155,19 +160,6 @@ struct RegionGroupsView: View {
             Spacer()
 
             HStack(spacing: 4) {
-                // Move buttons
-                Button { moveUp(index) } label: {
-                    Image(systemName: "chevron.up")
-                }
-                .buttonStyle(.borderless)
-                .disabled(index == 0)
-
-                Button { moveDown(index) } label: {
-                    Image(systemName: "chevron.down")
-                }
-                .buttonStyle(.borderless)
-                .disabled(index == orderedKeys.count - 1)
-
                 Button("编辑") { editingKey = key }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -177,23 +169,11 @@ struct RegionGroupsView: View {
                     .controlSize(.small)
                     .tint(.red)
             }
-            .frame(width: 180, alignment: .center)
+            .frame(width: 120, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(index % 2 == 0 ? Color.clear : Color.gray.opacity(0.06))
-    }
-
-    private func moveUp(_ index: Int) {
-        guard index > 0 else { return }
-        orderedKeys.swapAt(index, index - 1)
-        savePatterns()
-    }
-
-    private func moveDown(_ index: Int) {
-        guard index < orderedKeys.count - 1 else { return }
-        orderedKeys.swapAt(index, index + 1)
-        savePatterns()
     }
 
     private func loadPatterns() {
