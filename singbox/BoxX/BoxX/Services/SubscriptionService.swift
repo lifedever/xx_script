@@ -63,6 +63,26 @@ class SubscriptionService: @unchecked Sendable {
         return results
     }
 
+    /// Re-group existing nodes using current group-patterns (no network fetch needed)
+    func regroupExistingNodes() throws {
+        let patterns = configEngine.loadGroupPatterns()
+        guard !patterns.isEmpty else { return }
+
+        // Collect all proxy nodes from loaded proxies
+        let allProxies = configEngine.proxies
+        for (subName, nodes) in allProxies {
+            let regionGroups = grouper.groupByPatterns(nodes, patterns: patterns)
+            updateSelectorGroups(
+                regionGroups: regionGroups,
+                subscriptionName: subName,
+                nodeTags: nodes.map { $0.tag }
+            )
+        }
+
+        try configEngine.save(restartRequired: false)
+        try configEngine.deployRuntime(skipValidation: true)
+    }
+
     // MARK: - Private
 
     /// Ensure region-based selector groups exist in config and contain the right node tags.

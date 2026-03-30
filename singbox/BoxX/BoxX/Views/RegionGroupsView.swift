@@ -107,6 +107,8 @@ struct RegionGroupsView: View {
 
     private func savePatterns() {
         appState.configEngine.saveGroupPatterns(patterns)
+        // Re-group existing nodes immediately
+        try? appState.subscriptionService.regroupExistingNodes()
     }
 
     private func deleteGroup(_ key: String) {
