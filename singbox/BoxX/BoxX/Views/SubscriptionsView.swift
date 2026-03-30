@@ -104,6 +104,11 @@ struct SubscriptionsView: View {
         .task {
             await fetchAllSubscriptionInfos()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .subscriptionRetry)) { notif in
+            if let sub = notif.object as? Subscription {
+                Task { await updateSingle(sub) }
+            }
+        }
     }
 
     private func deleteSubscription(_ sub: Subscription) {
@@ -170,7 +175,8 @@ struct SubscriptionsView: View {
             }
         } catch {
             updateResults[sub.name] = .failure(error.localizedDescription)
-            subLog("\(sub.name) 更新失败: \(error.localizedDescription)")
+            subLog("\(sub.name) 失败: \(error.localizedDescription)")
+            NotificationCenter.default.post(name: .subscriptionUpdateFailed, object: sub)
         }
 
         try? await Task.sleep(for: .seconds(5))
@@ -204,6 +210,7 @@ struct SubscriptionsView: View {
             } catch {
                 updateResults[sub.name] = .failure(error.localizedDescription)
                 subLog("\(sub.name) 失败: \(error.localizedDescription)")
+                NotificationCenter.default.post(name: .subscriptionUpdateFailed, object: sub)
             }
         }
 

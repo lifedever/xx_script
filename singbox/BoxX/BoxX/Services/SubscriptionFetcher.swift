@@ -26,23 +26,30 @@ struct FetchResult: Sendable {
 }
 
 struct SubscriptionFetcher: Sendable {
-    /// If true, bypass proxy and connect directly
-    var useDirect: Bool = true
-
-    private var session: URLSession {
-        if useDirect {
-            let config = URLSessionConfiguration.ephemeral
-            config.connectionProxyDictionary = [:]  // No proxy
-            config.timeoutIntervalForRequest = 30
-            return URLSession(configuration: config)
-        }
-        return URLSession.shared
-    }
+    /// Proxy port for explicit HTTP proxy mode (0 = use system/TUN default)
+    var proxyPort: Int = 0
 
     func fetch(url: URL) async throws -> FetchResult {
         var request = URLRequest(url: url)
         request.setValue("clash-verge/v2.0.0", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 60
+
+        let session: URLSession
+        if proxyPort > 0 {
+            let config = URLSessionConfiguration.ephemeral
+            config.connectionProxyDictionary = [
+                kCFNetworkProxiesHTTPEnable: true,
+                kCFNetworkProxiesHTTPProxy: "127.0.0.1",
+                kCFNetworkProxiesHTTPPort: proxyPort,
+                kCFNetworkProxiesHTTPSEnable: true,
+                kCFNetworkProxiesHTTPSProxy: "127.0.0.1",
+                kCFNetworkProxiesHTTPSPort: proxyPort,
+            ] as [String: Any]
+            config.timeoutIntervalForRequest = 60
+            session = URLSession(configuration: config)
+        } else {
+            session = URLSession.shared
+        }
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,

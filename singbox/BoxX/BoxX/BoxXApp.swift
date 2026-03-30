@@ -192,6 +192,8 @@ extension Notification.Name {
     static let openMonitorWindow = Notification.Name("com.boxx.openMonitorWindow")
     static let subscriptionLogAppend = Notification.Name("com.boxx.subscriptionLogAppend")
     static let subscriptionLogStart = Notification.Name("com.boxx.subscriptionLogStart")
+    static let subscriptionUpdateFailed = Notification.Name("com.boxx.subscriptionUpdateFailed")
+    static let subscriptionRetry = Notification.Name("com.boxx.subscriptionRetry")
 }
 
 /// Holds a strong reference to the AppKit MenuBarController so the NSStatusItem stays alive.

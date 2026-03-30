@@ -80,12 +80,15 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         // ── Apply config banner ──
         if appState.pendingReload && appState.isRunning {
-            let reloadItem = NSMenuItem(title: "⚠ 配置已更新，点击应用", action: #selector(applyConfig), keyEquivalent: "")
+            let reloadItem = NSMenuItem(title: "", action: #selector(applyConfig), keyEquivalent: "")
             reloadItem.target = self
-            reloadItem.attributedTitle = NSAttributedString(string: "⚠ 配置已更新，点击应用", attributes: [
+            let str = NSMutableAttributedString()
+            str.append(NSAttributedString(string: "⚠️ ", attributes: [.font: NSFont.menuFont(ofSize: 0)]))
+            str.append(NSAttributedString(string: "配置已更新，点击应用", attributes: [
                 .font: NSFont.menuFont(ofSize: 0),
-                .foregroundColor: NSColor.systemOrange,
-            ])
+                .foregroundColor: NSColor.labelColor,
+            ]))
+            reloadItem.attributedTitle = str
             menu.addItem(reloadItem)
             menu.addItem(.separator())
         }
@@ -385,6 +388,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                     menuSubLog("\(sub.name) 完成, \(result.nodeCount) 个节点")
                 } catch {
                     menuSubLog("\(sub.name) 失败: \(error.localizedDescription)")
+                    NotificationCenter.default.post(name: .subscriptionUpdateFailed, object: sub)
                 }
             }
             menuSubLog("全部更新完成")
@@ -402,6 +406,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 menuSubLog("\(sub.name) 完成, \(result.nodeCount) 个节点")
             } catch {
                 menuSubLog("\(sub.name) 失败: \(error.localizedDescription)")
+                NotificationCenter.default.post(name: .subscriptionUpdateFailed, object: sub)
             }
         }
     }
