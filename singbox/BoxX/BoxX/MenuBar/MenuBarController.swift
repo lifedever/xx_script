@@ -267,16 +267,16 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 let color: NSColor
                 if delay <= 0 {
                     delayText = "  超时"
-                    color = .systemRed
+                    color = NSColor(red: 0.85, green: 0.15, blue: 0.15, alpha: 1)
                 } else if delay < 200 {
                     delayText = "  \(delay)ms"
-                    color = .systemGreen
+                    color = NSColor(red: 0.1, green: 0.6, blue: 0.2, alpha: 1)
                 } else if delay < 500 {
                     delayText = "  \(delay)ms"
-                    color = .systemOrange
+                    color = NSColor(red: 0.85, green: 0.55, blue: 0, alpha: 1)
                 } else {
                     delayText = "  \(delay)ms"
-                    color = .systemRed
+                    color = NSColor(red: 0.85, green: 0.15, blue: 0.15, alpha: 1)
                 }
                 attrStr.append(NSAttributedString(string: delayText, attributes: [
                     .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
@@ -499,13 +499,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 let delayText: String
                 let color: NSColor
                 if delay <= 0 {
-                    delayText = "  超时"; color = .systemRed
+                    delayText = "  超时"; color = NSColor(red: 0.85, green: 0.15, blue: 0.15, alpha: 1)
                 } else if delay < 200 {
-                    delayText = "  \(delay)ms"; color = .systemGreen
+                    delayText = "  \(delay)ms"; color = NSColor(red: 0.1, green: 0.6, blue: 0.2, alpha: 1)
                 } else if delay < 500 {
-                    delayText = "  \(delay)ms"; color = .systemOrange
+                    delayText = "  \(delay)ms"; color = NSColor(red: 0.85, green: 0.55, blue: 0, alpha: 1)
                 } else {
-                    delayText = "  \(delay)ms"; color = .systemRed
+                    delayText = "  \(delay)ms"; color = NSColor(red: 0.85, green: 0.15, blue: 0.15, alpha: 1)
                 }
                 attrStr.append(NSAttributedString(string: delayText, attributes: [
                     .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
