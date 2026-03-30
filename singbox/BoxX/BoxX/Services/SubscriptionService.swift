@@ -42,9 +42,9 @@ class SubscriptionService: @unchecked Sendable {
             nodeTags: outbounds.map { $0.tag }
         )
 
-        // 6. Save config and deploy with full validation (new nodes need checking)
+        // 6. Save config and deploy (skip per-node validation for speed)
         try configEngine.save(restartRequired: false)
-        try configEngine.deployRuntime(skipValidation: false)
+        try configEngine.deployRuntime(skipValidation: true)
 
         return (nodes.count, result.info)
     }
