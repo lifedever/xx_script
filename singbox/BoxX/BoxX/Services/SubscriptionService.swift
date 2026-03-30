@@ -42,8 +42,9 @@ class SubscriptionService: @unchecked Sendable {
             nodeTags: outbounds.map { $0.tag }
         )
 
-        // 6. Save config (restartRequired: true triggers deployRuntime + restart)
-        try configEngine.save(restartRequired: true)
+        // 6. Save config and deploy with full validation (new nodes need checking)
+        try configEngine.save(restartRequired: false)
+        try configEngine.deployRuntime(skipValidation: false)
 
         return (nodes.count, result.info)
     }

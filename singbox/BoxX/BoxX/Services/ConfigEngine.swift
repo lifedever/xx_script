@@ -159,9 +159,9 @@ class ConfigEngine: @unchecked Sendable {
         try data.write(to: configURL, options: .atomic)
         lastMtime = try FileManager.default.attributesOfItem(atPath: configURL.path)[.modificationDate] as? Date
 
-        // Auto-deploy runtime config and restart sing-box when structure changes
+        // Auto-deploy runtime config when structure changes (skip node validation for speed)
         if restartRequired {
-            try? deployRuntime()
+            try? deployRuntime(skipValidation: true)
         }
     }
 
@@ -197,12 +197,24 @@ class ConfigEngine: @unchecked Sendable {
         return runtime
     }
 
-    func deployRuntime() throws {
+    func deployRuntime(skipValidation: Bool = false) throws {
         var runtime = buildRuntimeConfig()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         var data = try encoder.encode(runtime)
+        // Ensure no 🇹🇼 in runtime config
+        if var jsonString = String(data: data, encoding: .utf8),
+           jsonString.contains("\u{1F1F9}\u{1F1FC}") {
+            jsonString = jsonString.replacingOccurrences(of: "\u{1F1F9}\u{1F1FC}", with: "\u{1F1E8}\u{1F1F3}")
+            data = jsonString.data(using: .utf8) ?? data
+        }
         try data.write(to: runtimeURL, options: .atomic)
+
+        // Skip validation when only rules/outbound changes (not node changes)
+        if skipValidation {
+            onDeployComplete?()
+            return
+        }
 
         // Validate config with sing-box check. If it fails, try removing problematic proxy nodes.
         if !validateConfig() {
@@ -268,12 +280,6 @@ class ConfigEngine: @unchecked Sendable {
                 }
             }
             data = try encoder.encode(runtime)
-            // Ensure no 🇹🇼 in runtime config
-            if var jsonString = String(data: data, encoding: .utf8),
-               jsonString.contains("\u{1F1F9}\u{1F1FC}") {
-                jsonString = jsonString.replacingOccurrences(of: "\u{1F1F9}\u{1F1FC}", with: "\u{1F1E8}\u{1F1F3}")
-                data = jsonString.data(using: .utf8) ?? data
-            }
             try data.write(to: runtimeURL, options: .atomic)
             print("[BoxX] Deployed with \(validProxies.count)/\(proxyOutbounds.count) valid proxy nodes")
         }
