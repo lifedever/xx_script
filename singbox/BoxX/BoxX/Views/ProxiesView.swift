@@ -34,13 +34,8 @@ struct ProxiesView: View {
     }
 
     private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
-        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix",
-                                          "Disney", "TikTok", "Microsoft", "Notion",
-                                          "Apple", "Telegram", "Spotify", "Twitter",
-                                          "GitHub", "Steam", "Twitch", "Claude",
-                                          "Gemini", "ChatGPT"]
-        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇨🇳", "🌍"]
-        let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾"]
+        let patterns = appState.configEngine.loadGroupPatterns()
+        let regionGroupNames = Set(patterns.keys)
 
         var result = ClassifiedGroups()
         var classified = Set<String>()
@@ -49,17 +44,24 @@ struct ProxiesView: View {
             if group.name.hasPrefix("📦") {
                 result.subscriptions.append(group)
                 classified.insert(group.id)
-            } else if regionPrefixes.contains(where: { group.name.hasPrefix($0) })
-                        || regionNames.contains(where: { group.name.contains($0) }) {
+            } else if regionGroupNames.contains(group.name) || group.name == "🌐其他" {
                 result.regions.append(group)
                 classified.insert(group.id)
-            } else if serviceNames.contains(where: { group.name.contains($0) }) {
+            }
+        }
+
+        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix",
+                                          "Disney", "TikTok", "Microsoft", "Notion",
+                                          "Apple", "Telegram", "Spotify", "Twitter",
+                                          "GitHub", "Steam", "Twitch", "Claude",
+                                          "Gemini", "ChatGPT"]
+        for group in groups where !classified.contains(group.id) {
+            if serviceNames.contains(where: { group.name.contains($0) }) {
                 result.services.append(group)
                 classified.insert(group.id)
             }
         }
 
-        // Everything else goes to top (like "Proxy")
         for group in groups where !classified.contains(group.id) {
             result.top.append(group)
         }

@@ -7,6 +7,7 @@ enum SidebarTab: String, CaseIterable {
     case ruleSets = "规则集"
     case builtinRules = "内置规则"
     case ruleTest = "规则测试"
+    case regionGroups = "地区分组"
     case subscriptions = "订阅"
     case settings = "设置"
 
@@ -18,6 +19,7 @@ enum SidebarTab: String, CaseIterable {
         case .ruleSets: return "tray.2"
         case .builtinRules: return "shield.checkered"
         case .ruleTest: return "target"
+        case .regionGroups: return "globe"
         case .subscriptions: return "antenna.radiowaves.left.and.right"
         case .settings: return "gearshape"
         }
@@ -31,7 +33,7 @@ struct MainView: View {
 
     private var generalTabs: [SidebarTab] { [.overview, .proxies] }
     private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .builtinRules, .ruleTest] }
-    private var manageTabs: [SidebarTab] { [.subscriptions, .settings] }
+    private var manageTabs: [SidebarTab] { [.regionGroups, .subscriptions, .settings] }
 
     @State private var isApplying = false
 
@@ -114,6 +116,8 @@ struct MainView: View {
                 BuiltinRulesView()
             case .ruleTest:
                 RuleTestView()
+            case .regionGroups:
+                RegionGroupsView()
             case .subscriptions:
                 SubscriptionsView()
             case .settings:

@@ -245,9 +245,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func classifyGroups(_ groups: [ProxyGroup]) -> ClassifiedGroups {
-        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix", "Disney", "TikTok", "Microsoft", "Notion", "Apple", "Telegram", "Spotify", "Twitter", "GitHub", "Steam", "Twitch", "Claude", "Gemini", "ChatGPT"]
-        let regionPrefixes = ["🇭🇰", "🇨🇳", "🇯🇵", "🇰🇷", "🇸🇬", "🇺🇸", "🇬🇧", "🇩🇪", "🇫🇷", "🇦🇺", "🇨🇦", "🇨🇳", "🌍"]
-        let regionNames = ["香港", "日本", "韩国", "新加坡", "美国", "英国", "德国", "法国", "澳大利亚", "加拿大", "台湾", "其他"]
+        // Read region group names from group-patterns.json
+        let patterns = appState.configEngine.loadGroupPatterns()
+        let regionGroupNames = Set(patterns.keys)
 
         var result = ClassifiedGroups()
         var classifiedIDs = Set<String>()
@@ -256,10 +256,16 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             if group.name.hasPrefix("📦") {
                 result.subscriptions.append(group)
                 classifiedIDs.insert(group.id)
-            } else if regionPrefixes.contains(where: { group.name.hasPrefix($0) }) || regionNames.contains(where: { group.name.contains($0) }) {
+            } else if regionGroupNames.contains(group.name) || group.name == "🌐其他" {
                 result.regions.append(group)
                 classifiedIDs.insert(group.id)
-            } else if serviceNames.contains(where: { group.name.contains($0) }) {
+            }
+        }
+
+        // Classify remaining by checking if they're service-like (has outbound rule) or general
+        let serviceNames: Set<String> = ["OpenAI", "Google", "YouTube", "Netflix", "Disney", "TikTok", "Microsoft", "Notion", "Apple", "Telegram", "Spotify", "Twitter", "GitHub", "Steam", "Twitch", "Claude", "Gemini", "ChatGPT"]
+        for group in groups where !classifiedIDs.contains(group.id) {
+            if serviceNames.contains(where: { group.name.contains($0) }) {
                 result.services.append(group)
                 classifiedIDs.insert(group.id)
             }

@@ -163,14 +163,14 @@ struct OverviewView: View {
                                 Text(inbound.isMixed ? "HTTP/SOCKS" : "HTTP / SOCKS")
                                     .font(.caption).foregroundStyle(.secondary)
                                 if inbound.isMixed {
-                                    Text("127.0.0.1:\(inbound.mixedPort)")
+                                    Text(verbatim: "127.0.0.1:\(inbound.mixedPort)")
                                         .font(.title3.monospaced().bold())
                                         .textSelection(.enabled)
                                 } else {
                                     HStack(spacing: 4) {
-                                        Text("HTTP:\(inbound.httpPort)")
+                                        Text(verbatim: "HTTP:\(inbound.httpPort)")
                                         Text("|").foregroundStyle(.secondary)
-                                        Text("SOCKS:\(inbound.socksPort)")
+                                        Text(verbatim: "SOCKS:\(inbound.socksPort)")
                                     }
                                     .font(.title3.monospaced().bold())
                                     .textSelection(.enabled)

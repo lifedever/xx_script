@@ -92,7 +92,6 @@ struct RuleSetsView: View {
                                 configuredRuleSetRow(index: index, ruleSet: ruleSet)
                             }
                         }
-                        .background(.regularMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                 }
@@ -254,7 +253,7 @@ struct RuleSetsView: View {
         .background(
             isSelected
                 ? AnyShapeStyle(Color.accentColor.opacity(0.15))
-                : (index % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.regularMaterial.opacity(0.5)))
+                : (index % 2 == 0 ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Color.gray.opacity(0.06)))
         )
         .contentShape(Rectangle())
         .onTapGesture {
