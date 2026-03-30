@@ -9,7 +9,9 @@ final class AppState {
     var isUpdatingSubscription = false
     var errorMessage: String?
     var showError = false
-    var pendingReload = false  // true when config changed but not yet applied
+    var pendingReload: Bool {
+        didSet { UserDefaults.standard.set(pendingReload, forKey: "pendingReload") }
+    }
 
     // v2: core services
     let configEngine: ConfigEngine
@@ -18,6 +20,8 @@ final class AppState {
     let subscriptionService: SubscriptionService
 
     private init() {
+        pendingReload = UserDefaults.standard.bool(forKey: "pendingReload")
+
         let baseDir = Self.resolveBaseDir()
         configEngine = ConfigEngine(baseDir: baseDir)
         singBoxProcess = SingBoxProcess()
