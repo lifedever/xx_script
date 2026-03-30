@@ -31,8 +31,8 @@ struct MainView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var selectedTab: SidebarTab = .overview
 
-    private var proxyTabs: [SidebarTab] { [.subscriptions, .regionGroups, .proxies] }
-    private var ruleTabs: [SidebarTab] { [.builtinRules, .routeRules, .ruleSets, .ruleTest] }
+    private var sourceTabs: [SidebarTab] { [.builtinRules, .regionGroups, .subscriptions] }
+    private var ruleTabs: [SidebarTab] { [.routeRules, .ruleSets, .ruleTest] }
     private var systemTabs: [SidebarTab] { [.settings] }
 
     @State private var isApplying = false
@@ -78,9 +78,10 @@ struct MainView: View {
             NavigationSplitView {
             List(selection: $selectedTab) {
                 Label("概览", systemImage: "square.grid.2x2").tag(SidebarTab.overview)
+                Label("策略组", systemImage: "network").tag(SidebarTab.proxies)
 
-                Section("代理") {
-                    ForEach(proxyTabs, id: \.self) { tab in
+                Section("分流") {
+                    ForEach(sourceTabs, id: \.self) { tab in
                         Label(tab.rawValue, systemImage: tab.icon).tag(tab)
                     }
                 }
