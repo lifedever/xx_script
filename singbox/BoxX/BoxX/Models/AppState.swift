@@ -90,6 +90,25 @@ final class AppState {
     /// Apply pending config changes via SIGHUP (brief ~1s reconnect)
     func applyConfig() async {
         guard isRunning, pendingReload else { return }
+
+        // Validate config before applying
+        let rtPath = configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+        let valid = await Task.detached {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/sing-box")
+            proc.arguments = ["check", "-c", rtPath]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
+            return proc.terminationStatus == 0
+        }.value
+
+        guard valid else {
+            showAlert("配置校验失败，请检查后重试。不会应用当前配置。")
+            return
+        }
+
         await singBoxProcess.reload()
         pendingReload = false
     }
