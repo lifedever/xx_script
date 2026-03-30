@@ -30,6 +30,7 @@ struct AutoGrouper: Sendable {
     }
 
     /// Group outbounds using configurable patterns. Returns [groupName: [tag]]
+    /// A node can match multiple groups (e.g. "香港" matches both "🇭🇰香港" and "🇨🇳中国")
     func groupByPatterns(_ outbounds: [Outbound], patterns: [String: GroupPattern]) -> [String: [String]] {
         var groups: [String: [String]] = [:]
 
@@ -44,7 +45,6 @@ struct AutoGrouper: Sendable {
                         tag.range(of: regex, options: .regularExpression, range: nil, locale: nil) != nil
                     }
                 } else {
-                    // keyword mode (case insensitive)
                     let lower = tag.lowercased()
                     matches = pattern.patterns.contains { lower.contains($0.lowercased()) }
                 }
@@ -52,7 +52,7 @@ struct AutoGrouper: Sendable {
                 if matches {
                     groups[groupName, default: []].append(tag)
                     matched = true
-                    break
+                    // No break — allow matching multiple groups
                 }
             }
 
