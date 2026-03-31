@@ -143,7 +143,7 @@ struct DNSRulesView: View {
                 Text("出站").frame(width: 80, alignment: .leading)
                 Text("操作").frame(width: 110, alignment: .center)
             }
-            .font(.caption.bold())
+            .fontWeight(.bold)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -153,18 +153,16 @@ struct DNSRulesView: View {
                     let isSystem = Self.systemServerTags.contains(server.tag)
                     HStack(spacing: 0) {
                         Text(server.tag)
-                            .font(.body)
                             .lineLimit(1)
                             .frame(width: 120, alignment: .leading)
 
                         Text(serverDescription(server.tag))
-                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .frame(width: 160, alignment: .leading)
 
                         Text(server.type)
-                            .font(.caption2.monospaced())
+                            .monospaced()
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(serverTypeColor(server.type).opacity(0.12))
@@ -173,7 +171,7 @@ struct DNSRulesView: View {
                             .frame(width: 80, alignment: .leading)
 
                         Text(server.address)
-                            .font(.caption.monospaced())
+                            .monospaced()
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .frame(minWidth: 120, alignment: .leading)
@@ -181,7 +179,6 @@ struct DNSRulesView: View {
                         Spacer()
 
                         Text(server.detour)
-                            .font(.caption)
                             .foregroundStyle(.tertiary)
                             .frame(width: 80, alignment: .leading)
 
@@ -225,7 +222,6 @@ struct DNSRulesView: View {
                 .font(.headline)
 
             Text("\(rules.count) 条规则")
-                .font(.caption)
                 .foregroundStyle(.secondary)
 
             // Table header
@@ -237,7 +233,7 @@ struct DNSRulesView: View {
                 Text("DNS 服务器").frame(width: 120, alignment: .leading)
                 Text("操作").frame(width: 110, alignment: .center)
             }
-            .font(.caption.bold())
+            .fontWeight(.bold)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -265,7 +261,6 @@ struct DNSRulesView: View {
 
     private func ruleSectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.caption)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
@@ -276,7 +271,7 @@ struct DNSRulesView: View {
     private func dnsRuleRow(_ rule: DNSRuleItem) -> some View {
         HStack(spacing: 0) {
             Text("\(rule.index + 1)")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 30, alignment: .leading)
 
@@ -286,12 +281,11 @@ struct DNSRulesView: View {
             Group {
                 if rule.isSystem && rule.matchValue == "—" {
                     Text(systemDescription(rule))
-                        .font(.body)
                         .foregroundStyle(.tertiary)
                         .italic()
                 } else {
                     Text(rule.matchValue)
-                        .font(.caption.monospaced())
+                        .monospaced()
                 }
             }
             .lineLimit(1)
@@ -300,7 +294,6 @@ struct DNSRulesView: View {
             Spacer()
 
             Text(rule.server)
-                .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(width: 120, alignment: .leading)
 
@@ -333,7 +326,7 @@ struct DNSRulesView: View {
 
     private func ruleTypeBadge(_ type: String) -> some View {
         Text(type)
-            .font(.caption2.monospaced())
+            .monospaced()
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(ruleTypeColor(type).opacity(0.12))
@@ -624,7 +617,6 @@ struct DNSRuleEditSheet: View {
                     .font(.body.monospaced())
 
                 Text(ruleTypeHint)
-                    .font(.caption)
                     .foregroundStyle(.tertiary)
 
                 Picker("DNS 服务器", selection: $selectedServer) {
@@ -634,14 +626,12 @@ struct DNSRuleEditSheet: View {
                 }
 
                 Text(serverHint)
-                    .font(.caption)
                     .foregroundStyle(.tertiary)
 
                 // Preview
                 GroupBox {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("预览")
-                            .font(.caption)
                             .foregroundStyle(.secondary)
                         Text("""
                         {
@@ -650,14 +640,14 @@ struct DNSRuleEditSheet: View {
                           "server": "\(selectedServer)"
                         }
                         """)
-                        .font(.caption.monospaced())
+                        .monospaced()
                         .foregroundStyle(Color.accentColor)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if let err = errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                    Text(err).foregroundStyle(.red)
                 }
             }
             .formStyle(.grouped)
@@ -806,16 +796,14 @@ struct DNSServerEditSheet: View {
                 }
 
                 Text(serverTypeHint)
-                    .font(.caption)
                     .foregroundStyle(.tertiary)
 
                 if serverType != "local" {
                     TextField("服务器地址", text: $address, prompt: Text(serverType == "udp" ? "223.5.5.5" : "8.8.8.8"))
                         .textFieldStyle(.roundedBorder)
-                        .font(.body.monospaced())
+                        .monospaced()
 
                     Text(serverType == "udp" ? "UDP DNS 服务器地址" : "DoH/DoT 服务器地址")
-                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
 
@@ -823,7 +811,7 @@ struct DNSServerEditSheet: View {
                     .textFieldStyle(.roundedBorder)
 
                 if let err = errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                    Text(err).foregroundStyle(.red)
                 }
             }
             .formStyle(.grouped)

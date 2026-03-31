@@ -335,6 +335,20 @@ class ConfigEngine: @unchecked Sendable {
         let allProxyNodes = proxies.values.flatMap { $0 }.filter { seenTags.insert($0.tag).inserted }
         runtime.outbounds.append(contentsOf: allProxyNodes)
 
+        // Auto-fill update_interval for remote rule sets that don't have one
+        let defaultInterval = UserDefaults.standard.integer(forKey: "ruleSetUpdateInterval")
+        let intervalHours = defaultInterval > 0 ? defaultInterval : 24
+        if var ruleSets = runtime.route.ruleSet {
+            for i in ruleSets.indices {
+                guard case .object(var dict) = ruleSets[i],
+                      dict["type"]?.stringValue == "remote",
+                      dict["update_interval"] == nil else { continue }
+                dict["update_interval"] = .string("\(intervalHours)h0m0s")
+                ruleSets[i] = .object(dict)
+            }
+            runtime.route.ruleSet = ruleSets
+        }
+
         // Enable process detection for monitoring
         runtime.route.unknownFields["find_process"] = .bool(true)
 

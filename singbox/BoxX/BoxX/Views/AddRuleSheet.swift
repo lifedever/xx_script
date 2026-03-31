@@ -143,7 +143,6 @@ struct AddRuleSheet: View {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("预览: 写入 config.json route.rules")
-                                .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text("""
                             {
@@ -152,7 +151,7 @@ struct AddRuleSheet: View {
                               "outbound": "\(selectedOutbound)"
                             }
                             """)
-                            .font(.caption.monospaced())
+                            .monospaced()
                             .foregroundStyle(Color.accentColor)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -161,7 +160,6 @@ struct AddRuleSheet: View {
                     // Rule set file picker
                     if customRuleSets.isEmpty {
                         Text("没有找到自定义规则集（*-custom）")
-                            .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         Picker("目标规则集", selection: $selectedRuleSetTag) {
@@ -174,24 +172,22 @@ struct AddRuleSheet: View {
                         GroupBox {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("预览: 更新规则集 \(selectedRuleSetTag)")
-                                    .font(.caption)
                                     .foregroundStyle(.secondary)
 
                                 let url = ruleSetURL(for: selectedRuleSetTag)
                                 if let url {
                                     Text(url)
-                                        .font(.caption2.monospaced())
+                                        .monospaced()
                                         .foregroundStyle(.tertiary)
                                         .lineLimit(1)
                                         .truncationMode(.middle)
                                 }
 
                                 Text("  \(singboxKey): [\"\(ruleValue)\"]")
-                                    .font(.caption.monospaced())
+                                    .monospaced()
                                     .foregroundStyle(Color.accentColor)
 
                                 Text("注意: 需要同步更新 GitHub 仓库中的文件")
-                                    .font(.caption2)
                                     .foregroundStyle(.orange)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -205,7 +201,6 @@ struct AddRuleSheet: View {
                         Image(systemName: isSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                             .foregroundStyle(isSuccess ? .green : .red)
                         Text(msg)
-                            .font(.caption)
                     }
                 }
             }

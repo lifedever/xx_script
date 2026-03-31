@@ -36,7 +36,6 @@ struct SubscriptionUpdateLogView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                     Text(verbatim: "\(sub.name) 更新失败")
-                        .font(.caption)
                     Spacer()
                     Button("重试") {
                         failedSub = nil

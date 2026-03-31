@@ -88,7 +88,6 @@ struct ProxyGroupEditSheet: View {
                     TextField("关键词，用逗号分隔（如: 香港,HK,Hong Kong）", text: $matchPatternsText)
                         .textFieldStyle(.roundedBorder)
                     Text("订阅更新时，节点名包含任一关键词将自动加入此策略组")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                     matchPreview
                 }
@@ -99,7 +98,6 @@ struct ProxyGroupEditSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospaced())
                     Text("订阅更新时，节点名匹配正则的将自动加入此策略组")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                     matchPreview
                 }
@@ -140,20 +138,20 @@ struct ProxyGroupEditSheet: View {
             LazyVStack(alignment: .leading, spacing: 4) {
                 let groups = allSelectorTags.filter { $0 != tag }
                 if !groups.isEmpty {
-                    Text("策略组").font(.caption).foregroundStyle(.secondary)
+                    Text("策略组").foregroundStyle(.secondary)
                         .padding(.top, 4).padding(.leading, 8)
                     ForEach(groups, id: \.self) { name in
                         outboundCheckbox(name)
                     }
                 }
 
-                Text("特殊").font(.caption).foregroundStyle(.secondary)
+                Text("特殊").foregroundStyle(.secondary)
                     .padding(.top, 4).padding(.leading, 8)
                 outboundCheckbox("DIRECT")
 
                 let nodes = allProxyNodeTags
                 if !nodes.isEmpty {
-                    Text("代理节点").font(.caption).foregroundStyle(.secondary)
+                    Text("代理节点").foregroundStyle(.secondary)
                         .padding(.top, 4).padding(.leading, 8)
                     ForEach(nodes, id: \.self) { name in
                         outboundCheckbox(name)
@@ -175,18 +173,17 @@ struct ProxyGroupEditSheet: View {
             if !matchPatternsText.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("匹配预览：\(matched.count) 个节点")
-                        .font(.caption.bold())
+                        .fontWeight(.bold)
                         .foregroundStyle(.secondary)
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 2) {
                             ForEach(matched.prefix(20), id: \.self) { node in
                                 Text(node)
-                                    .font(.caption.monospaced())
+                                    .monospaced()
                                     .foregroundStyle(.green)
                             }
                             if matched.count > 20 {
                                 Text("... 还有 \(matched.count - 20) 个")
-                                    .font(.caption)
                                     .foregroundStyle(.tertiary)
                             }
                         }

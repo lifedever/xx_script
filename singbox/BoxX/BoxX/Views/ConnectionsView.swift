@@ -131,14 +131,13 @@ struct ConnectionsView: View {
             Spacer()
 
             Text(String(format: String(localized: "connections.count"), filteredConnections.count))
-                .font(.caption)
                 .foregroundStyle(.secondary)
 
             Text("\u{2193} \(byteFormatter.string(fromByteCount: downloadTotal))")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.green)
             Text("\u{2191} \(byteFormatter.string(fromByteCount: uploadTotal))")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.blue)
 
             // Pause / Resume
@@ -190,7 +189,7 @@ struct ConnectionsView: View {
 
             TableColumn(String(localized: "connections.time"), value: \.start) { conn in
                 Text(conn.startTimeString)
-                    .font(.caption.monospacedDigit())
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .opacity(conn.isClosed ? 0.4 : 1)
             }
@@ -198,7 +197,6 @@ struct ConnectionsView: View {
 
             TableColumn(String(localized: "connections.host"), value: \.host) { conn in
                 Text(conn.host)
-                    .font(.caption)
                     .lineLimit(1)
                     .opacity(conn.isClosed ? 0.4 : 1)
             }
@@ -206,7 +204,7 @@ struct ConnectionsView: View {
 
             TableColumn(String(localized: "connections.network")) { conn in
                 Text(conn.network)
-                    .font(.caption2.monospaced())
+                    .monospaced()
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
                     .foregroundStyle(conn.network == "UDP" ? Color.orange : Color.blue)
@@ -218,7 +216,6 @@ struct ConnectionsView: View {
 
             TableColumn(String(localized: "connections.process")) { conn in
                 Text(conn.processName)
-                    .font(.caption)
                     .lineLimit(1)
                     .opacity(conn.isClosed ? 0.4 : 1)
             }
@@ -227,11 +224,9 @@ struct ConnectionsView: View {
             TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
                 HStack(spacing: 3) {
                     Text(conn.rule)
-                        .font(.caption)
                         .lineLimit(1)
                     if !conn.rulePayload.isEmpty {
                         Text("(\(conn.rulePayload))")
-                            .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                     }
@@ -244,13 +239,12 @@ struct ConnectionsView: View {
                 HStack(spacing: 4) {
                     if conn.outbound == "DIRECT" {
                         Text(conn.outbound)
-                            .font(.caption.bold())
+                            .fontWeight(.bold)
                     } else {
                         Circle()
                             .fill(Color.green)
                             .frame(width: 6, height: 6)
                         Text(conn.outbound)
-                            .font(.caption)
                     }
                 }
                 .opacity(conn.isClosed ? 0.4 : 1)
@@ -259,7 +253,6 @@ struct ConnectionsView: View {
 
             TableColumn(String(localized: "connections.chain")) { conn in
                 Text(connectionChainDisplay(conn))
-                    .font(.caption)
                     .lineLimit(1)
                     .opacity(conn.isClosed ? 0.4 : 1)
             }
@@ -267,14 +260,14 @@ struct ConnectionsView: View {
 
             TableColumn("\u{2193}") { conn in
                 Text(byteFormatter.string(fromByteCount: conn.download))
-                    .font(.caption.monospacedDigit())
+                    .monospacedDigit()
                     .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 50, ideal: 70)
 
             TableColumn("\u{2191}") { conn in
                 Text(byteFormatter.string(fromByteCount: conn.upload))
-                    .font(.caption.monospacedDigit())
+                    .monospacedDigit()
                     .opacity(conn.isClosed ? 0.4 : 1)
             }
             .width(min: 50, ideal: 70)
@@ -449,7 +442,6 @@ struct ConnectionDetailPanel: View {
                             ForEach(Array(connection.chains.reversed().enumerated()), id: \.offset) { index, node in
                                 if index > 0 {
                                     Image(systemName: "arrow.right")
-                                        .font(.caption2)
                                         .foregroundStyle(.tertiary)
                                 }
                                 chainNodeView(node, isLast: index == connection.chains.count - 1)
@@ -491,7 +483,7 @@ struct ConnectionDetailPanel: View {
     @ViewBuilder
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.subheadline.bold())
+            .fontWeight(.bold)
             .foregroundStyle(.secondary)
     }
 
@@ -500,11 +492,10 @@ struct ConnectionDetailPanel: View {
         HStack(spacing: 4) {
             if node == "DIRECT" {
                 Image(systemName: "arrow.right.circle.fill")
-                    .font(.caption)
                     .foregroundStyle(.green)
             }
             Text(node)
-                .font(.caption.monospaced())
+                .monospaced()
                 .fontWeight(node == "DIRECT" ? .bold : .regular)
         }
     }
@@ -517,11 +508,10 @@ struct DetailGridRow: View {
     var body: some View {
         GridRow {
             Text(label)
-                .font(.caption)
                 .foregroundStyle(.secondary)
                 .gridColumnAlignment(.trailing)
             Text(value)
-                .font(.caption.monospaced())
+                .monospaced()
                 .textSelection(.enabled)
                 .gridColumnAlignment(.leading)
         }

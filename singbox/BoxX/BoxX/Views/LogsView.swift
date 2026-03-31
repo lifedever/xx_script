@@ -56,11 +56,11 @@ struct LogsView: View {
                 List(filteredEntries) { entry in
                     HStack(alignment: .top, spacing: 8) {
                         Text(entry.level.uppercased())
-                            .font(.caption.monospaced())
+                            .monospaced()
                             .frame(width: 60, alignment: .leading)
                             .foregroundStyle(levelColor(entry.level))
                         Text(entry.message)
-                            .font(.caption.monospaced())
+                            .monospaced()
                             .foregroundStyle(.primary)
                             .textSelection(.enabled)
                         Spacer()

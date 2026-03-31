@@ -38,7 +38,7 @@ struct RegionGroupsView: View {
                     Spacer()
                     Text("操作").frame(width: 120, alignment: .center)
                 }
-                .font(.caption.bold())
+                .fontWeight(.bold)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -93,7 +93,7 @@ struct RegionGroupsView: View {
             VStack(spacing: 8) {
                 Image(systemName: "globe").font(.largeTitle).foregroundStyle(.secondary)
                 Text("暂无地区分组").font(.headline)
-                Text("点击右上角 + 添加").font(.caption).foregroundStyle(.secondary)
+                Text("点击右上角 + 添加").foregroundStyle(.secondary)
             }
             Spacer()
             HStack {
@@ -108,7 +108,7 @@ struct RegionGroupsView: View {
     private var bottomBar: some View {
         HStack {
             Text(verbatim: "\(orderedKeys.count) 个分组")
-                .font(.caption).foregroundStyle(.secondary)
+                .foregroundStyle(.secondary)
             Spacer()
             Button("恢复默认分组") { resetToDefault() }
                 .controlSize(.small).buttonStyle(.bordered)
@@ -124,7 +124,7 @@ struct RegionGroupsView: View {
 
         return HStack(spacing: 0) {
             Text(verbatim: "\(index + 1)")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 30, alignment: .leading)
 
@@ -134,7 +134,7 @@ struct RegionGroupsView: View {
                 .frame(width: 140, alignment: .leading)
 
             Text(groupType)
-                .font(.caption2.monospaced())
+                .monospaced()
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(groupType == "urltest" ? Color.orange.opacity(0.12) : Color.blue.opacity(0.12))
@@ -143,7 +143,6 @@ struct RegionGroupsView: View {
                 .frame(width: 80, alignment: .leading)
 
             Text(pattern.mode == "regex" ? "正则" : "关键词")
-                .font(.caption2)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(pattern.mode == "regex" ? Color.purple.opacity(0.12) : Color.green.opacity(0.12))
@@ -152,7 +151,6 @@ struct RegionGroupsView: View {
                 .frame(width: 80, alignment: .leading)
 
             Text(pattern.patterns.joined(separator: ", "))
-                .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(minWidth: 160, alignment: .leading)
@@ -205,7 +203,6 @@ struct KeywordTag: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(Color.accentColor.opacity(0.1))
@@ -338,10 +335,10 @@ struct RegionGroupEditSheet: View {
 
                     if matchMode == "keyword" {
                         Text("节点名称包含任一关键词即匹配（不区分大小写）")
-                            .font(.caption).foregroundStyle(.tertiary)
+                            .foregroundStyle(.tertiary)
                     } else {
                         Text("节点名称匹配任一正则表达式即匹配")
-                            .font(.caption).foregroundStyle(.tertiary)
+                            .foregroundStyle(.tertiary)
                     }
                 }
 
@@ -353,7 +350,6 @@ struct RegionGroupEditSheet: View {
                             LazyVStack(alignment: .leading, spacing: 2) {
                                 ForEach(matched, id: \.self) { node in
                                     Text(node)
-                                        .font(.caption)
                                         .foregroundStyle(.green)
                                 }
                             }
@@ -363,7 +359,7 @@ struct RegionGroupEditSheet: View {
                 }
 
                 if let err = errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                    Text(err).foregroundStyle(.red)
                 }
             }
             .formStyle(.grouped)

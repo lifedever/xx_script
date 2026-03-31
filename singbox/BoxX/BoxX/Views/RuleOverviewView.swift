@@ -23,7 +23,6 @@ struct RuleOverviewView: View {
                     .font(.title2)
                     .bold()
                 Text("\(items.count) 条规则，按执行优先级排列")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 TextField("搜索...", text: $searchText)
@@ -55,7 +54,7 @@ struct RuleOverviewView: View {
                         Text("出站 / 动作")
                             .frame(width: 140, alignment: .leading)
                     }
-                    .font(.caption.bold())
+                    .fontWeight(.bold)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -82,10 +81,9 @@ struct RuleOverviewView: View {
     private func sectionHeader(_ title: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: sectionIcon(title))
-                .font(.caption)
                 .foregroundStyle(.secondary)
             Text(title)
-                .font(.caption.bold())
+                .fontWeight(.bold)
         }
         .foregroundStyle(.secondary)
         .padding(.horizontal, 8)
@@ -107,7 +105,7 @@ struct RuleOverviewView: View {
     private func ruleRow(_ item: RuleOverviewItem, index: Int) -> some View {
         HStack(spacing: 0) {
             Text("\(item.priority)")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.tertiary)
                 .frame(width: 30, alignment: .leading)
 
@@ -118,7 +116,7 @@ struct RuleOverviewView: View {
                 .frame(width: 140, alignment: .leading)
 
             Text(item.value)
-                .font(.caption.monospaced())
+                .monospaced()
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .foregroundStyle(item.category == "系统规则" ? .tertiary : .primary)
@@ -167,7 +165,6 @@ struct RuleOverviewView: View {
             }
         }()
         return Text(short)
-            .font(.caption2)
             .padding(.horizontal, 4)
             .padding(.vertical, 1)
             .background(color.opacity(0.12))
@@ -177,7 +174,7 @@ struct RuleOverviewView: View {
 
     private func typeBadge(_ type: String) -> some View {
         Text(type)
-            .font(.caption2.monospaced())
+            .monospaced()
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(typeColor(type).opacity(0.12))
@@ -202,12 +199,12 @@ struct RuleOverviewView: View {
     private func outboundLabel(_ outbound: String) -> some View {
         HStack(spacing: 4) {
             if outbound == "DIRECT" {
-                Text(outbound).font(.caption.bold()).foregroundStyle(.green)
+                Text(outbound).fontWeight(.bold).foregroundStyle(.green)
             } else if outbound == "reject" || outbound == "sniff" || outbound == "hijack-dns" {
-                Text(outbound).font(.caption).foregroundStyle(.secondary)
+                Text(outbound).foregroundStyle(.secondary)
             } else {
                 Circle().fill(Color.blue).frame(width: 5, height: 5)
-                Text(outbound).font(.caption).foregroundStyle(.primary)
+                Text(outbound).foregroundStyle(.primary)
             }
         }
     }

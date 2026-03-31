@@ -5,8 +5,9 @@ struct RuleSetsView: View {
 
     @State private var ruleSetUpdateStatus: [String: RuleSetUpdateStatus] = [:]
     @State private var selectedRuleSetIndex: Int?
-    @State private var editingRuleSetTag: String?
-    @State private var editingOutbound: String = ""
+    @State private var editingRuleSet: JSONValue?  // nil = not editing, non-nil = editing this rule set
+    @State private var showingAddSheet = false
+    @State private var viewingRuleSet: JSONValue?  // for content viewing
     @State private var deletingTag: String?
     @State private var deletingIndex: Int?
 
@@ -26,19 +27,27 @@ struct RuleSetsView: View {
                     .bold()
                 let ruleSets = appState.configEngine.config.route.ruleSet ?? []
                 Text("\(ruleSets.count) 个规则集")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
+                Button {
+                    showingAddSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                        Text("新增")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 let hasRemote = ruleSets.contains { $0["type"]?.stringValue == "remote" }
                 if hasRemote {
                     Button {
-                        Task { await updateAllRemoteRuleSets() }
+                        Task { await forceUpdateRuleSets() }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.clockwise")
                             Text("全部更新")
                         }
-                        .font(.caption)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -80,9 +89,9 @@ struct RuleSetsView: View {
                             Text("出站")
                                 .frame(width: 100, alignment: .leading)
                             Text("操作")
-                                .frame(width: 160, alignment: .center)
+                                .frame(width: 200, alignment: .center)
                         }
-                        .font(.caption.bold())
+                        .fontWeight(.bold)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -98,19 +107,33 @@ struct RuleSetsView: View {
                 .padding()
             }
         }
-        .sheet(item: Binding(
-            get: { editingRuleSetTag.map { EditingTag(tag: $0) } },
-            set: { editingRuleSetTag = $0?.tag }
-        )) { item in
-            RuleSetEditSheet(
-                tag: item.tag,
-                currentOutbound: outboundForRuleSet(tag: item.tag) ?? "Proxy",
+        .sheet(isPresented: $showingAddSheet) {
+            RuleSetFormSheet(
+                mode: .add,
                 availableOutbounds: availableOutbounds,
-                onSave: { newOutbound in
-                    changeOutbound(forRuleSetTag: item.tag, to: newOutbound)
-                    editingRuleSetTag = nil
+                existingTags: allRuleSetTags,
+                currentOutbound: nil,
+                onSave: { ruleSetDef, outbound in
+                    addRuleSet(ruleSetDef, outbound: outbound)
+                    showingAddSheet = false
                 },
-                onCancel: { editingRuleSetTag = nil }
+                onCancel: { showingAddSheet = false }
+            )
+        }
+        .sheet(item: Binding(
+            get: { editingRuleSet.map { EditingRuleSet(ruleSet: $0) } },
+            set: { editingRuleSet = $0?.ruleSet }
+        )) { item in
+            RuleSetFormSheet(
+                mode: .edit(item.ruleSet),
+                availableOutbounds: availableOutbounds,
+                existingTags: allRuleSetTags,
+                currentOutbound: outboundForRuleSet(tag: item.ruleSet["tag"]?.stringValue ?? ""),
+                onSave: { ruleSetDef, outbound in
+                    updateRuleSetDef(ruleSetDef, outbound: outbound)
+                    editingRuleSet = nil
+                },
+                onCancel: { editingRuleSet = nil }
             )
         }
         .alert("确认删除", isPresented: .init(
@@ -128,13 +151,28 @@ struct RuleSetsView: View {
         } message: {
             Text("确定要删除规则集「\(deletingTag ?? "")」吗？")
         }
+        .sheet(item: Binding(
+            get: { viewingRuleSet.map { ViewingRuleSet(ruleSet: $0) } },
+            set: { viewingRuleSet = $0?.ruleSet }
+        )) { item in
+            RuleSetContentView(
+                ruleSet: item.ruleSet,
+                rulesDir: appState.configEngine.baseDir.appendingPathComponent("rules"),
+                onClose: { viewingRuleSet = nil }
+            )
+        }
+    }
+
+    private struct ViewingRuleSet: Identifiable {
+        let ruleSet: JSONValue
+        var id: String { ruleSet["tag"]?.stringValue ?? UUID().uuidString }
     }
 
     // MARK: - Sheet ID wrapper
 
-    private struct EditingTag: Identifiable {
-        let tag: String
-        var id: String { tag }
+    private struct EditingRuleSet: Identifiable {
+        let ruleSet: JSONValue
+        var id: String { ruleSet["tag"]?.stringValue ?? UUID().uuidString }
     }
 
     // MARK: - Row View
@@ -152,19 +190,19 @@ struct RuleSetsView: View {
         return HStack(spacing: 0) {
             // # column
             Text("\(index + 1)")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 30, alignment: .leading)
 
             // Tag column
             Text(tag)
-                .font(.body.monospaced())
+                .monospaced()
                 .lineLimit(1)
                 .frame(width: 180, alignment: .leading)
 
             // Type badge column
             Text(type)
-                .font(.caption2.monospaced())
+                .monospaced()
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(type == "local" ? Color.green.opacity(0.12) : Color.blue.opacity(0.12))
@@ -174,7 +212,6 @@ struct RuleSetsView: View {
 
             // URL/Path column
             Text(location)
-                .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -185,7 +222,6 @@ struct RuleSetsView: View {
 
             // Format column
             Text(format)
-                .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .frame(width: 60, alignment: .leading)
 
@@ -194,11 +230,9 @@ struct RuleSetsView: View {
                 let currentOutbound = outboundForRuleSet(tag: tag)
                 if let outbound = currentOutbound {
                     Text(outbound)
-                        .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
                     Text("未关联")
-                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -206,9 +240,14 @@ struct RuleSetsView: View {
 
             // 操作按钮
             HStack(spacing: 6) {
+                Button("查看") {
+                    viewingRuleSet = ruleSet
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
                 Button("编辑") {
-                    editingOutbound = outboundForRuleSet(tag: tag) ?? availableOutbounds.first ?? "Proxy"
-                    editingRuleSetTag = tag
+                    editingRuleSet = ruleSet
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -221,32 +260,20 @@ struct RuleSetsView: View {
                 .controlSize(.small)
                 .tint(.red)
 
-                if isRemote {
-                    if let status = ruleSetUpdateStatus[tag] {
-                        switch status {
-                        case .updating:
-                            ProgressView().controlSize(.small)
-                        case .success:
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                        case .failed:
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                        case .idle:
-                            Button("更新") {
-                                Task { await updateRuleSet(tag: tag, url: url ?? "") }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
-                    } else {
-                        Button("更新") {
-                            Task { await updateRuleSet(tag: tag, url: url ?? "") }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                if isRemote, let status = ruleSetUpdateStatus[tag] {
+                    switch status {
+                    case .updating:
+                        ProgressView().controlSize(.small)
+                    case .success:
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    case .failed(let msg):
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.red).help(msg)
+                    case .idle:
+                        EmptyView()
                     }
                 }
             }
-            .frame(width: 160, alignment: .center)
+            .frame(width: 200, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -261,17 +288,14 @@ struct RuleSetsView: View {
         }
         .contextMenu {
             Button {
-                editingOutbound = outboundForRuleSet(tag: tag) ?? availableOutbounds.first ?? "Proxy"
-                editingRuleSetTag = tag
+                viewingRuleSet = ruleSet
             } label: {
-                Label("编辑出站", systemImage: "pencil")
+                Label("查看规则", systemImage: "doc.text.magnifyingglass")
             }
-            if isRemote, let url = url {
-                Button {
-                    Task { await updateRuleSet(tag: tag, url: url) }
-                } label: {
-                    Label("更新", systemImage: "arrow.clockwise")
-                }
+            Button {
+                editingRuleSet = ruleSet
+            } label: {
+                Label("编辑", systemImage: "pencil")
             }
             Button(role: .destructive) {
                 deleteRuleSet(at: index, tag: tag)
@@ -281,21 +305,37 @@ struct RuleSetsView: View {
         }
     }
 
-    @ViewBuilder
-    private func ruleSetRefreshButton(tag: String, url: String?, isRemote: Bool) -> some View {
-        if isRemote, let url = url {
-            Button {
-                Task { await updateRuleSet(tag: tag, url: url) }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.caption2)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help("更新规则集")
+    // MARK: - All Tags
+
+    private var allRuleSetTags: Set<String> {
+        Set((appState.configEngine.config.route.ruleSet ?? []).compactMap { $0["tag"]?.stringValue })
+    }
+
+    // MARK: - Add
+
+    private func addRuleSet(_ ruleSetDef: JSONValue, outbound: String) {
+        var ruleSets = appState.configEngine.config.route.ruleSet ?? []
+        ruleSets.append(ruleSetDef)
+        appState.configEngine.config.route.ruleSet = ruleSets
+
+        // Create route rule for this rule set
+        if let tag = ruleSetDef["tag"]?.stringValue {
+            changeOutbound(forRuleSetTag: tag, to: outbound)
         } else {
-            Color.clear.frame(width: 16, height: 16)
+            try? appState.configEngine.save(restartRequired: true)
         }
+    }
+
+    // MARK: - Update Definition
+
+    private func updateRuleSetDef(_ ruleSetDef: JSONValue, outbound: String) {
+        guard let tag = ruleSetDef["tag"]?.stringValue else { return }
+        var ruleSets = appState.configEngine.config.route.ruleSet ?? []
+        if let idx = ruleSets.firstIndex(where: { $0["tag"]?.stringValue == tag }) {
+            ruleSets[idx] = ruleSetDef
+        }
+        appState.configEngine.config.route.ruleSet = ruleSets
+        changeOutbound(forRuleSetTag: tag, to: outbound)
     }
 
     // MARK: - Delete
@@ -307,12 +347,27 @@ struct RuleSetsView: View {
         ruleSets.remove(at: index)
         appState.configEngine.config.route.ruleSet = ruleSets
 
-        // Also remove any route.rules referencing this rule_set tag
+        // Remove or clean up route.rules referencing this rule_set tag
         var rules = appState.configEngine.config.route.rules ?? []
-        rules.removeAll { rule in
-            guard let refs = rule["rule_set"]?.arrayValue else { return false }
+        var indicesToRemove: [Int] = []
+        for i in rules.indices {
+            guard case .object(var dict) = rules[i],
+                  let refs = dict["rule_set"]?.arrayValue else { continue }
             let tags = refs.compactMap { $0.stringValue }
-            return tags == [tag]
+            if tags.contains(tag) {
+                let remaining = tags.filter { $0 != tag }
+                if remaining.isEmpty {
+                    // This rule only referenced the deleted tag — remove it
+                    indicesToRemove.append(i)
+                } else {
+                    // Remove this tag but keep the rule for other tags
+                    dict["rule_set"] = .array(remaining.map { .string($0) })
+                    rules[i] = .object(dict)
+                }
+            }
+        }
+        for i in indicesToRemove.reversed() {
+            rules.remove(at: i)
         }
         appState.configEngine.config.route.rules = rules
 
@@ -392,66 +447,146 @@ struct RuleSetsView: View {
 
     // MARK: - Rule Set Update
 
-    private func updateRuleSet(tag: String, url: String) async {
-        ruleSetUpdateStatus[tag] = .updating
-        do {
-            let ruleSetManager = RuleSetManager(rulesDir: appState.configEngine.baseDir.appendingPathComponent("rules"))
-            guard let remoteURL = URL(string: url) else {
-                ruleSetUpdateStatus[tag] = .failed("无效的 URL")
-                return
-            }
-            let ext = url.hasSuffix(".srs") ? "srs" : "json"
-            _ = try await ruleSetManager.downloadRuleSet(url: remoteURL, filename: "\(tag).\(ext)")
-            ruleSetUpdateStatus[tag] = .success
-        } catch {
-            ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
-        }
-    }
-
-    private func updateAllRemoteRuleSets() async {
-        let remoteSets = (appState.configEngine.config.route.ruleSet ?? [])
+    /// Force sing-box to re-download remote rule sets by clearing cache and reloading.
+    /// sing-box manages its own rule set downloads via update_interval and cache.db.
+    private func forceUpdateRuleSets() async {
+        let remoteTags = (appState.configEngine.config.route.ruleSet ?? [])
             .filter { $0["type"]?.stringValue == "remote" }
+            .compactMap { $0["tag"]?.stringValue }
+        for tag in remoteTags {
+            ruleSetUpdateStatus[tag] = .updating
+        }
 
-        for rs in remoteSets {
-            guard let tag = rs["tag"]?.stringValue,
-                  let url = rs["url"]?.stringValue else { continue }
-            await updateRuleSet(tag: tag, url: url)
+        // Delete sing-box cache (owned by root) so it re-downloads all remote rule sets on reload
+        let cachePath = appState.configEngine.baseDir.appendingPathComponent("cache.db").path
+        let rm = Process()
+        rm.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+        rm.arguments = ["/bin/rm", "-f", cachePath]
+        rm.standardOutput = FileHandle.nullDevice
+        rm.standardError = FileHandle.nullDevice
+        try? rm.run()
+        rm.waitUntilExit()
+
+        // Hot-reload sing-box to trigger re-download
+        do {
+            try appState.configEngine.deployRuntime(skipValidation: true)
+            await appState.singBoxProcess.reload()
+
+            // Poll for cache.db to reappear (sing-box creates it after downloading rule sets)
+            let fm = FileManager.default
+            var success = false
+            for _ in 0..<15 {  // up to 15 seconds
+                try? await Task.sleep(for: .seconds(1))
+                if fm.fileExists(atPath: cachePath) {
+                    success = true
+                    break
+                }
+            }
+
+            for tag in remoteTags {
+                ruleSetUpdateStatus[tag] = success ? .success : .failed("更新超时")
+            }
+        } catch {
+            for tag in remoteTags {
+                ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
+            }
         }
     }
 }
 
-// MARK: - Rule Set Edit Sheet
+// MARK: - Rule Set Form Sheet (Add / Edit)
 
-struct RuleSetEditSheet: View {
-    let tag: String
-    @State var currentOutbound: String
+struct RuleSetFormSheet: View {
+    enum Mode {
+        case add
+        case edit(JSONValue)  // existing rule set definition
+    }
+
+    let mode: Mode
     let availableOutbounds: [String]
-    let onSave: (String) -> Void
+    let existingTags: Set<String>
+    let currentOutbound: String?  // for edit mode, the current outbound of this rule set
+    let onSave: (JSONValue, String) -> Void  // (ruleSetDef, outbound)
     let onCancel: () -> Void
+
+    @State private var ruleSetType = "remote"
+    @State private var tag = ""
+    @State private var url = ""
+    @State private var path = ""
+    @State private var format = "binary"
+    @State private var outbound = "Proxy"
+    @State private var downloadDetour = "DIRECT"
+    @State private var updateIntervalHours = ""
+    @State private var validationError: String?
+
+    private var isEditing: Bool {
+        if case .edit = mode { return true }
+        return false
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("编辑规则集")
+            Text(isEditing ? "编辑规则集" : "新增规则集")
                 .font(.headline)
 
-            HStack {
-                Text("规则集")
-                    .frame(width: 80, alignment: .leading)
-                Text(tag)
-                    .font(.body.monospaced())
-                    .foregroundStyle(.secondary)
-            }
+            Form {
+                if isEditing {
+                    LabeledContent("标签") {
+                        Text(tag)
+                            .monospaced()
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    TextField("标签", text: $tag, prompt: Text("例如: my-rules"))
+                        .monospaced()
+                }
 
-            HStack {
-                Text("出站策略")
-                    .frame(width: 80, alignment: .leading)
-                Picker("", selection: $currentOutbound) {
+                Picker("类型", selection: $ruleSetType) {
+                    Text("remote").tag("remote")
+                    Text("local").tag("local")
+                }
+                .pickerStyle(.segmented)
+
+                if ruleSetType == "remote" {
+                    TextField("URL", text: $url, prompt: Text("https://example.com/rules.srs"))
+                        .monospaced()
+                } else {
+                    TextField("路径", text: $path, prompt: Text("/path/to/rules.json"))
+                        .monospaced()
+                }
+
+                Picker("格式", selection: $format) {
+                    Text("binary").tag("binary")
+                    Text("source").tag("source")
+                }
+                .pickerStyle(.segmented)
+
+                Picker("出站策略", selection: $outbound) {
                     ForEach(availableOutbounds, id: \.self) { name in
                         Text(name).tag(name)
                     }
                 }
-                .labelsHidden()
-                .frame(width: 200)
+
+                if ruleSetType == "remote" {
+                    Picker("下载出站", selection: $downloadDetour) {
+                        ForEach(availableOutbounds.filter({ $0 != "REJECT" }), id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    }
+
+                    HStack {
+                        TextField("更新间隔", text: $updateIntervalHours, prompt: Text("留空使用全局默认"))
+                            .frame(width: 160)
+                        Text("小时")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+
+            if let error = validationError {
+                Text(error)
+                    .foregroundStyle(.red)
             }
 
             Divider()
@@ -460,11 +595,226 @@ struct RuleSetEditSheet: View {
                 Spacer()
                 Button("取消") { onCancel() }
                     .keyboardShortcut(.cancelAction)
-                Button("保存") { onSave(currentOutbound) }
+                Button("保存") { save() }
                     .keyboardShortcut(.defaultAction)
             }
         }
         .padding()
-        .frame(width: 400)
+        .frame(width: 500)
+        .onAppear { loadFromMode() }
+    }
+
+    private func loadFromMode() {
+        if let ob = currentOutbound {
+            outbound = ob
+        }
+        guard case .edit(let rs) = mode else { return }
+        tag = rs["tag"]?.stringValue ?? ""
+        ruleSetType = rs["type"]?.stringValue ?? "remote"
+        url = rs["url"]?.stringValue ?? ""
+        path = rs["path"]?.stringValue ?? ""
+        format = rs["format"]?.stringValue ?? "binary"
+        downloadDetour = rs["download_detour"]?.stringValue ?? "DIRECT"
+        if let interval = rs["update_interval"]?.stringValue {
+            // Parse "24h0m0s" → "24"
+            if let match = interval.firstMatch(of: /^(\d+)h/) {
+                updateIntervalHours = String(match.1)
+            }
+        }
+    }
+
+    private func save() {
+        // Validate
+        let trimmedTag = tag.trimmingCharacters(in: .whitespaces)
+        if trimmedTag.isEmpty {
+            validationError = "标签不能为空"
+            return
+        }
+        if !isEditing && existingTags.contains(trimmedTag) {
+            validationError = "标签「\(trimmedTag)」已存在"
+            return
+        }
+        if ruleSetType == "remote" && url.trimmingCharacters(in: .whitespaces).isEmpty {
+            validationError = "URL 不能为空"
+            return
+        }
+        if ruleSetType == "local" && path.trimmingCharacters(in: .whitespaces).isEmpty {
+            validationError = "路径不能为空"
+            return
+        }
+
+        // Build JSONValue
+        var dict: [String: JSONValue] = [
+            "type": .string(ruleSetType),
+            "tag": .string(trimmedTag),
+            "format": .string(format),
+        ]
+        if ruleSetType == "remote" {
+            dict["url"] = .string(url.trimmingCharacters(in: .whitespaces))
+            dict["download_detour"] = .string(downloadDetour)
+            if let hours = Int(updateIntervalHours.trimmingCharacters(in: .whitespaces)), hours > 0 {
+                dict["update_interval"] = .string("\(hours)h0m0s")
+            }
+        } else {
+            dict["path"] = .string(path.trimmingCharacters(in: .whitespaces))
+        }
+
+        onSave(.object(dict), outbound)
+    }
+}
+
+// MARK: - Rule Set Content Viewer
+
+struct RuleSetContentView: View {
+    let ruleSet: JSONValue
+    let rulesDir: URL
+    let onClose: () -> Void
+
+    @State private var content: String = ""
+    @State private var isLoading = true
+    @State private var error: String?
+    @State private var ruleCount: Int = 0
+
+    private var tag: String { ruleSet["tag"]?.stringValue ?? "unknown" }
+    private var format: String { ruleSet["format"]?.stringValue ?? "source" }
+    private var type: String { ruleSet["type"]?.stringValue ?? "local" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("规则集内容")
+                    .font(.headline)
+                Text(tag)
+                    .monospaced()
+                    .foregroundStyle(.secondary)
+                if ruleCount > 0 {
+                    Text("\(ruleCount) 条规则")
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+                Button("关闭") { onClose() }
+                    .keyboardShortcut(.cancelAction)
+            }
+
+            if isLoading {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text("正在读取...")
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = error {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundStyle(.orange)
+                    Text(error)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    Text(content)
+                        .monospaced()
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                }
+                .background(Color(nsColor: .textBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+        .padding()
+        .frame(width: 700, height: 500)
+        .task { await loadContent() }
+    }
+
+    private func loadContent() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Determine the local file path
+        let filePath: String
+        if type == "local" {
+            filePath = ruleSet["path"]?.stringValue ?? ""
+        } else {
+            // Remote rule sets are cached in rules/ directory
+            let ext = format == "binary" ? "srs" : "json"
+            filePath = rulesDir.appendingPathComponent("\(tag).\(ext)").path
+        }
+
+        guard FileManager.default.fileExists(atPath: filePath) else {
+            error = "本地缓存文件不存在\n\(filePath)\n\n请先点击「全部更新」下载规则集"
+            return
+        }
+
+        if format == "binary" {
+            // Use sing-box rule-set decompile to convert .srs to JSON
+            await decompileBinary(path: filePath)
+        } else {
+            // Source format: read JSON directly
+            do {
+                let data = try Data(contentsOf: URL(fileURLWithPath: filePath))
+                let json = try prettyPrintJSON(data)
+                content = json
+                countRules(data: data)
+            } catch {
+                self.error = "读取失败: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func decompileBinary(path: String) async {
+        let tmpOutput = FileManager.default.temporaryDirectory.appendingPathComponent("\(tag)-decompiled.json")
+        defer { try? FileManager.default.removeItem(at: tmpOutput) }
+
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/sing-box")
+        proc.arguments = ["rule-set", "decompile", path, "-o", tmpOutput.path]
+        proc.standardOutput = FileHandle.nullDevice
+        let errPipe = Pipe()
+        proc.standardError = errPipe
+
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+
+            if proc.terminationStatus != 0 {
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                let errMsg = String(data: errData, encoding: .utf8) ?? "未知错误"
+                error = "反编译失败: \(errMsg)"
+                return
+            }
+
+            let data = try Data(contentsOf: tmpOutput)
+            content = try prettyPrintJSON(data)
+            countRules(data: data)
+        } catch {
+            self.error = "反编译失败: \(error.localizedDescription)"
+        }
+    }
+
+    private func prettyPrintJSON(_ data: Data) throws -> String {
+        let obj = try JSONSerialization.jsonObject(with: data)
+        let pretty = try JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys])
+        return String(data: pretty, encoding: .utf8) ?? ""
+    }
+
+    private func countRules(data: Data) {
+        // Count rules from JSON structure: {"rules": [{...}, ...]} or {"version":1,"rules":[...]}
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let rules = obj["rules"] as? [[String: Any]] {
+            // Each rule object can contain multiple domain/domain_suffix/ip_cidr entries
+            var count = 0
+            for rule in rules {
+                for (_, value) in rule {
+                    if let arr = value as? [String] {
+                        count += arr.count
+                    }
+                }
+            }
+            ruleCount = count > 0 ? count : rules.count
+        }
     }
 }

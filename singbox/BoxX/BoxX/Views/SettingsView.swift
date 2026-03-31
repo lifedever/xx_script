@@ -32,17 +32,37 @@ struct GeneralSettingsTab: View {
     @AppStorage("speedTestURL") private var speedTestURL = "http://cp.cloudflare.com/generate_204"
     @AppStorage("urlTestInterval") private var urlTestInterval = "3m"
     @AppStorage("urlTestTolerance") private var urlTestTolerance = 50
+    @AppStorage("ruleSetUpdateInterval") private var ruleSetUpdateInterval = 24
     @State private var loginError: String?
 
     var body: some View {
         Form {
-            Picker("外观模式", selection: $appearanceMode) {
-                Text("跟随系统").tag("system")
-                Text("浅色").tag("light")
-                Text("深色").tag("dark")
-            }
-            .onChange(of: appearanceMode) { _, newValue in
-                applyAppearance(newValue)
+            Section {
+                Toggle("开机启动", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        do {
+                            if newValue {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                            loginError = nil
+                        } catch {
+                            loginError = error.localizedDescription
+                            launchAtLogin = !newValue
+                        }
+                    }
+                if let err = loginError {
+                    Text(err).foregroundStyle(.red)
+                }
+                Picker("外观模式", selection: $appearanceMode) {
+                    Text("跟随系统").tag("system")
+                    Text("浅色").tag("light")
+                    Text("深色").tag("dark")
+                }
+                .onChange(of: appearanceMode) { _, newValue in
+                    applyAppearance(newValue)
+                }
             }
 
             Section("URLTest 设置") {
@@ -65,27 +85,19 @@ struct GeneralSettingsTab: View {
                     Text("200ms").tag(200)
                 }
                 Text("仅当新节点比当前节点快超过容差值时才会自动切换")
-                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
-            Toggle("开机启动", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, newValue in
-                    do {
-                        if newValue {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
-                        }
-                        loginError = nil
-                    } catch {
-                        loginError = error.localizedDescription
-                        launchAtLogin = !newValue
-                    }
+            Section("规则集") {
+                Picker("默认更新间隔", selection: $ruleSetUpdateInterval) {
+                    Text("6 小时").tag(6)
+                    Text("12 小时").tag(12)
+                    Text("24 小时（默认）").tag(24)
+                    Text("48 小时").tag(48)
+                    Text("72 小时").tag(72)
                 }
-
-            if let err = loginError {
-                Text(err).font(.caption).foregroundStyle(.red)
+                Text("远程规则集未单独设置更新间隔时，使用此默认值")
+                    .foregroundStyle(.tertiary)
             }
 
             Section("配置管理") {
@@ -100,7 +112,6 @@ struct GeneralSettingsTab: View {
                     Button("初始化配置") { resetConfig() }
                         .foregroundStyle(.red)
                     Text("清除订阅和自定义规则，恢复为默认配置")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -253,7 +264,6 @@ struct AdvancedSettingsTab: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospaced())
                 Text("TUN 虚拟网卡的 IP 地址段，一般不需要修改")
-                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
@@ -267,7 +277,6 @@ struct AdvancedSettingsTab: View {
                         Text("Google (time.google.com)").tag("time.google.com")
                     }
                     Text("确保系统时间准确，TLS 握手和代理协议依赖正确的时间")
-                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -280,7 +289,6 @@ struct AdvancedSettingsTab: View {
                     Text("error — 仅错误").tag("error")
                 }
                 Text("日志文件：/tmp/boxx-singbox.log，自动按日期滚动保留 3 天")
-                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
@@ -289,7 +297,6 @@ struct AdvancedSettingsTab: View {
                     Spacer()
                     if saved {
                         Text("已保存，应用配置后生效")
-                            .font(.caption)
                             .foregroundStyle(.green)
                     }
                     Button("保存") { saveAdvanced() }
@@ -376,7 +383,6 @@ struct AboutTab: View {
             Text("sing-box macOS Client")
                 .foregroundStyle(.secondary)
             Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
-                .font(.caption)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

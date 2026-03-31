@@ -27,7 +27,6 @@ struct SubscriptionsView: View {
                         .font(.title3)
                         .foregroundStyle(.secondary)
                     Text(String(localized: "subs.empty_hint"))
-                        .font(.caption)
                         .foregroundStyle(.tertiary)
                     Button(String(localized: "subs.add")) {
                         showAddSheet = true
@@ -68,7 +67,6 @@ struct SubscriptionsView: View {
                         ProgressView()
                             .scaleEffect(0.7)
                         Text(String(localized: "subs.updating"))
-                            .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         Button {
@@ -302,7 +300,7 @@ struct SubscriptionCard: View {
                     }
 
                     Text(subscription.url)
-                        .font(.caption.monospaced())
+                        .monospaced()
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
 
@@ -314,21 +312,17 @@ struct SubscriptionCard: View {
 
                             HStack {
                                 Text("已用 \(SubscriptionInfo.formatBytes(info.used)) / \(SubscriptionInfo.formatBytes(info.total))")
-                                    .font(.caption2)
                                     .foregroundStyle(.secondary)
                                 Spacer()
                                 Text("剩余 \(SubscriptionInfo.formatBytes(info.remaining))")
-                                    .font(.caption2)
                                     .foregroundStyle(info.remaining < info.total / 10 ? .red : .green)
                             }
 
                             if let expire = info.expire {
                                 Text("到期: \(Self.expiryFormatter.string(from: expire))")
-                                    .font(.caption2)
                                     .foregroundStyle(.secondary)
                             } else if info.total > 0 {
                                 Text("到期: 长期有效")
-                                    .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -369,11 +363,9 @@ struct SubscriptionCard: View {
                 .frame(width: 16, height: 16)
         case .success(let count):
             Label("\(count) nodes", systemImage: "checkmark.circle.fill")
-                .font(.caption)
                 .foregroundStyle(.green)
         case .failure(let msg):
             Label(msg, systemImage: "xmark.circle.fill")
-                .font(.caption)
                 .foregroundStyle(.red)
                 .lineLimit(1)
         }

@@ -47,9 +47,7 @@ struct MainView: View {
             if appState.pendingReload && appState.isRunning {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.caption)
                     Text("配置已更新，点击应用后生效（约 1-2 秒短暂断网）")
-                        .font(.caption)
                     Spacer()
                     if isApplying {
                         ProgressView().controlSize(.mini)
@@ -68,7 +66,6 @@ struct MainView: View {
                         appState.pendingReload = false
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.caption2)
                     }
                     .buttonStyle(.plain)
                 }

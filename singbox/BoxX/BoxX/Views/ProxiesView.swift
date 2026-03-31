@@ -138,7 +138,6 @@ struct ProxiesView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("\(filtered.count) 个策略组")
-                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
@@ -162,7 +161,7 @@ struct ProxiesView: View {
                                 Text("操作")
                                     .frame(width: 120, alignment: .center)
                             }
-                            .font(.caption.bold())
+                            .fontWeight(.bold)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -244,7 +243,6 @@ struct ProxiesView: View {
 
     private func tableSectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.caption)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
@@ -271,17 +269,17 @@ struct ProxiesView: View {
 
         return HStack(spacing: 0) {
             // Name + description
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(group.name)
                     .font(.body)
                     .lineLimit(1)
                 if group.name == "Proxy" {
                     Text("默认出站代理组")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else if group.name.contains("漏网之鱼") {
                     Text("未匹配规则的流量 (final)")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -302,7 +300,7 @@ struct ProxiesView: View {
                         .lineLimit(1)
                     if let d = delays[now], d > 0 {
                         Text("\(d)ms")
-                            .font(.caption2.monospacedDigit())
+                            .monospacedDigit()
                             .foregroundStyle(delayColor(d))
                     }
                 } else {
@@ -316,7 +314,7 @@ struct ProxiesView: View {
 
             // Node count
             Text("\(group.displayAll.count)")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .center)
 
@@ -367,7 +365,7 @@ struct ProxiesView: View {
             color = .secondary
         }
         return Text(text)
-            .font(.caption2.monospaced())
+            .monospaced()
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color.opacity(0.12))
@@ -491,7 +489,6 @@ private struct NodeSelectionPopover: View {
                 Text(group.name).font(.headline)
                 Spacer()
                 Text(group.type.lowercased())
-                    .font(.caption2)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Color.accentColor.opacity(0.15))
@@ -520,11 +517,9 @@ private struct NodeSelectionPopover: View {
                                 if node == group.now {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundStyle(.blue)
-                                        .font(.caption)
                                 } else {
                                     Image(systemName: "circle")
                                         .foregroundStyle(.quaternary)
-                                        .font(.caption)
                                 }
                                 Text(node)
                                     .font(.body)
@@ -554,7 +549,7 @@ struct DelayBadge: View {
 
     var body: some View {
         Text(delay > 0 ? "\(delay)ms" : "timeout")
-            .font(.caption2.monospacedDigit())
+            .monospacedDigit()
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(color.opacity(0.12))
@@ -657,13 +652,11 @@ struct AddProxyGroupSheet: View {
             // Selection area
             HStack {
                 Text("已选 \(selectedOutbounds.count) 项")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 HStack(spacing: 4) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary).font(.caption)
                     TextField("搜索节点或策略组...", text: $searchText)
                         .textFieldStyle(.plain)
-                        .font(.caption)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -678,7 +671,7 @@ struct AddProxyGroupSheet: View {
             HStack(spacing: 0) {
                 // Left: available items
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("可选").font(.caption.bold()).foregroundStyle(.secondary)
+                    Text("可选").fontWeight(.bold).foregroundStyle(.secondary)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                     Divider()
                     List {
@@ -688,7 +681,7 @@ struct AddProxyGroupSheet: View {
                                 Section(section.title) {
                                     ForEach(items, id: \.self) { item in
                                         HStack {
-                                            Text(item).font(.caption).lineLimit(1)
+                                            Text(item).lineLimit(1)
                                             Spacer()
                                             Button {
                                                 selectedOutbounds.append(item)
@@ -710,13 +703,13 @@ struct AddProxyGroupSheet: View {
 
                 // Right: selected items (ordered, removable)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("已选").font(.caption.bold()).foregroundStyle(.secondary)
+                    Text("已选").fontWeight(.bold).foregroundStyle(.secondary)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                     Divider()
                     if selectedOutbounds.isEmpty {
                         VStack {
                             Spacer()
-                            Text("从左侧添加").font(.caption).foregroundStyle(.tertiary)
+                            Text("从左侧添加").foregroundStyle(.tertiary)
                             Spacer()
                         }
                         .frame(maxWidth: .infinity)
@@ -724,7 +717,7 @@ struct AddProxyGroupSheet: View {
                         List {
                             ForEach(selectedOutbounds, id: \.self) { item in
                                 HStack {
-                                    Text(item).font(.caption).lineLimit(1)
+                                    Text(item).lineLimit(1)
                                     Spacer()
                                     Button {
                                         selectedOutbounds.removeAll { $0 == item }
@@ -745,7 +738,7 @@ struct AddProxyGroupSheet: View {
             }
 
             if let err = errorMessage {
-                Text(err).font(.caption).foregroundStyle(.red).padding(.horizontal)
+                Text(err).foregroundStyle(.red).padding(.horizontal)
             }
 
             Divider()

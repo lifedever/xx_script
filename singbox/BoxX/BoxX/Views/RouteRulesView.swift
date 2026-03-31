@@ -62,7 +62,6 @@ struct RouteRulesView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("\(filteredRules.count) 条规则")
-                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
@@ -86,7 +85,7 @@ struct RouteRulesView: View {
                                 Text("操作")
                                     .frame(width: 110, alignment: .center)
                             }
-                            .font(.caption.bold())
+                            .fontWeight(.bold)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -177,7 +176,7 @@ struct RouteRulesView: View {
 
         return HStack(spacing: 0) {
             Text("\(rule.id + 1)")
-                .font(.caption.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 40, alignment: .leading)
 
@@ -187,12 +186,11 @@ struct RouteRulesView: View {
             Group {
                 if isSystem && rule.payload == "—" {
                     Text(systemRuleDescription(rule))
-                        .font(.body)
                         .foregroundStyle(.tertiary)
                         .italic()
                 } else {
                     Text(rule.payload)
-                        .font(.body.monospaced())
+                        .monospaced()
                 }
             }
             .lineLimit(1)
@@ -201,7 +199,6 @@ struct RouteRulesView: View {
             Spacer()
 
             Text(rule.proxy)
-                .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(width: 140, alignment: .leading)
 
@@ -263,7 +260,6 @@ struct RouteRulesView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.caption)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
@@ -273,7 +269,7 @@ struct RouteRulesView: View {
 
     private func ruleTypeBadge(_ type: String) -> some View {
         Text(type)
-            .font(.caption2.monospaced())
+            .monospaced()
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(badgeColor(for: type).opacity(0.12))

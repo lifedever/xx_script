@@ -22,7 +22,6 @@ struct BuiltinRulesView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("基于 sing-geosite 的预置规则集")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
 
                     LazyVGrid(columns: [
@@ -55,13 +54,12 @@ struct BuiltinRulesView: View {
         return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(ruleSet.displayName)
-                    .font(.callout.bold())
+                    .fontWeight(.bold)
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
                     ForEach(ruleSet.geositeNames, id: \.self) { name in
                         Text(name)
-                            .font(.caption2)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
                             .background(Color.accentColor.opacity(0.1))
@@ -71,7 +69,6 @@ struct BuiltinRulesView: View {
                 }
 
                 Text(currentOutbound(for: ruleSet))
-                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
 

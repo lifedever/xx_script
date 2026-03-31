@@ -120,17 +120,15 @@ struct MonitorView: View {
                     .frame(width: 16, height: 16)
             } else {
                 Image(systemName: groupTab == .app ? "app.fill" : "globe")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: 16, height: 16)
             }
             Text(name)
-                .font(.caption)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
             Text("\(count)")
-                .font(.caption2.monospacedDigit())
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)

@@ -33,7 +33,6 @@ struct OverviewView: View {
                                 Text(appState.isRunning ? "运行中" : "已停止")
                                     .font(.headline)
                                 Text("sing-box")
-                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -63,7 +62,7 @@ struct OverviewView: View {
                     dashboardCard {
                         VStack(spacing: 6) {
                             Text("代理模式")
-                                .font(.caption).foregroundStyle(.secondary)
+                                .foregroundStyle(.secondary)
                             Picker("", selection: Binding(
                                 get: { clashConfig?.mode ?? "rule" },
                                 set: { newMode in
@@ -90,13 +89,13 @@ struct OverviewView: View {
                             Image(systemName: "arrow.down.circle.fill")
                                 .font(.title2).foregroundStyle(.green)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("下载").font(.caption).foregroundStyle(.secondary)
+                                Text("下载").foregroundStyle(.secondary)
                                 Text(speedString(downloadSpeed))
                                     .font(.title3.monospacedDigit().bold())
                             }
                             Spacer()
                             Text(byteFormatter.string(fromByteCount: snapshot?.downloadTotal ?? 0))
-                                .font(.caption.monospacedDigit())
+                                .monospacedDigit()
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -106,13 +105,13 @@ struct OverviewView: View {
                             Image(systemName: "arrow.up.circle.fill")
                                 .font(.title2).foregroundStyle(.orange)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("上传").font(.caption).foregroundStyle(.secondary)
+                                Text("上传").foregroundStyle(.secondary)
                                 Text(speedString(uploadSpeed))
                                     .font(.title3.monospacedDigit().bold())
                             }
                             Spacer()
                             Text(byteFormatter.string(fromByteCount: snapshot?.uploadTotal ?? 0))
-                                .font(.caption.monospacedDigit())
+                                .monospacedDigit()
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -125,7 +124,7 @@ struct OverviewView: View {
                             Image(systemName: "link")
                                 .font(.title2).foregroundStyle(.blue)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("活跃连接").font(.caption).foregroundStyle(.secondary)
+                                Text("活跃连接").foregroundStyle(.secondary)
                                 Text("\(snapshot?.connections?.count ?? 0)")
                                     .font(.title3.monospacedDigit().bold())
                             }
@@ -142,7 +141,7 @@ struct OverviewView: View {
                                 Image(systemName: "memorychip")
                                     .font(.title2).foregroundStyle(.purple)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("内存").font(.caption).foregroundStyle(.secondary)
+                                    Text("内存").foregroundStyle(.secondary)
                                     Text(byteFormatter.string(fromByteCount: mem))
                                         .font(.title3.monospacedDigit().bold())
                                 }
@@ -161,7 +160,7 @@ struct OverviewView: View {
                             let inbound = appState.configEngine.proxyInbound
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(inbound.isMixed ? "HTTP/SOCKS" : "HTTP / SOCKS")
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .foregroundStyle(.secondary)
                                 if inbound.isMixed {
                                     Text(verbatim: "127.0.0.1:\(inbound.mixedPort)")
                                         .font(.title3.monospaced().bold())
@@ -193,9 +192,9 @@ struct OverviewView: View {
                             Image(systemName: "folder.fill")
                                 .font(.title2).foregroundStyle(.orange)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("配置目录").font(.caption).foregroundStyle(.secondary)
+                                Text("配置目录").foregroundStyle(.secondary)
                                 Text(appState.configEngine.baseDir.path)
-                                    .font(.callout.monospaced())
+                                    .monospaced()
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                     .textSelection(.enabled)
@@ -205,7 +204,6 @@ struct OverviewView: View {
                                 NSWorkspace.shared.open(appState.configEngine.baseDir)
                             } label: {
                                 Text("打开")
-                                    .font(.caption)
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
@@ -218,9 +216,8 @@ struct OverviewView: View {
                             Image(systemName: "terminal.fill")
                                 .font(.title2).foregroundStyle(.green)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("环境变量").font(.caption).foregroundStyle(.secondary)
+                                Text("环境变量").foregroundStyle(.secondary)
                                 Text("https_proxy / http_proxy / all_proxy")
-                                    .font(.callout)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -233,7 +230,6 @@ struct OverviewView: View {
                                 NSPasteboard.general.setString(env, forType: .string)
                             } label: {
                                 Text("复制")
-                                    .font(.caption)
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
@@ -279,7 +275,7 @@ struct OverviewView: View {
                 Image(systemName: icon)
                     .font(.title2).foregroundStyle(iconColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.caption).foregroundStyle(.secondary)
+                    Text(title).foregroundStyle(.secondary)
                     Text(value)
                         .font(.title3.monospaced().bold())
                         .textSelection(.enabled)
@@ -416,7 +412,6 @@ struct ProxyPortSheet: View {
                             .multilineTextAlignment(.center)
                     }
                     Text("HTTP 和 SOCKS5 共用同一端口")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     HStack {
@@ -438,7 +433,7 @@ struct ProxyPortSheet: View {
                 }
 
                 if let err = errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                    Text(err).foregroundStyle(.red)
                 }
             }
             .formStyle(.grouped)

@@ -56,7 +56,6 @@ struct RuleTestView: View {
                     Text("sing-box 未运行")
                         .font(.headline)
                     Text("请先启动 sing-box 后再进行规则测试")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -69,7 +68,6 @@ struct RuleTestView: View {
                     Text("输入域名或 IP 进行测试")
                         .font(.headline)
                     Text("查看请求匹配的规则和代理出口链路")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -153,7 +151,7 @@ struct RuleTestResultRow: View {
         if let r = entry.result {
             HStack(spacing: 0) {
                 Text(entry.timeString)
-                    .font(.caption.monospacedDigit())
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .frame(width: 60, alignment: .leading)
 
@@ -166,10 +164,8 @@ struct RuleTestResultRow: View {
 
                 HStack(spacing: 4) {
                     Image(systemName: "target")
-                        .font(.caption)
                         .foregroundStyle(.orange)
                     Text(r.rule)
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .frame(minWidth: 120, alignment: .leading)
@@ -182,11 +178,10 @@ struct RuleTestResultRow: View {
                     ForEach(Array(nodes.enumerated()), id: \.offset) { index, node in
                         if index > 0 {
                             Image(systemName: "arrow.right")
-                                .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
                         Text(node)
-                            .font(.caption.monospaced())
+                            .monospaced()
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(chainColor(node).opacity(0.12))
@@ -199,7 +194,7 @@ struct RuleTestResultRow: View {
 
                 if !r.destinationIP.isEmpty {
                     Text(r.destinationIP)
-                        .font(.caption.monospacedDigit())
+                        .monospacedDigit()
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -207,7 +202,7 @@ struct RuleTestResultRow: View {
         } else {
             HStack(spacing: 0) {
                 Text(entry.timeString)
-                    .font(.caption.monospacedDigit())
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .frame(width: 60, alignment: .leading)
 
@@ -219,7 +214,6 @@ struct RuleTestResultRow: View {
                 Spacer().frame(width: 16)
 
                 Text("未匹配到规则")
-                    .font(.caption)
                     .foregroundStyle(.red)
 
                 Spacer()
