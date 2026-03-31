@@ -428,6 +428,20 @@
       },
       {
         "action": "route",
+        "outbound": "DIRECT",
+        "rule_set": [
+          "direct-custom"
+        ]
+      },
+      {
+        "action": "route",
+        "outbound": "Proxy",
+        "rule_set": [
+          "proxy-custom"
+        ]
+      },
+      {
+        "action": "route",
         "outbound": "🤖OpenAI",
         "rule_set": [
           "ai-custom"
@@ -503,20 +517,6 @@
         "action": "reject",
         "rule_set": [
           "geosite-ads"
-        ]
-      },
-      {
-        "action": "route",
-        "outbound": "DIRECT",
-        "rule_set": [
-          "direct-custom"
-        ]
-      },
-      {
-        "action": "route",
-        "outbound": "Proxy",
-        "rule_set": [
-          "proxy-custom"
         ]
       },
       {

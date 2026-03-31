@@ -90,13 +90,21 @@ struct RouteRulesView: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
 
-                            let customRules = filteredRules.filter { !Self.systemTypes.contains($0.type) }
+                            let customRules = filteredRules.filter { !Self.systemTypes.contains($0.type) && $0.type != "RULE-SET" }
+                            let ruleSetRules = filteredRules.filter { $0.type == "RULE-SET" }
                             let systemRules = filteredRules.filter { Self.systemTypes.contains($0.type) }
 
                             LazyVStack(spacing: 0) {
                                 if !customRules.isEmpty {
                                     sectionHeader("自定义规则")
                                     ForEach(customRules) { rule in
+                                        ruleRow(rule)
+                                    }
+                                }
+
+                                if !ruleSetRules.isEmpty {
+                                    sectionHeader("规则集引用（按匹配顺序）")
+                                    ForEach(ruleSetRules) { rule in
                                         ruleRow(rule)
                                     }
                                 }
@@ -173,6 +181,8 @@ struct RouteRulesView: View {
     private func ruleRow(_ rule: Rule) -> some View {
         let isSelected = selectedRuleIndex == rule.id
         let isSystem = isSystemRule(rule)
+        let isRuleSet = rule.type == "RULE-SET"
+        let isReadOnly = isSystem || isRuleSet
 
         return HStack(spacing: 0) {
             Text("\(rule.id + 1)")
@@ -204,7 +214,7 @@ struct RouteRulesView: View {
 
             // 操作按钮
             HStack(spacing: 6) {
-                if !isSystem {
+                if !isReadOnly {
                     Button("编辑") {
                         editItem = EditItem(id: rule.id)
                     }
@@ -233,13 +243,13 @@ struct RouteRulesView: View {
             selectedRuleIndex = (selectedRuleIndex == rule.id) ? nil : rule.id
         }
         .contextMenu {
-            if !isSystem {
+            if !isReadOnly {
                 Button { editItem = EditItem(id: rule.id) } label: {
                     Label("编辑", systemImage: "pencil")
                 }
                 Button("删除", role: .destructive) { deletingRuleIndex = rule.id }
             } else {
-                Text("系统规则，不可编辑")
+                Text(isRuleSet ? "规则集引用，在规则集页面管理" : "系统规则，不可编辑")
             }
         }
     }
@@ -310,9 +320,7 @@ struct RouteRulesView: View {
         isLoading = true
         defer { isLoading = false }
         let configRules = appState.configEngine.config.route.rules ?? []
-        // Filter out RULE-SET rules (managed in 规则集 page)
         let allRules = configRules.enumerated().compactMap { (index, rule) -> Rule? in
-            if rule["rule_set"] != nil { return nil }
             return Rule(
                 id: index,
                 type: Self.extractRuleType(from: rule),
@@ -320,10 +328,11 @@ struct RouteRulesView: View {
                 proxy: rule["outbound"]?.stringValue ?? rule["action"]?.stringValue ?? "—"
             )
         }
-        // Sort: editable rules first, system rules at bottom
-        let editable = allRules.filter { !Self.systemTypes.contains($0.type) }
+        // Sort: editable rules first, then rule-set rules, then system rules at bottom
+        let editable = allRules.filter { !Self.systemTypes.contains($0.type) && $0.type != "RULE-SET" }
+        let ruleSets = allRules.filter { $0.type == "RULE-SET" }
         let system = allRules.filter { Self.systemTypes.contains($0.type) }
-        rules = editable + system
+        rules = editable + ruleSets + system
     }
 
     /// Extract rule type from a JSONValue rule object
