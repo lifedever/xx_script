@@ -96,54 +96,56 @@ class SubscriptionService: @unchecked Sendable {
             ensureSelectorExists(tag: regionName, nodeTags: tags)
         }
 
-        // Update Proxy: add subscription group + all region groups
+        // Collect all subscription group tags and sorted region names
+        let allSubTags = configEngine.config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
+        let sortedRegions = regionGroups.keys.sorted()
+
+        // Build the standard outbounds order for Proxy/漏网之鱼: subscriptions → regions → DIRECT
+        func buildProxyOutbounds(existing: [String]) -> [String] {
+            var result: [String] = []
+            for tag in allSubTags where !result.contains(tag) { result.append(tag) }
+            for tag in sortedRegions where !result.contains(tag) { result.append(tag) }
+            // Keep any manually-added items that aren't subscription/region/system
+            let systemTags: Set<String> = Set(allSubTags + sortedRegions + ["Proxy", "DIRECT"])
+            for tag in existing where !systemTags.contains(tag) && !result.contains(tag) {
+                result.append(tag)
+            }
+            result.append("DIRECT")
+            return result
+        }
+
+        // Update Proxy
         if let proxyIdx = configEngine.config.outbounds.firstIndex(where: { $0.tag == "Proxy" }) {
             if case .selector(var proxy) = configEngine.config.outbounds[proxyIdx] {
-                // Add subscription group
-                if !proxy.outbounds.contains(subGroupTag) {
-                    proxy.outbounds.insert(subGroupTag, at: proxy.outbounds.startIndex)
-                }
-                // Add region groups
-                for regionName in regionGroups.keys.sorted() {
-                    if !proxy.outbounds.contains(regionName) {
-                        proxy.outbounds.append(regionName)
-                    }
-                }
-                // Keep DIRECT at the end
-                if let i = proxy.outbounds.firstIndex(of: "DIRECT") {
-                    proxy.outbounds.remove(at: i)
-                    proxy.outbounds.append("DIRECT")
-                }
+                proxy.outbounds = buildProxyOutbounds(existing: proxy.outbounds)
                 configEngine.config.outbounds[proxyIdx] = .selector(proxy)
             }
         }
 
-        // Add subscription group + region groups to service selectors (OpenAI, Google, etc.)
+        // Update 漏网之鱼
+        if let fishIdx = configEngine.config.outbounds.firstIndex(where: { $0.tag.contains("漏网之鱼") }) {
+            if case .selector(var fish) = configEngine.config.outbounds[fishIdx] {
+                var result = ["Proxy"]
+                for tag in allSubTags where !result.contains(tag) { result.append(tag) }
+                for tag in sortedRegions where !result.contains(tag) { result.append(tag) }
+                result.append("DIRECT")
+                fish.outbounds = result
+                configEngine.config.outbounds[fishIdx] = .selector(fish)
+            }
+        }
+
+        // Update service selectors (OpenAI, Google, etc.): Proxy → DIRECT → 漏网之鱼 → subscriptions → regions
+        let fishTag = configEngine.config.outbounds.first(where: { $0.tag.contains("漏网之鱼") })?.tag
         for i in configEngine.config.outbounds.indices {
             if case .selector(var sel) = configEngine.config.outbounds[i],
                sel.tag != "Proxy" && sel.tag != "DIRECT" && !sel.tag.hasPrefix("📦") &&
                !sel.tag.contains("漏网之鱼") && !regionGroups.keys.contains(sel.tag) {
-                var changed = false
-                // Add Proxy if missing
-                if !sel.outbounds.contains("Proxy") {
-                    sel.outbounds.insert("Proxy", at: 0)
-                    changed = true
-                }
-                // Add subscription group
-                if !sel.outbounds.contains(subGroupTag) {
-                    sel.outbounds.append(subGroupTag)
-                    changed = true
-                }
-                // Add region groups
-                for regionName in regionGroups.keys.sorted() {
-                    if !sel.outbounds.contains(regionName) {
-                        sel.outbounds.append(regionName)
-                        changed = true
-                    }
-                }
-                if changed {
-                    configEngine.config.outbounds[i] = .selector(sel)
-                }
+                var result = ["Proxy", "DIRECT"]
+                if let ft = fishTag { result.append(ft) }
+                for tag in allSubTags where !result.contains(tag) { result.append(tag) }
+                for tag in sortedRegions where !result.contains(tag) { result.append(tag) }
+                sel.outbounds = result
+                configEngine.config.outbounds[i] = .selector(sel)
             }
         }
     }

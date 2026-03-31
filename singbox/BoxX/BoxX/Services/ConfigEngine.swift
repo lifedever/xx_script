@@ -153,30 +153,63 @@ class ConfigEngine: @unchecked Sendable {
             }
         }
 
-        // Auto-fix: ensure Proxy contains all subscription groups and region groups
-        if let proxyIdx = config.outbounds.firstIndex(where: { $0.tag == "Proxy" }),
-           case .selector(var proxy) = config.outbounds[proxyIdx] {
+        // Auto-fix: ensure Proxy/漏网之鱼/service selectors have correct outbounds
+        let subTags = config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
+        let regionTags = loadGroupPatterns().keys.sorted()
+        let fishTag = config.outbounds.first(where: { $0.tag.contains("漏网之鱼") })?.tag
+
+        if !subTags.isEmpty || !regionTags.isEmpty {
             var changed = false
-            // Add subscription groups
-            let subTags = config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
-            for subTag in subTags where !proxy.outbounds.contains(subTag) {
-                proxy.outbounds.insert(subTag, at: 0)
-                changed = true
-            }
-            // Add region groups
-            let regionTags = Set(loadGroupPatterns().keys)
-            for regionTag in regionTags.sorted() where !proxy.outbounds.contains(regionTag) {
-                proxy.outbounds.append(regionTag)
-                changed = true
-            }
-            // Keep DIRECT at the end
-            if changed {
-                if let i = proxy.outbounds.firstIndex(of: "DIRECT") {
-                    proxy.outbounds.remove(at: i)
+
+            // Fix Proxy: subscriptions → regions → DIRECT
+            if let proxyIdx = config.outbounds.firstIndex(where: { $0.tag == "Proxy" }),
+               case .selector(var proxy) = config.outbounds[proxyIdx] {
+                var result: [String] = []
+                for t in subTags where !result.contains(t) { result.append(t) }
+                for t in regionTags where !result.contains(t) { result.append(t) }
+                let system: Set<String> = Set(subTags + regionTags + ["Proxy", "DIRECT"])
+                for t in proxy.outbounds where !system.contains(t) && !result.contains(t) { result.append(t) }
+                result.append("DIRECT")
+                if proxy.outbounds != result {
+                    proxy.outbounds = result
+                    config.outbounds[proxyIdx] = .selector(proxy)
+                    changed = true
                 }
-                proxy.outbounds.append("DIRECT")
-                config.outbounds[proxyIdx] = .selector(proxy)
-                // Persist fix
+            }
+
+            // Fix 漏网之鱼: Proxy → subscriptions → regions → DIRECT
+            if let fishIdx = config.outbounds.firstIndex(where: { $0.tag.contains("漏网之鱼") }),
+               case .selector(var fish) = config.outbounds[fishIdx] {
+                var result = ["Proxy"]
+                for t in subTags where !result.contains(t) { result.append(t) }
+                for t in regionTags where !result.contains(t) { result.append(t) }
+                result.append("DIRECT")
+                if fish.outbounds != result {
+                    fish.outbounds = result
+                    config.outbounds[fishIdx] = .selector(fish)
+                    changed = true
+                }
+            }
+
+            // Fix service selectors: Proxy → DIRECT → 漏网之鱼 → subscriptions → regions
+            let regionSet = Set(regionTags)
+            for i in config.outbounds.indices {
+                if case .selector(var sel) = config.outbounds[i],
+                   sel.tag != "Proxy" && sel.tag != "DIRECT" && !sel.tag.hasPrefix("📦") &&
+                   !sel.tag.contains("漏网之鱼") && !regionSet.contains(sel.tag) {
+                    var result = ["Proxy", "DIRECT"]
+                    if let ft = fishTag { result.append(ft) }
+                    for t in subTags where !result.contains(t) { result.append(t) }
+                    for t in regionTags where !result.contains(t) { result.append(t) }
+                    if sel.outbounds != result {
+                        sel.outbounds = result
+                        config.outbounds[i] = .selector(sel)
+                        changed = true
+                    }
+                }
+            }
+
+            if changed {
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
                 if let data = try? encoder.encode(config) {
