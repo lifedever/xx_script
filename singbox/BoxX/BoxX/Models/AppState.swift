@@ -10,6 +10,7 @@ final class AppState {
     var isUpdatingSubscription = false
     var errorMessage: String?
     var showError = false
+    var configVersion = 0  // Bump to force UI refresh after config reset
     var pendingReload: Bool {
         didSet { UserDefaults.standard.set(pendingReload, forKey: "pendingReload") }
     }

@@ -119,6 +119,9 @@ struct RouteRulesView: View {
         .task {
             await loadRules()
         }
+        .onChange(of: appState.configVersion) {
+            Task { await loadRules() }
+        }
         .sheet(isPresented: $showAddRule) {
             AddRuleSheet(onSave: { Task { await loadRules() } })
         }

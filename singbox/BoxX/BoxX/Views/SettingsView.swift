@@ -204,6 +204,7 @@ struct GeneralSettingsTab: View {
 
         do {
             try appState.configEngine.resetUserContent()
+            appState.configVersion += 1
             appState.pendingReload = true
             let ok = NSAlert()
             ok.messageText = "初始化成功"

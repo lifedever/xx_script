@@ -195,6 +195,11 @@ full() {
     echo -e "${BOLD}═══════════════════════════════════════${NC}"
     echo ""
 
+    # 必须清理 DerivedData，否则 xcodegen 重新生成 xcodeproj 后
+    # xcodebuild 增量编译可能用缓存的旧产物，导致新代码没装上去
+    step "清理构建缓存..."
+    rm -rf "$DERIVED_DATA"
+
     bump_version
     generate
     build

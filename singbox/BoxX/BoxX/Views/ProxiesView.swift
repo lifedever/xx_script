@@ -208,6 +208,9 @@ struct ProxiesView: View {
         .task {
             await refreshGroups()
         }
+        .onChange(of: appState.configVersion) {
+            Task { await refreshGroups() }
+        }
         .sheet(isPresented: $showAddGroup) {
             AddProxyGroupSheet {
                 Task { await refreshGroups() }

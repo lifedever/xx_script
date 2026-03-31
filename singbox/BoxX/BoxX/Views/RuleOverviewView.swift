@@ -76,6 +76,7 @@ struct RuleOverviewView: View {
             }
         }
         .onAppear { loadRules() }
+        .onChange(of: appState.configVersion) { loadRules() }
     }
 
     private func sectionHeader(_ title: String) -> some View {

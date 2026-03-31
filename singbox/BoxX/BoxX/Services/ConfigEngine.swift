@@ -320,6 +320,9 @@ class ConfigEngine: @unchecked Sendable {
         // 6. Reload clean config into memory
         proxies = [:]
         try load()
+
+        // 7. Regenerate runtime-config.json so RuleOverviewView shows clean data
+        try? deployRuntime(skipValidation: true)
     }
 
     // MARK: - Merge & Deploy

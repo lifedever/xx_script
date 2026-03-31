@@ -67,3 +67,22 @@ Clash 规则需要使用 YAML 格式，每条规则前需要加 `-` 前缀，并
 ## 部署
 
 运行 `./deploy.sh` 提交并推送更改到仓库。
+
+## BoxX macOS 应用
+
+### 构建注意事项
+
+**必须清理 DerivedData 再构建**：BoxX 使用 xcodegen 生成 .xcodeproj，xcodebuild 的增量编译无法正确感知 xcodegen 重新生成后的变化，会使用缓存的旧二进制。`./build.sh full` 已内置清理步骤，每次都会删除 `.build/DerivedData` 后再构建。
+
+**验证安装版本**：构建后检查 `/Applications/BoxX.app/Contents/Info.plist` 的 `CFBundleVersion` 是否与构建输出的 build 号一致。如果不一致说明缓存未清理。
+
+### 策略组层级规则（禁止循环依赖）
+
+| 层级 | 类型 | 包含内容 |
+|------|------|---------|
+| Layer 0 | DIRECT、代理节点 | 叶子节点 |
+| Layer 1 | 📦订阅组、地区组、🌐其他 | 仅 Layer 0（代理节点） |
+| Layer 2 | Proxy、🐟漏网之鱼 | Layer 1 + Layer 0 |
+| Layer 3 | 服务分流（OpenAI 等） | Layer 2 + Layer 1 + Layer 0 |
+
+规则：向下引用，禁止向上或同层引用。所有组的 outbounds 构建逻辑集中在 `ConfigEngine.fixGroupOutbounds()` / `standardOutbounds(for:)`。
