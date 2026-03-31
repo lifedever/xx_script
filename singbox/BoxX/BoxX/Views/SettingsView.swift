@@ -249,6 +249,7 @@ struct AdvancedSettingsTab: View {
     @State private var ntpServer = "time.apple.com"
     @State private var tunStack = "mixed"
     @State private var tunAddress = "172.19.0.1/30"
+    @State private var ipv6Enabled = false
     @State private var logLevel = "info"
     @State private var saved = false
 
@@ -263,7 +264,8 @@ struct AdvancedSettingsTab: View {
                 TextField("虚拟 IP 段", text: $tunAddress, prompt: Text("172.19.0.1/30"))
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospaced())
-                Text("TUN 虚拟网卡的 IP 地址段，一般不需要修改")
+                Toggle("启用 IPv6", isOn: $ipv6Enabled)
+                Text("关闭后 TUN 不接管 IPv6 流量，可解决微信发图等国内应用的 IPv6 兼容问题")
                     .foregroundStyle(.tertiary)
             }
 
@@ -314,10 +316,13 @@ struct AdvancedSettingsTab: View {
         for inb in config.inbounds {
             if inb["type"]?.stringValue == "tun" {
                 tunStack = inb["stack"]?.stringValue ?? "mixed"
-                if case .array(let addrs) = inb["address"], let first = addrs.first?.stringValue {
-                    tunAddress = first
+                if case .array(let addrs) = inb["address"] {
+                    let v4 = addrs.compactMap(\.stringValue).first { !$0.contains(":") }
+                    tunAddress = v4 ?? "172.19.0.1/30"
+                    ipv6Enabled = addrs.compactMap(\.stringValue).contains { $0.contains(":") }
                 } else {
                     tunAddress = inb["inet4_address"]?.stringValue ?? "172.19.0.1/30"
+                    ipv6Enabled = inb["inet6_address"] != nil
                 }
                 break
             }
@@ -339,8 +344,13 @@ struct AdvancedSettingsTab: View {
             if appState.configEngine.config.inbounds[i]["type"]?.stringValue == "tun" {
                 if case .object(var dict) = appState.configEngine.config.inbounds[i] {
                     dict["stack"] = .string(tunStack)
-                    dict["address"] = .array([.string(tunAddress)])
+                    var addrs: [JSONValue] = [.string(tunAddress)]
+                    if ipv6Enabled {
+                        addrs.append(.string("fdfe:dcba:9876::1/126"))
+                    }
+                    dict["address"] = .array(addrs)
                     dict.removeValue(forKey: "inet4_address")
+                    dict.removeValue(forKey: "inet6_address")
                     appState.configEngine.config.inbounds[i] = .object(dict)
                 }
                 break

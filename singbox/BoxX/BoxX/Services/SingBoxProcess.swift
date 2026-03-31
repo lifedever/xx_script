@@ -120,8 +120,12 @@ class SingBoxProcess {
             throw SingBoxError.startFailed(detail)
         }
 
-        // 启动成功后刷新 DNS 缓存
+        // 启动成功后等 TUN 路由表稳定，再刷 DNS 缓存
         if isRunning {
+            try? await Task.sleep(for: .seconds(2))
+            flushDNS()
+            // 二次刷新：TUN 路由生效后再清一次，确保无残留缓存
+            try? await Task.sleep(for: .seconds(1))
             flushDNS()
         }
     }
@@ -359,7 +363,7 @@ class StartProgressWindow {
                 guard let attrs = try? FileManager.default.attributesOfItem(atPath: logPath),
                       let size = attrs[.size] as? UInt64, size > lastSize else { continue }
                 if let handle = FileHandle(forReadingAtPath: logPath) {
-                    handle.seek(toFileOffset: max(0, size - 500))
+                    handle.seek(toFileOffset: size > 500 ? size - 500 : 0)
                     if let tail = String(data: handle.readDataToEndOfFile(), encoding: .utf8) {
                         let lastLine = tail.components(separatedBy: "\n").filter { !$0.isEmpty }.last ?? ""
                         if lastLine.contains("updated rule-set") {

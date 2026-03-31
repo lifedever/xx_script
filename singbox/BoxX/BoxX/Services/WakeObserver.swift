@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Network
 
 actor WakeObserver {
     private let singBoxProcess: SingBoxProcess
@@ -7,6 +8,8 @@ actor WakeObserver {
     private let configEngine: ConfigEngine
     private var isRecovering = false
     private var observation: NSObjectProtocol?
+    private var pathMonitor: NWPathMonitor?
+    private var lastPathStatus: NWPath.Status?
     private let logFile: String = {
         let fm = FileManager.default
         let sharedDir = "/Library/Application Support/BoxX"
@@ -32,6 +35,15 @@ actor WakeObserver {
             guard let self else { return }
             Task { await self.handleWake() }
         }
+
+        // Monitor network path changes (Wi-Fi switch, hotspot, cable plug/unplug)
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            guard let self else { return }
+            Task { await self.handlePathChange(path) }
+        }
+        monitor.start(queue: DispatchQueue(label: "com.boxx.network-monitor"))
+        pathMonitor = monitor
     }
 
     func stopObserving() {
@@ -39,36 +51,65 @@ actor WakeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observation)
         }
         observation = nil
+        pathMonitor?.cancel()
+        pathMonitor = nil
+    }
+
+    private func handlePathChange(_ path: NWPath) async {
+        let newStatus = path.status
+
+        // Skip the initial callback and only react to actual changes
+        guard let previous = lastPathStatus else {
+            lastPathStatus = newStatus
+            return
+        }
+        lastPathStatus = newStatus
+
+        // Only recover when network becomes satisfied (reconnected)
+        guard newStatus == .satisfied, previous != .satisfied else {
+            if newStatus != .satisfied {
+                log("Network lost: \(newStatus)")
+            }
+            return
+        }
+
+        log("Network restored, starting recovery...")
+        // Brief delay to let interfaces stabilize
+        try? await Task.sleep(for: .seconds(2))
+        await recover(source: "network-change")
     }
 
     private func handleWake() async {
+        log("Wake detected, waiting 3s for interfaces...")
+        try? await Task.sleep(for: .seconds(3))
+        await recover(source: "wake")
+    }
+
+    private func recover(source: String) async {
         guard !isRecovering else { return }
         isRecovering = true
         defer { isRecovering = false }
 
-        log("Wake detected, waiting 3s for interfaces...")
-        try? await Task.sleep(for: .seconds(3))
-
         let apiReachable = await api.isReachable()
-        log("Clash API reachable: \(apiReachable)")
+        log("[\(source)] Clash API reachable: \(apiReachable)")
 
         if !apiReachable {
-            log("Process dead, cannot auto-restart")
+            log("[\(source)] Process dead, cannot auto-restart")
             return
         }
 
         // Step 1: 轻量修复 — 刷 DNS + 清连接（解决大多数情况）
-        log("Step 1: flush DNS + close connections")
+        log("[\(source)] Step 1: flush DNS + close connections")
         await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
         try? await Task.sleep(for: .seconds(2))
 
         let test1 = await probeExternalConnectivity()
-        log("Step 1 result: \(test1 ? "OK" : "FAIL")")
+        log("[\(source)] Step 1 result: \(test1 ? "OK" : "FAIL")")
         if test1 { return }
 
         // Step 2: 热重载 — SIGHUP 让 sing-box 刷新内部状态（TUN/路由/DNS 服务）
-        log("Step 2: SIGHUP hot-reload + flush DNS + close connections")
+        log("[\(source)] Step 2: SIGHUP hot-reload + flush DNS + close connections")
         await MainActor.run { Task { await singBoxProcess.reload() } }
         try? await Task.sleep(for: .seconds(3))
         await MainActor.run { singBoxProcess.flushDNS() }
@@ -76,10 +117,10 @@ actor WakeObserver {
         try? await Task.sleep(for: .seconds(2))
 
         let test2 = await probeExternalConnectivity()
-        log("Step 2 result: \(test2 ? "OK" : "FAIL")")
+        log("[\(source)] Step 2 result: \(test2 ? "OK" : "FAIL")")
         if test2 { return }
 
-        log("All recovery steps failed, user may need to manually restart")
+        log("[\(source)] All recovery steps failed, user may need to manually restart")
     }
 
     private func log(_ message: String) {
