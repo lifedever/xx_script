@@ -153,79 +153,112 @@ class ConfigEngine: @unchecked Sendable {
             }
         }
 
-        // Auto-fix: ensure Proxy/漏网之鱼/service selectors have correct outbounds
-        let subTags = config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
-        let regionTags = loadGroupPatterns().keys.sorted()
-        let fishTag = config.outbounds.first(where: { $0.tag.contains("漏网之鱼") })?.tag
-
-        // Find groups that reference Proxy (adding them to Proxy would cause circular dep)
-        let refsProxy: Set<String> = Set(config.outbounds.compactMap { ob -> String? in
-            switch ob {
-            case .selector(let s): return s.outbounds.contains("Proxy") ? s.tag : nil
-            case .urltest(let u): return u.outbounds.contains("Proxy") ? u.tag : nil
-            default: return nil
-            }
-        })
-
-        if !subTags.isEmpty || !regionTags.isEmpty {
-            var changed = false
-
-            // Fix Proxy: subscriptions → regions → DIRECT (skip groups that reference Proxy)
-            if let proxyIdx = config.outbounds.firstIndex(where: { $0.tag == "Proxy" }),
-               case .selector(var proxy) = config.outbounds[proxyIdx] {
-                var result: [String] = []
-                for t in subTags where !result.contains(t) && !refsProxy.contains(t) { result.append(t) }
-                for t in regionTags where !result.contains(t) && !refsProxy.contains(t) { result.append(t) }
-                let system: Set<String> = Set(subTags + regionTags + ["Proxy", "DIRECT"])
-                for t in proxy.outbounds where !system.contains(t) && !result.contains(t) { result.append(t) }
-                result.append("DIRECT")
-                if proxy.outbounds != result {
-                    proxy.outbounds = result
-                    config.outbounds[proxyIdx] = .selector(proxy)
-                    changed = true
-                }
-            }
-
-            // Fix 漏网之鱼: Proxy → subscriptions → regions → DIRECT
-            if let fishIdx = config.outbounds.firstIndex(where: { $0.tag.contains("漏网之鱼") }),
-               case .selector(var fish) = config.outbounds[fishIdx] {
-                var result = ["Proxy"]
-                for t in subTags where !result.contains(t) { result.append(t) }
-                for t in regionTags where !result.contains(t) { result.append(t) }
-                result.append("DIRECT")
-                if fish.outbounds != result {
-                    fish.outbounds = result
-                    config.outbounds[fishIdx] = .selector(fish)
-                    changed = true
-                }
-            }
-
-            // Fix service selectors: Proxy → DIRECT → 漏网之鱼 → subscriptions → regions
-            let regionSet = Set(regionTags + ["🌐其他"])  // 🌐其他 is auto-generated catch-all region
-            for i in config.outbounds.indices {
-                if case .selector(var sel) = config.outbounds[i],
-                   sel.tag != "Proxy" && sel.tag != "DIRECT" && !sel.tag.hasPrefix("📦") &&
-                   !sel.tag.contains("漏网之鱼") && !regionSet.contains(sel.tag) {
-                    var result = ["Proxy", "DIRECT"]
-                    if let ft = fishTag { result.append(ft) }
-                    for t in subTags where !result.contains(t) { result.append(t) }
-                    for t in regionTags where !result.contains(t) { result.append(t) }
-                    if sel.outbounds != result {
-                        sel.outbounds = result
-                        config.outbounds[i] = .selector(sel)
-                        changed = true
-                    }
-                }
-            }
-
-            if changed {
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-                if let data = try? encoder.encode(config) {
-                    try? data.write(to: configURL, options: .atomic)
-                }
+        // Auto-fix group outbounds on load
+        if fixGroupOutbounds() {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            if let data = try? encoder.encode(config) {
+                try? data.write(to: configURL, options: .atomic)
             }
         }
+    }
+
+    // MARK: - Group Outbounds (Centralized)
+
+    /// Layer classification for outbound groups (prevents circular dependencies)
+    ///   Layer 0: DIRECT, proxy nodes
+    ///   Layer 1: 📦subscription groups, region groups (🇭🇰等), 🌐其他 — only contain nodes
+    ///   Layer 2: Proxy, 🐟漏网之鱼 — contain Layer 1 + Layer 0
+    ///   Layer 3: Service selectors (OpenAI, Google etc.) — contain Layer 2 + Layer 1 + Layer 0
+
+    /// All region group tags (from group-patterns.json + 🌐其他)
+    var allRegionTags: [String] {
+        loadGroupPatterns().keys.sorted() + (config.outbounds.contains(where: { $0.tag == "🌐其他" }) ? ["🌐其他"] : [])
+    }
+
+    /// All subscription group tags
+    var allSubTags: [String] {
+        config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
+    }
+
+    /// Whether a tag is a Layer 1 group (subscription or region)
+    func isLayer1Group(_ tag: String) -> Bool {
+        tag.hasPrefix("📦") || Set(allRegionTags).contains(tag)
+    }
+
+    /// Whether a tag is a service selector (Layer 3)
+    func isServiceSelector(_ tag: String) -> Bool {
+        guard let ob = config.outbounds.first(where: { $0.tag == tag }) else { return false }
+        switch ob {
+        case .selector, .urltest: break
+        default: return false
+        }
+        return tag != "Proxy" && tag != "DIRECT" && !tag.hasPrefix("📦") &&
+               !tag.contains("漏网之鱼") && !Set(allRegionTags).contains(tag)
+    }
+
+    /// Build the standard outbounds list for a given group type
+    func standardOutbounds(for tag: String) -> [String]? {
+        let subs = allSubTags
+        let regions = allRegionTags
+        guard !subs.isEmpty || !regions.isEmpty else { return nil }
+
+        if tag == "Proxy" {
+            // Layer 2: subscriptions → regions → DIRECT
+            var result: [String] = []
+            for t in subs { result.append(t) }
+            for t in regions { result.append(t) }
+            result.append("DIRECT")
+            return result
+        }
+
+        if tag.contains("漏网之鱼") {
+            // Layer 2: Proxy → subscriptions → regions → DIRECT
+            var result = ["Proxy"]
+            for t in subs { result.append(t) }
+            for t in regions { result.append(t) }
+            result.append("DIRECT")
+            return result
+        }
+
+        if isServiceSelector(tag) {
+            // Layer 3: Proxy → DIRECT → subscriptions → regions
+            var result = ["Proxy", "DIRECT"]
+            for t in subs { result.append(t) }
+            for t in regions { result.append(t) }
+            return result
+        }
+
+        return nil  // Layer 1 groups (subscriptions, regions) — managed by subscription update
+    }
+
+    /// Fix all group outbounds to match the standard hierarchy. Returns true if anything changed.
+    @discardableResult
+    func fixGroupOutbounds() -> Bool {
+        let subs = allSubTags
+        let regions = allRegionTags
+        guard !subs.isEmpty || !regions.isEmpty else { return false }
+        var changed = false
+
+        for i in config.outbounds.indices {
+            let tag = config.outbounds[i].tag
+            guard let expected = standardOutbounds(for: tag) else { continue }
+
+            switch config.outbounds[i] {
+            case .selector(var s):
+                if s.outbounds != expected {
+                    s.outbounds = expected
+                    if let d = s.default, !expected.contains(d) { s.default = nil }
+                    config.outbounds[i] = .selector(s)
+                    changed = true
+                }
+            case .urltest(var u):
+                // urltest doesn't get standard outbounds (it's auto-managed)
+                break
+            default: break
+            }
+        }
+        return changed
     }
 
     // MARK: - Save
@@ -293,7 +326,10 @@ class ConfigEngine: @unchecked Sendable {
 
     func buildRuntimeConfig() -> SingBoxConfig {
         var runtime = config
-        let allProxyNodes = proxies.values.flatMap { $0 }
+        // Deduplicate proxy nodes across subscriptions (same tag = keep first)
+        let existingTags = Set(runtime.outbounds.map { $0.tag })
+        var seenTags = existingTags
+        let allProxyNodes = proxies.values.flatMap { $0 }.filter { seenTags.insert($0.tag).inserted }
         runtime.outbounds.append(contentsOf: allProxyNodes)
 
         // Enable process detection for monitoring

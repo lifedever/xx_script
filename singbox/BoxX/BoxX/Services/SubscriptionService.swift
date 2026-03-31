@@ -87,99 +87,35 @@ class SubscriptionService: @unchecked Sendable {
 
     /// Ensure region-based selector groups exist in config and contain the right node tags.
     private func updateSelectorGroups(regionGroups: [String: [String]], subscriptionName: String, nodeTags: [String]) {
-        // Add subscription group selector
+        // Layer 1: Create/update subscription group (only contains nodes)
         let subGroupTag = "📦\(subscriptionName)"
-        ensureSelectorExists(tag: subGroupTag, nodeTags: nodeTags)
+        ensureNodeGroupExists(tag: subGroupTag, nodeTags: nodeTags)
 
-        // Add/update region group selectors
+        // Layer 1: Create/update region groups (only contain nodes)
         for (regionName, tags) in regionGroups {
-            ensureSelectorExists(tag: regionName, nodeTags: tags)
+            ensureNodeGroupExists(tag: regionName, nodeTags: tags)
         }
 
-        // Collect all subscription group tags and sorted region names
-        let allSubTags = configEngine.config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
-        let sortedRegions = regionGroups.keys.sorted()
-
-        // Find groups that reference Proxy (can't add to Proxy — would cause circular dep)
-        let refsProxy: Set<String> = Set(configEngine.config.outbounds.compactMap { ob -> String? in
-            switch ob {
-            case .selector(let s): return s.outbounds.contains("Proxy") ? s.tag : nil
-            case .urltest(let u): return u.outbounds.contains("Proxy") ? u.tag : nil
-            default: return nil
-            }
-        })
-
-        // Build the standard outbounds order for Proxy: subscriptions → regions → DIRECT
-        // Skip groups that reference Proxy to avoid circular dependency
-        func buildProxyOutbounds(existing: [String]) -> [String] {
-            var result: [String] = []
-            for tag in allSubTags where !result.contains(tag) && !refsProxy.contains(tag) { result.append(tag) }
-            for tag in sortedRegions where !result.contains(tag) && !refsProxy.contains(tag) { result.append(tag) }
-            let systemTags: Set<String> = Set(allSubTags + sortedRegions + ["Proxy", "DIRECT"])
-            for tag in existing where !systemTags.contains(tag) && !result.contains(tag) && !refsProxy.contains(tag) {
-                result.append(tag)
-            }
-            result.append("DIRECT")
-            return result
-        }
-
-        // Update Proxy
-        if let proxyIdx = configEngine.config.outbounds.firstIndex(where: { $0.tag == "Proxy" }) {
-            if case .selector(var proxy) = configEngine.config.outbounds[proxyIdx] {
-                proxy.outbounds = buildProxyOutbounds(existing: proxy.outbounds)
-                configEngine.config.outbounds[proxyIdx] = .selector(proxy)
-            }
-        }
-
-        // Update 漏网之鱼
-        if let fishIdx = configEngine.config.outbounds.firstIndex(where: { $0.tag.contains("漏网之鱼") }) {
-            if case .selector(var fish) = configEngine.config.outbounds[fishIdx] {
-                var result = ["Proxy"]
-                for tag in allSubTags where !result.contains(tag) { result.append(tag) }
-                for tag in sortedRegions where !result.contains(tag) { result.append(tag) }
-                result.append("DIRECT")
-                fish.outbounds = result
-                configEngine.config.outbounds[fishIdx] = .selector(fish)
-            }
-        }
-
-        // Update service selectors (OpenAI, Google, etc.): Proxy → DIRECT → 漏网之鱼 → subscriptions → regions
-        let fishTag = configEngine.config.outbounds.first(where: { $0.tag.contains("漏网之鱼") })?.tag
-        let allRegionKeys = Set(regionGroups.keys).union(["🌐其他"])  // 🌐其他 is auto-generated catch-all
-        for i in configEngine.config.outbounds.indices {
-            if case .selector(var sel) = configEngine.config.outbounds[i],
-               sel.tag != "Proxy" && sel.tag != "DIRECT" && !sel.tag.hasPrefix("📦") &&
-               !sel.tag.contains("漏网之鱼") && !allRegionKeys.contains(sel.tag) {
-                var result = ["Proxy", "DIRECT"]
-                if let ft = fishTag { result.append(ft) }
-                for tag in allSubTags where !result.contains(tag) { result.append(tag) }
-                for tag in sortedRegions where !result.contains(tag) { result.append(tag) }
-                sel.outbounds = result
-                configEngine.config.outbounds[i] = .selector(sel)
-            }
-        }
+        // Layer 2 & 3: Fix Proxy, 漏网之鱼, and service selectors via centralized method
+        configEngine.fixGroupOutbounds()
     }
 
-    private func ensureSelectorExists(tag: String, nodeTags: [String]) {
+    /// Create or update a Layer 1 group (subscription/region) — only contains proxy nodes, no group references.
+    private func ensureNodeGroupExists(tag: String, nodeTags: [String]) {
+        // Deduplicate
+        var seen = Set<String>()
+        let deduped = nodeTags.filter { seen.insert($0).inserted }
+
         if let index = configEngine.config.outbounds.firstIndex(where: { $0.tag == tag }) {
-            // Update existing: replace node tags entirely (avoid cross-subscription duplicates)
             if case .selector(var selector) = configEngine.config.outbounds[index] {
-                // Keep non-node items (groups like Proxy, DIRECT, etc.)
-                let nodeSet = Set(nodeTags)
-                let existingNodes = Set(selector.outbounds)
-                // Merge: existing items + new nodes not already present
-                var seen = Set<String>()
-                var deduped: [String] = []
-                for t in selector.outbounds + nodeTags {
-                    if !seen.contains(t) { seen.insert(t); deduped.append(t) }
+                // Merge new nodes into existing (keep order, deduplicate)
+                var merged = Set(selector.outbounds)
+                for t in deduped where merged.insert(t).inserted {
+                    selector.outbounds.append(t)
                 }
-                selector.outbounds = deduped
                 configEngine.config.outbounds[index] = .selector(selector)
             }
         } else {
-            // Create new selector (deduplicate)
-            var seen = Set<String>()
-            let deduped = nodeTags.filter { seen.insert($0).inserted }
             let selector = SelectorOutbound(tag: tag, outbounds: deduped)
             configEngine.config.outbounds.append(.selector(selector))
         }

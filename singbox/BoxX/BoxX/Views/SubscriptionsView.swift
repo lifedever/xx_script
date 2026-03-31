@@ -114,6 +114,39 @@ struct SubscriptionsView: View {
     private func deleteSubscription(_ sub: Subscription) {
         subscriptions.removeAll { $0.name == sub.name }
         saveSubscriptions()
+
+        // Delete proxy nodes file
+        let proxyFile = appState.configEngine.baseDir
+            .appendingPathComponent("proxies")
+            .appendingPathComponent("\(sub.name).json")
+        try? FileManager.default.removeItem(at: proxyFile)
+
+        // Remove 📦subscription selector from config
+        let subTag = "📦\(sub.name)"
+        appState.configEngine.config.outbounds.removeAll { $0.tag == subTag }
+
+        // Remove references to this subscription from all selectors
+        for i in appState.configEngine.config.outbounds.indices {
+            switch appState.configEngine.config.outbounds[i] {
+            case .selector(var s):
+                if s.outbounds.contains(subTag) {
+                    s.outbounds.removeAll { $0 == subTag }
+                    if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
+                    appState.configEngine.config.outbounds[i] = .selector(s)
+                }
+            case .urltest(var u):
+                if u.outbounds.contains(subTag) {
+                    u.outbounds.removeAll { $0 == subTag }
+                    if u.outbounds.isEmpty { u.outbounds = ["DIRECT"] }
+                    appState.configEngine.config.outbounds[i] = .urltest(u)
+                }
+            default: break
+            }
+        }
+
+        // Reload proxies and save
+        appState.configEngine.proxies.removeValue(forKey: sub.name)
+        try? appState.configEngine.save(restartRequired: true)
     }
 
     private func saveSubscriptions() {

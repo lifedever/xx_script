@@ -25,22 +25,26 @@ struct AddRuleSheet: View {
 
     private let ruleTypes = ["DOMAIN-SUFFIX", "DOMAIN", "DOMAIN-KEYWORD", "IP-CIDR", "PROCESS-NAME", "PROCESS-PATH"]
 
+    private let onSave: (() -> Void)?
+
     /// Standalone init (add new rule)
-    init() {
+    init(onSave: (() -> Void)? = nil) {
         self.initialHost = ""
         self.initialDomain = ""
         self.initialIP = ""
         self.externalDismiss = nil
         self.editingIndex = nil
+        self.onSave = onSave
     }
 
     /// Edit existing rule at config index
-    init(editingIndex: Int) {
+    init(editingIndex: Int, onSave: (() -> Void)? = nil) {
         self.initialHost = ""
         self.initialDomain = ""
         self.initialIP = ""
         self.externalDismiss = nil
         self.editingIndex = editingIndex
+        self.onSave = onSave
     }
 
     /// Prefilled init (used from ConnectionsView)
@@ -50,6 +54,7 @@ struct AddRuleSheet: View {
         self.initialIP = ip
         self.externalDismiss = onDismiss
         self.editingIndex = nil
+        self.onSave = nil
     }
 
     private func close() {
@@ -379,6 +384,7 @@ struct AddRuleSheet: View {
 
         do {
             try appState.configEngine.save(restartRequired: true)
+            onSave?()
             close()
         } catch {
             isSuccess = false

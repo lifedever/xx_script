@@ -120,12 +120,10 @@ struct RouteRulesView: View {
             await loadRules()
         }
         .sheet(isPresented: $showAddRule) {
-            AddRuleSheet()
-                .onDisappear { Task { await loadRules() } }
+            AddRuleSheet(onSave: { Task { await loadRules() } })
         }
         .sheet(item: $editItem) { item in
-            AddRuleSheet(editingIndex: item.id)
-                .onDisappear { Task { await loadRules() } }
+            AddRuleSheet(editingIndex: item.id, onSave: { Task { await loadRules() } })
         }
         .confirmationDialog("确认删除", isPresented: .init(
             get: { deletingRuleIndex != nil },
