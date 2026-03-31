@@ -89,7 +89,7 @@ struct LogsView: View {
     }
 
     private func startWebSocket() {
-        wsTask = Task {
+        wsTask = Task { @MainActor in
             for await entry in wsClient.connectLogs(level: selectedLevel) {
                 ringBuffer.append(entry)
                 logEntries = Array(ringBuffer)

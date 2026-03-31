@@ -37,7 +37,12 @@ struct OverviewView: View {
                             }
                             Spacer()
                             // Action button: context-aware single button
-                            if isOperating {
+                            if isOperating, let msg = appState.singBoxProcess.progressMessage {
+                                HStack(spacing: 6) {
+                                    ProgressView().controlSize(.small)
+                                    Text(msg).foregroundStyle(.secondary)
+                                }
+                            } else if isOperating {
                                 ProgressView().controlSize(.small)
                             } else if appState.isRunning {
                                 HStack(spacing: 8) {

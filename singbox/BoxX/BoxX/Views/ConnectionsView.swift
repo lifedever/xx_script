@@ -30,7 +30,7 @@ struct ConnectionsView: View {
 
     var filteredConnections: [Connection] {
         let sorted = connections.sorted(using: sortOrder)
-        let capped = Array(sorted.prefix(2000))
+        let capped = Array(sorted.prefix(200))
 
         // Apply group filter first
         let grouped: [Connection]
@@ -215,11 +215,18 @@ struct ConnectionsView: View {
             .width(min: 40, ideal: 50)
 
             TableColumn(String(localized: "connections.process")) { conn in
-                Text(conn.processName)
-                    .lineLimit(1)
-                    .opacity(conn.isClosed ? 0.4 : 1)
+                HStack(spacing: 4) {
+                    if let icon = Self.appIcon(for: conn.metadata.processPath) {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 16, height: 16)
+                    }
+                    Text(conn.processName)
+                        .lineLimit(1)
+                }
+                .opacity(conn.isClosed ? 0.4 : 1)
             }
-            .width(min: 60, ideal: 90)
+            .width(min: 80, ideal: 120)
 
             TableColumn(String(localized: "connections.rule"), value: \.rule) { conn in
                 HStack(spacing: 3) {
@@ -302,13 +309,25 @@ struct ConnectionsView: View {
         selectedID = nil
     }
 
+    private static var iconCache: [String: NSImage] = [:]
+
+    private static func appIcon(for processPath: String) -> NSImage? {
+        guard !processPath.isEmpty,
+              let range = processPath.range(of: ".app") else { return nil }
+        let appPath = String(processPath[...range.upperBound].dropLast())
+        if let cached = iconCache[appPath] { return cached }
+        let icon = NSWorkspace.shared.icon(forFile: appPath)
+        iconCache[appPath] = icon
+        return icon
+    }
+
     private func connectionChainDisplay(_ conn: Connection) -> String {
         let reversed = conn.chains.reversed()
         return reversed.joined(separator: " \u{2192} ")
     }
 
     private func startStreaming() {
-        wsTask = Task {
+        wsTask = Task { @MainActor in
             for await snapshot in wsClient.connectConnections() {
                 if !isPaused {
                     mergeSnapshot(snapshot)
@@ -335,22 +354,25 @@ struct ConnectionsView: View {
                 updatedConnections[i].closedAt = now
             }
         }
-        // Remove closed connections older than 30s
+        // Remove closed connections older than 60s
         updatedConnections.removeAll { conn in
             guard conn.isClosed, let closedAt = conn.closedAt else { return false }
             return now.timeIntervalSince(closedAt) > 60
         }
-        // Update or add active connections
+        // Update or add active connections (use index map for O(1) lookup)
+        var indexMap = Dictionary(uniqueKeysWithValues: updatedConnections.enumerated().map { ($1.id, $0) })
         for active in activeConnections {
-            if let idx = updatedConnections.firstIndex(where: { $0.id == active.id }) {
+            if let idx = indexMap[active.id] {
                 updatedConnections[idx] = active
             } else {
                 updatedConnections.insert(active, at: 0)
+                // Shift all indices after insertion
+                indexMap = Dictionary(uniqueKeysWithValues: updatedConnections.enumerated().map { ($1.id, $0) })
             }
         }
-        // Cap at 500
-        if updatedConnections.count > 500 {
-            updatedConnections = Array(updatedConnections.prefix(500))
+        // Cap at 300
+        if updatedConnections.count > 300 {
+            updatedConnections = Array(updatedConnections.prefix(300))
         }
 
         connections = updatedConnections

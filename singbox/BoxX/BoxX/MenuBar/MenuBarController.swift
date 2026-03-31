@@ -593,58 +593,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quitApp() {
-        guard appState.isRunning else {
-            // sing-box not running, quit directly
-            AppDelegate.shared?.shouldReallyQuit = true
-            NSApplication.shared.terminate(nil)
-            return
-        }
-
-        // Show a quitting window with loading indicator
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 280, height: 100),
-            styleMask: [.titled],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "BoxX"
-        window.center()
-        window.isReleasedWhenClosed = false
-
-        let stack = NSStackView()
-        stack.orientation = .horizontal
-        stack.spacing = 12
-        stack.alignment = .centerY
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        let spinner = NSProgressIndicator()
-        spinner.style = .spinning
-        spinner.controlSize = .small
-        spinner.startAnimation(nil)
-
-        let label = NSTextField(labelWithString: "正在停止 sing-box 服务...")
-        label.font = NSFont.systemFont(ofSize: 13)
-
-        stack.addArrangedSubview(spinner)
-        stack.addArrangedSubview(label)
-
-        window.contentView?.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: window.contentView!.centerYAnchor),
-        ])
-
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-
-        Task {
-            await appState.singBoxProcess.stop()
-            // Wait a moment for process to fully exit
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            window.close()
-            AppDelegate.shared?.shouldReallyQuit = true
-            NSApplication.shared.terminate(nil)
-        }
+        // sing-box is managed by launchd, don't stop it on quit
+        // It will keep running in the background
+        AppDelegate.shared?.shouldReallyQuit = true
+        NSApplication.shared.terminate(nil)
     }
 }
 

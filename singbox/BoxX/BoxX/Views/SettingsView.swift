@@ -28,6 +28,7 @@ struct SettingsView: View {
 struct GeneralSettingsTab: View {
     @Environment(AppState.self) private var appState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @AppStorage("singboxRunAtLoad") private var singboxRunAtLoad = false
     @AppStorage("appearanceMode") private var appearanceMode = "system"
     @AppStorage("speedTestURL") private var speedTestURL = "http://cp.cloudflare.com/generate_204"
     @AppStorage("urlTestInterval") private var urlTestInterval = "3m"
@@ -55,6 +56,14 @@ struct GeneralSettingsTab: View {
                 if let err = loginError {
                     Text(err).foregroundStyle(.red)
                 }
+                Toggle("sing-box 开机自启", isOn: $singboxRunAtLoad)
+                    .onChange(of: singboxRunAtLoad) { _, newValue in
+                        Task {
+                            await appState.singBoxProcess.updateRunAtLoad(newValue)
+                        }
+                    }
+                Text("系统启动时自动运行代理服务，需要先启动一次以安装服务")
+                    .foregroundStyle(.tertiary)
                 Picker("外观模式", selection: $appearanceMode) {
                     Text("跟随系统").tag("system")
                     Text("浅色").tag("light")

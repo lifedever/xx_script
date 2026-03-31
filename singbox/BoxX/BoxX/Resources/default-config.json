@@ -206,6 +206,7 @@
       "type": "selector"
     },
     {
+      "default": "DIRECT",
       "outbounds": [
         "Proxy"
       ],

@@ -31,11 +31,10 @@ final class AppState {
         subscriptionService = SubscriptionService(configEngine: configEngine)
 
         // When config deploys and sing-box is running, mark pending reload
-        let process = singBoxProcess
         configEngine.onDeployComplete = { [weak self] in
-            guard process.isRunning else { return }
             Task { @MainActor in
-                self?.pendingReload = true
+                guard let self, self.singBoxProcess.isRunning else { return }
+                self.pendingReload = true
             }
         }
     }

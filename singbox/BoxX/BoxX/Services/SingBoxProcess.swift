@@ -6,75 +6,115 @@ import AppKit
 @Observable
 class SingBoxProcess {
     var isRunning: Bool = false
+    var progressMessage: String?
     private let singBoxPath = "/opt/homebrew/bin/sing-box"
+    private let plistPath = "/Library/LaunchDaemons/com.boxx.singbox.plist"
+    private let plistLabel = "com.boxx.singbox"
 
-    /// Start sing-box with admin privileges (for TUN). Runs async to avoid blocking UI.
-    func start(configPath: String, mixedPort: Int = 7890) async throws {
-        guard FileManager.default.fileExists(atPath: singBoxPath) else {
-            throw SingBoxError.notInstalled
-        }
-        guard FileManager.default.fileExists(atPath: configPath) else {
-            throw SingBoxError.startFailed("配置文件不存在: \(configPath)")
+    // MARK: - Plist Generation
+
+    private func buildPlistContent(configPath: String, runAtLoad: Bool) -> String {
+        let configDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
+        return """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>\(plistLabel)</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>\(singBoxPath)</string>
+                <string>run</string>
+                <string>-c</string>
+                <string>\(configPath)</string>
+            </array>
+            <key>WorkingDirectory</key>
+            <string>\(configDir)</string>
+            <key>RunAtLoad</key>
+            <\(runAtLoad ? "true" : "false")/>
+            <key>KeepAlive</key>
+            <true/>
+            <key>StandardOutPath</key>
+            <string>/tmp/boxx-singbox.log</string>
+            <key>StandardErrorPath</key>
+            <string>/tmp/boxx-singbox.log</string>
+        </dict>
+        </plist>
+        """
+    }
+
+    // MARK: - Plist Installation (requires admin auth once)
+
+    private func installPlist(configPath: String, mixedPort: Int) async throws {
+        let runAtLoad = UserDefaults.standard.bool(forKey: "singboxRunAtLoad")
+        let plistContent = buildPlistContent(configPath: configPath, runAtLoad: runAtLoad)
+        let tmpPlist = "/tmp/com.boxx.singbox.plist"
+
+        do {
+            try plistContent.write(toFile: tmpPlist, atomically: true, encoding: .utf8)
+        } catch {
+            throw SingBoxError.startFailed("无法创建 plist: \(error.localizedDescription)")
         }
 
-        // Build launcher script that handles everything: kill old, start new
-        let sbPath = singBoxPath
-        let escapedConfigPath = configPath.replacingOccurrences(of: "'", with: "'\\''")
+        let currentUser = NSUserName()
         let escapedConfigDir = URL(fileURLWithPath: configPath).deletingLastPathComponent().path
             .replacingOccurrences(of: "'", with: "'\\''")
 
-        // Single osascript call: kill old (as root) + start new (as root)
-        // Also set up sudoers rule so current user can send SIGHUP without password (for hot-reload)
-        let currentUser = NSUserName()
-        let launcherScript = """
+        let installScript = """
         #!/bin/bash
+        # Unload existing daemon if loaded
+        launchctl bootout system/\(plistLabel) 2>/dev/null
         # Kill ALL existing sing-box processes
         pkill -x sing-box 2>/dev/null
         sleep 1
         pkill -9 -x sing-box 2>/dev/null
-        # Wait for port \(mixedPort) to be released (up to 10 seconds)
+        # Wait for port \(mixedPort) to be released
         for i in $(seq 1 20); do
             if ! lsof -i :\(mixedPort) >/dev/null 2>&1; then break; fi
             sleep 0.5
         done
-        # Allow current user to send signals to sing-box without password (for hot-reload)
+        # Install plist
+        cp '\(tmpPlist)' '\(plistPath)'
+        chown root:wheel '\(plistPath)'
+        chmod 644 '\(plistPath)'
+        # Setup sudoers for passwordless operations
         SUDOERS_FILE="/etc/sudoers.d/boxx-singbox"
-        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /usr/bin/pkill -9 -x sing-box, /bin/kill -HUP *, /usr/bin/killall -HUP mDNSResponder, \(sbPath) run *, /bin/rm -f \(escapedConfigDir)/cache.db' > "$SUDOERS_FILE"
+        cat > "$SUDOERS_FILE" << 'SUDOERS'
+        \(currentUser) ALL=(root) NOPASSWD: /bin/launchctl bootstrap system \(plistPath)
+        \(currentUser) ALL=(root) NOPASSWD: /bin/launchctl bootout system/\(plistLabel)
+        \(currentUser) ALL=(root) NOPASSWD: /bin/launchctl kickstart -k system/\(plistLabel)
+        \(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box
+        \(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -x sing-box
+        \(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -9 -x sing-box
+        \(currentUser) ALL=(root) NOPASSWD: /bin/kill -HUP *
+        \(currentUser) ALL=(root) NOPASSWD: /usr/bin/killall -HUP mDNSResponder
+        \(currentUser) ALL=(root) NOPASSWD: /usr/bin/tee \(plistPath)
+        \(currentUser) ALL=(root) NOPASSWD: /bin/rm -f \(escapedConfigDir)/cache.db
+        SUDOERS
         chmod 0440 "$SUDOERS_FILE"
-        # Keep cache.db to avoid re-downloading rule sets on every restart
-        # cache.db is only cleared when user clicks "全部更新" in rule sets view
-        # Rotate logs: rename current log with date, delete logs older than 3 days
+        # Rotate logs
         LOG_DIR="/tmp"
         LOG_FILE="$LOG_DIR/boxx-singbox.log"
         if [ -f "$LOG_FILE" ]; then
             mv "$LOG_FILE" "$LOG_DIR/boxx-singbox-$(date +%Y%m%d-%H%M%S).log"
         fi
         find "$LOG_DIR" -name "boxx-singbox-*.log" -mtime +3 -delete 2>/dev/null
-        # Also clean up legacy error log
         rm -f /tmp/boxx-singbox-error.log
-        # Start sing-box (background, redirect output to log)
-        cd '\(escapedConfigDir)'
-        '\(sbPath)' run -c '\(escapedConfigPath)' >>"$LOG_FILE" 2>&1 &
+        # Clean up legacy launcher
+        rm -f /tmp/boxx-launcher.sh
+        # Load the daemon
+        launchctl bootstrap system '\(plistPath)'
         """
-        let launcherPath = "/tmp/boxx-launcher.sh"
 
-        do {
-            try launcherScript.write(toFile: launcherPath, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: launcherPath)
-        } catch {
-            throw SingBoxError.startFailed("无法创建启动脚本: \(error.localizedDescription)")
-        }
-
-        print("[BoxX] Starting sing-box with admin privileges...")
-
-        // Show progress window
-        let progressWindow = StartProgressWindow()
-        progressWindow.show(message: "正在获取管理员权限...")
+        let scriptPath = "/tmp/boxx-install-daemon.sh"
+        try installScript.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: scriptPath)
 
         let exitCode = await runOnBackground { () -> Int32 in
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-            proc.arguments = ["-e", "do shell script \"/tmp/boxx-launcher.sh\" with administrator privileges"]
+            proc.arguments = ["-e", "do shell script \"\(scriptPath)\" with administrator privileges"]
             proc.standardOutput = FileHandle.nullDevice
             proc.standardError = FileHandle.nullDevice
             try? proc.run()
@@ -83,14 +123,67 @@ class SingBoxProcess {
         }
 
         if exitCode != 0 {
-            progressWindow.close()
             throw SingBoxError.startFailed("授权被取消")
         }
+    }
 
-        progressWindow.show(message: "正在启动 sing-box...")
-        progressWindow.startLogMonitor()
+    // MARK: - Start
 
-        // Wait for Clash API on background thread (up to 60s for first-time rule-set downloads)
+    func start(configPath: String, mixedPort: Int = 7890) async throws {
+        // Skip if already running
+        if await refreshStatus() {
+            print("[BoxX] sing-box already running, skipping start")
+            return
+        }
+        guard FileManager.default.fileExists(atPath: singBoxPath) else {
+            throw SingBoxError.notInstalled
+        }
+        guard FileManager.default.fileExists(atPath: configPath) else {
+            throw SingBoxError.startFailed("配置文件不存在: \(configPath)")
+        }
+
+        print("[BoxX] Starting sing-box via launchd...")
+
+        progressMessage = "正在启动 sing-box..."
+
+        if !isPlistInstalled() {
+            progressMessage = "正在获取管理员权限..."
+            try await installPlist(configPath: configPath, mixedPort: mixedPort)
+        } else {
+            await updatePlistConfigPath(configPath)
+            progressMessage = "正在启动 sing-box..."
+            await runOnBackground {
+                let unload = Process()
+                unload.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+                unload.arguments = ["-n", "launchctl", "bootout", "system/\(self.plistLabel)"]
+                unload.standardOutput = FileHandle.nullDevice
+                unload.standardError = FileHandle.nullDevice
+                try? unload.run()
+                unload.waitUntilExit()
+
+                let pkill = Process()
+                pkill.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+                pkill.arguments = ["-n", "pkill", "-9", "-x", "sing-box"]
+                pkill.standardOutput = FileHandle.nullDevice
+                pkill.standardError = FileHandle.nullDevice
+                try? pkill.run()
+                pkill.waitUntilExit()
+
+                Thread.sleep(forTimeInterval: 1)
+
+                let load = Process()
+                load.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+                load.arguments = ["-n", "launchctl", "bootstrap", "system", self.plistPath]
+                load.standardOutput = FileHandle.nullDevice
+                load.standardError = FileHandle.nullDevice
+                try? load.run()
+                load.waitUntilExit()
+            }
+        }
+
+        progressMessage = "正在等待 sing-box 就绪..."
+
+        // Wait for Clash API (up to 60s for first-time rule-set downloads)
         let ready = await runOnBackground { () -> Bool in
             for _ in 0..<120 {
                 if self.checkClashAPISync() { return true }
@@ -99,18 +192,16 @@ class SingBoxProcess {
             return false
         }
 
-        progressWindow.stopLogMonitor()
-
         if ready {
             isRunning = true
-            progressWindow.close()
-            print("[BoxX] sing-box started ✅")
+            progressMessage = nil
+            print("[BoxX] sing-box started via launchd ✅")
         } else if await runOnBackground({ self.findSingBoxPID() }) != nil {
             isRunning = true
-            progressWindow.close()
+            progressMessage = nil
             print("[BoxX] sing-box running (API slow)")
         } else {
-            progressWindow.close()
+            progressMessage = nil
             let errorLog = (try? String(contentsOfFile: "/tmp/boxx-singbox.log", encoding: .utf8)) ?? ""
             let fatalLines = errorLog.components(separatedBy: "\n")
                 .filter { $0.contains("FATAL") }
@@ -120,49 +211,56 @@ class SingBoxProcess {
             throw SingBoxError.startFailed(detail)
         }
 
-        // 启动成功后等 TUN 路由表稳定，再刷 DNS 缓存
+        // Wait for TUN route table to stabilize, then flush DNS
         if isRunning {
             try? await Task.sleep(for: .seconds(2))
             flushDNS()
-            // 二次刷新：TUN 路由生效后再清一次，确保无残留缓存
             try? await Task.sleep(for: .seconds(1))
             flushDNS()
         }
     }
 
-    /// Stop sing-box
+    // MARK: - Stop
+
     func stop() async {
         print("[BoxX] Stopping sing-box...")
         await runOnBackground {
-            // Use sudo pkill (sudoers rule allows this without password)
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
-            proc.arguments = ["pkill", "-x", "sing-box"]
+            proc.arguments = ["-n", "launchctl", "bootout", "system/\(self.plistLabel)"]
             proc.standardOutput = FileHandle.nullDevice
             proc.standardError = FileHandle.nullDevice
             try? proc.run()
             proc.waitUntilExit()
+            // Also kill any remaining processes
+            let pkill = Process()
+            pkill.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+            pkill.arguments = ["-n", "pkill", "-x", "sing-box"]
+            pkill.standardOutput = FileHandle.nullDevice
+            pkill.standardError = FileHandle.nullDevice
+            try? pkill.run()
+            pkill.waitUntilExit()
             self.waitForPortReleaseSync()
         }
         isRunning = false
         print("[BoxX] Stopped ✅")
     }
 
-    /// Restart — stop via sudo (no password) + start via osascript (reuses existing start logic)
+    // MARK: - Restart
+
     func restart(configPath: String, mixedPort: Int = 7890) async throws {
         print("[BoxX] Restarting sing-box...")
-        // stop() uses sudo pkill — no password needed (sudoers rule)
         await stop()
-        // start() handles everything: kill remaining, start new process
         try await start(configPath: configPath, mixedPort: mixedPort)
     }
 
-    /// Hot-reload config by sending SIGHUP via sudo (no password needed after first start)
+    // MARK: - Hot Reload (SIGHUP)
+
     func reload() async {
         await runOnBackground {
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
-            proc.arguments = ["pkill", "-HUP", "-x", "sing-box"]
+            proc.arguments = ["-n", "pkill", "-HUP", "-x", "sing-box"]
             proc.standardOutput = FileHandle.nullDevice
             proc.standardError = FileHandle.nullDevice
             try? proc.run()
@@ -171,16 +269,70 @@ class SingBoxProcess {
         print("[BoxX] Config reloaded via SIGHUP")
     }
 
-    /// Check if running
+    // MARK: - Status
+
     func refreshStatus() async -> Bool {
         let reachable = await runOnBackground { self.checkClashAPISync() }
         isRunning = reachable
         return reachable
     }
 
-    /// Flush DNS — must do both: clear cache + restart mDNSResponder
+    // MARK: - RunAtLoad Toggle
+
+    func updateRunAtLoad(_ enabled: Bool) async {
+        guard isPlistInstalled() else { return }
+        // Read current plist, modify RunAtLoad, write back via sudo tee
+        guard let data = FileManager.default.contents(atPath: plistPath),
+              var plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else { return }
+        plist["RunAtLoad"] = enabled
+        guard let newData = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) else { return }
+        let tmpPath = "/tmp/com.boxx.singbox.plist.tmp"
+        try? newData.write(to: URL(fileURLWithPath: tmpPath))
+
+        await runOnBackground {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/bin/bash")
+            proc.arguments = ["-c", "sudo -n tee '\(self.plistPath)' < '\(tmpPath)' > /dev/null"]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
+        }
+        try? FileManager.default.removeItem(atPath: tmpPath)
+        print("[BoxX] RunAtLoad set to \(enabled)")
+    }
+
+    // MARK: - Plist Helpers
+
+    func isPlistInstalled() -> Bool {
+        FileManager.default.fileExists(atPath: plistPath)
+    }
+
+    private func updatePlistConfigPath(_ configPath: String) async {
+        guard let data = FileManager.default.contents(atPath: plistPath),
+              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+              let args = plist["ProgramArguments"] as? [String],
+              args.last != configPath else { return }
+        // Config path changed, regenerate plist
+        let runAtLoad = UserDefaults.standard.bool(forKey: "singboxRunAtLoad")
+        let content = buildPlistContent(configPath: configPath, runAtLoad: runAtLoad)
+        let tmpPath = "/tmp/com.boxx.singbox.plist.tmp"
+        try? content.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+        await runOnBackground {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/bin/bash")
+            proc.arguments = ["-c", "sudo -n tee '\(self.plistPath)' < '\(tmpPath)' > /dev/null"]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
+        }
+        try? FileManager.default.removeItem(atPath: tmpPath)
+    }
+
+    // MARK: - DNS
+
     func flushDNS() {
-        // 1. dscacheutil -flushcache (清除 DNS 缓存)
         let flush = Process()
         flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
         flush.arguments = ["-flushcache"]
@@ -189,11 +341,9 @@ class SingBoxProcess {
         try? flush.run()
         flush.waitUntilExit()
 
-        // 2. sudo killall -HUP mDNSResponder (重启 DNS 解析服务，让新的 DNS 配置生效)
-        //    sudoers 规则允许 kill -HUP，mDNSResponder 属于 root 需要 sudo
         let killDNS = Process()
         killDNS.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
-        killDNS.arguments = ["-n", "killall", "-HUP", "mDNSResponder"]  // -n = 非交互，不弹密码
+        killDNS.arguments = ["-n", "killall", "-HUP", "mDNSResponder"]
         killDNS.standardOutput = FileHandle.nullDevice
         killDNS.standardError = FileHandle.nullDevice
         try? killDNS.run()
@@ -231,16 +381,6 @@ class SingBoxProcess {
         return pid
     }
 
-    private nonisolated func killExistingSync() {
-        let pkill = Process()
-        pkill.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-        pkill.arguments = ["-x", "sing-box"]
-        pkill.standardOutput = FileHandle.nullDevice
-        pkill.standardError = FileHandle.nullDevice
-        try? pkill.run()
-        pkill.waitUntilExit()
-    }
-
     private nonisolated func waitForPortReleaseSync() {
         for _ in 0..<30 {
             if !isPortInUse(7890) && !isPortInUse(9091) { return }
@@ -268,9 +408,8 @@ class SingBoxProcess {
 
     private nonisolated func checkClashAPISync() -> Bool {
         guard let url = URL(string: "http://127.0.0.1:9091") else { return false }
-        // MUST bypass proxy — otherwise TUN mode creates a loop
         let config = URLSessionConfiguration.ephemeral
-        config.connectionProxyDictionary = [:]  // No proxy
+        config.connectionProxyDictionary = [:]
         config.timeoutIntervalForRequest = 2
         let session = URLSession(configuration: config)
         defer { session.invalidateAndCancel() }
@@ -299,8 +438,10 @@ enum SingBoxError: Error, LocalizedError {
     }
 }
 
-// MARK: - Start Progress Window
+// MARK: - Start Progress Window (unused, kept for reference)
+// Progress is now shown inline in OverviewView via SingBoxProcess.progressMessage
 
+/*
 @MainActor
 class StartProgressWindow {
     private var window: NSWindow?
@@ -394,3 +535,4 @@ class StartProgressWindow {
         label = nil
     }
 }
+*/

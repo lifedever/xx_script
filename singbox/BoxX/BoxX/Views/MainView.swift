@@ -39,42 +39,9 @@ struct MainView: View {
     private var ruleTabs: [SidebarTab] { [.routeRules, .dnsRules, .ruleSets, .ruleTest] }
     private var systemTabs: [SidebarTab] { [.settings] }
 
-    @State private var isApplying = false
-
     var body: some View {
         VStack(spacing: 0) {
-            // Pending reload banner
-            if appState.pendingReload && appState.isRunning {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                    Text("配置已更新，点击应用后生效（约 1-2 秒短暂断网）")
-                    Spacer()
-                    if isApplying {
-                        ProgressView().controlSize(.mini)
-                    } else {
-                        Button("应用配置") {
-                            isApplying = true
-                            Task {
-                                await appState.applyConfig()
-                                isApplying = false
-                            }
-                        }
-                        .controlSize(.small)
-                        .buttonStyle(.borderedProminent)
-                    }
-                    Button {
-                        appState.pendingReload = false
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.orange.opacity(0.12))
-
-                Divider()
-            }
+            PendingReloadBanner()
 
             NavigationSplitView {
             List(selection: $selectedTab) {
@@ -105,7 +72,7 @@ struct MainView: View {
                 }
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(180)
+            .navigationSplitViewColumnWidth(min: 150, ideal: 180, max: 260)
         } detail: {
             switch selectedTab {
             case .overview:
@@ -140,6 +107,47 @@ struct MainView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .subscriptionLogStart)) { _ in
             openWindow(id: "update-log")
+        }
+    }
+}
+
+// MARK: - Pending Reload Banner (isolated to avoid triggering full MainView re-render)
+
+private struct PendingReloadBanner: View {
+    @Environment(AppState.self) private var appState
+    @State private var isApplying = false
+
+    var body: some View {
+        if appState.pendingReload && appState.isRunning {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                Text("配置已更新，点击应用后生效（约 1-2 秒短暂断网）")
+                Spacer()
+                if isApplying {
+                    ProgressView().controlSize(.mini)
+                } else {
+                    Button("应用配置") {
+                        isApplying = true
+                        Task {
+                            await appState.applyConfig()
+                            isApplying = false
+                        }
+                    }
+                    .controlSize(.small)
+                    .buttonStyle(.borderedProminent)
+                }
+                Button {
+                    appState.pendingReload = false
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.orange.opacity(0.12))
+
+            Divider()
         }
     }
 }

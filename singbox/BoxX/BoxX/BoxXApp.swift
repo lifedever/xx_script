@@ -11,9 +11,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if shouldReallyQuit { return .terminateNow }
-        // Cmd+Q: only hide app windows (not system/internal windows like NSStatusBarWindow)
+        // Cmd+Q: only hide the main window, keep monitor window open
         for window in NSApp.windows where window.isVisible && window.canBecomeMain {
-            window.orderOut(nil)
+            if window.identifier?.rawValue == "main" || window.title == "BoxX" {
+                window.orderOut(nil)
+            }
         }
         NSApp.setActivationPolicy(.accessory)
         return .terminateCancel
@@ -53,7 +55,8 @@ struct BoxXApp: App {
             // Start adaptive polling
             StatusPoller.shared.start(appState: state)
 
-            // Start watching config.json for external changes
+            // Start watching config.json for external changes (delay to avoid race during startup)
+            try? await Task.sleep(for: .seconds(3))
             state.configEngine.startWatching()
 
             // Request notification permission
