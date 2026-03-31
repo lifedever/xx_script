@@ -38,8 +38,10 @@ class SingBoxProcess {
         done
         # Allow current user to send signals to sing-box without password (for hot-reload)
         SUDOERS_FILE="/etc/sudoers.d/boxx-singbox"
-        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /usr/bin/pkill -9 -x sing-box, /bin/kill -HUP *, /usr/bin/killall -HUP mDNSResponder, /bin/rm -f */cache.db, \(sbPath) run *' > "$SUDOERS_FILE"
+        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /usr/bin/pkill -9 -x sing-box, /bin/kill -HUP *, /usr/bin/killall -HUP mDNSResponder, \(sbPath) run *' > "$SUDOERS_FILE"
         chmod 0440 "$SUDOERS_FILE"
+        # Delete cache.db (owned by root, stale cache causes startup failures)
+        rm -f '\(escapedConfigDir)/cache.db'
         # Rotate logs: rename current log with date, delete logs older than 3 days
         LOG_DIR="/tmp"
         LOG_FILE="$LOG_DIR/boxx-singbox.log"

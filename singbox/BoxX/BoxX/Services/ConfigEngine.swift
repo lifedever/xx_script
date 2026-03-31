@@ -158,15 +158,24 @@ class ConfigEngine: @unchecked Sendable {
         let regionTags = loadGroupPatterns().keys.sorted()
         let fishTag = config.outbounds.first(where: { $0.tag.contains("漏网之鱼") })?.tag
 
+        // Find groups that reference Proxy (adding them to Proxy would cause circular dep)
+        let refsProxy: Set<String> = Set(config.outbounds.compactMap { ob -> String? in
+            switch ob {
+            case .selector(let s): return s.outbounds.contains("Proxy") ? s.tag : nil
+            case .urltest(let u): return u.outbounds.contains("Proxy") ? u.tag : nil
+            default: return nil
+            }
+        })
+
         if !subTags.isEmpty || !regionTags.isEmpty {
             var changed = false
 
-            // Fix Proxy: subscriptions → regions → DIRECT
+            // Fix Proxy: subscriptions → regions → DIRECT (skip groups that reference Proxy)
             if let proxyIdx = config.outbounds.firstIndex(where: { $0.tag == "Proxy" }),
                case .selector(var proxy) = config.outbounds[proxyIdx] {
                 var result: [String] = []
-                for t in subTags where !result.contains(t) { result.append(t) }
-                for t in regionTags where !result.contains(t) { result.append(t) }
+                for t in subTags where !result.contains(t) && !refsProxy.contains(t) { result.append(t) }
+                for t in regionTags where !result.contains(t) && !refsProxy.contains(t) { result.append(t) }
                 let system: Set<String> = Set(subTags + regionTags + ["Proxy", "DIRECT"])
                 for t in proxy.outbounds where !system.contains(t) && !result.contains(t) { result.append(t) }
                 result.append("DIRECT")
@@ -192,7 +201,7 @@ class ConfigEngine: @unchecked Sendable {
             }
 
             // Fix service selectors: Proxy → DIRECT → 漏网之鱼 → subscriptions → regions
-            let regionSet = Set(regionTags)
+            let regionSet = Set(regionTags + ["🌐其他"])  // 🌐其他 is auto-generated catch-all region
             for i in config.outbounds.indices {
                 if case .selector(var sel) = config.outbounds[i],
                    sel.tag != "Proxy" && sel.tag != "DIRECT" && !sel.tag.hasPrefix("📦") &&
@@ -323,18 +332,8 @@ class ConfigEngine: @unchecked Sendable {
     }
 
     func deployRuntime(skipValidation: Bool = false) throws {
-        // Delete cache.db before deploy — stale cache can reference deleted outbounds
-        // cache.db is owned by root (created by sing-box running as root), so use sudo
-        let cachePath = baseDir.appendingPathComponent("cache.db").path
-        if FileManager.default.fileExists(atPath: cachePath) {
-            let rm = Process()
-            rm.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
-            rm.arguments = ["-n", "rm", "-f", cachePath]
-            rm.standardOutput = FileHandle.nullDevice
-            rm.standardError = FileHandle.nullDevice
-            try? rm.run()
-            rm.waitUntilExit()
-        }
+        // cache.db is deleted by the launcher script (runs as root)
+        // No need to delete here — can't sudo rm paths with spaces in sudoers
 
         var runtime = buildRuntimeConfig()
         let encoder = JSONEncoder()

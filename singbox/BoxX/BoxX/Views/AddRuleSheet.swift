@@ -363,13 +363,13 @@ struct AddRuleSheet: View {
             // Update existing rule
             rules[editIdx] = newRule
         } else {
-            // Insert right after the leading system rules block (sniff, hijack-dns, ip_is_private, reject)
-            // New custom rules always get highest priority
+            // Insert after system rules (sniff, hijack-dns, ip_is_private, reject, clash_mode)
             let systemActions: Set<String> = ["sniff", "hijack-dns", "reject"]
             var insertIdx = 0
             for rule in rules {
                 let action = rule["action"]?.stringValue ?? ""
-                let isSystem = rule["ip_is_private"] != nil || systemActions.contains(action)
+                let isSystem = rule["ip_is_private"] != nil || rule["clash_mode"] != nil ||
+                               rule["rules"] != nil || systemActions.contains(action)
                 guard isSystem else { break }
                 insertIdx += 1
             }
