@@ -57,8 +57,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let si = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         si.isEnabled = false
         if appState.isRunning {
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
             let str = NSMutableAttributedString()
-            str.append(NSAttributedString(string: "BoxX  ", attributes: [
+            str.append(NSAttributedString(string: "BoxX v\(version)  ", attributes: [
                 .font: NSFont.menuFont(ofSize: 0),
                 .foregroundColor: NSColor.secondaryLabelColor,
             ]))
@@ -72,7 +74,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             ]))
             si.attributedTitle = str
         } else {
-            si.attributedTitle = NSAttributedString(string: "BoxX  ○ 已停止", attributes: [
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+            si.attributedTitle = NSAttributedString(string: "BoxX v\(version)  ○ 已停止", attributes: [
                 .font: NSFont.menuFont(ofSize: 0),
                 .foregroundColor: NSColor.secondaryLabelColor,
             ])
@@ -364,16 +367,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     @objc private func startSingBox() {
         Task {
             do {
-                print("[BoxX] Deploying runtime config...")
                 try appState.configEngine.deployRuntime()
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                print("[BoxX] Starting sing-box with: \(runtimePath)")
                 try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
                 appState.pendingReload = false
-                print("[BoxX] sing-box started successfully")
             } catch {
-                print("[BoxX] ERROR: \(error)")
-                // Show alert as a system notification since main window may not be open
                 let alert = NSAlert()
                 alert.messageText = "启动失败"
                 alert.informativeText = error.localizedDescription

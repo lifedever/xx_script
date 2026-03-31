@@ -144,8 +144,8 @@ struct SubscriptionsView: View {
             }
         }
 
-        // Reload proxies and save
-        appState.configEngine.proxies.removeValue(forKey: sub.name)
+        // Reload config (re-reads proxies dir) and save
+        try? appState.configEngine.load()
         try? appState.configEngine.save(restartRequired: true)
     }
 

@@ -1,5 +1,6 @@
 // BoxX/Services/SingBoxProcess.swift
 import Foundation
+import AppKit
 
 @MainActor
 @Observable
@@ -66,6 +67,10 @@ class SingBoxProcess {
 
         print("[BoxX] Starting sing-box with admin privileges...")
 
+        // Show progress window
+        let progressWindow = StartProgressWindow()
+        progressWindow.show(message: "正在获取管理员权限...")
+
         let exitCode = await runOnBackground { () -> Int32 in
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
@@ -78,28 +83,35 @@ class SingBoxProcess {
         }
 
         if exitCode != 0 {
+            progressWindow.close()
             throw SingBoxError.startFailed("授权被取消")
         }
 
-        // Wait for Clash API on background thread
+        progressWindow.show(message: "正在启动 sing-box...")
+        progressWindow.startLogMonitor()
+
+        // Wait for Clash API on background thread (up to 60s for first-time rule-set downloads)
         let ready = await runOnBackground { () -> Bool in
-            for _ in 0..<30 {
+            for _ in 0..<120 {
                 if self.checkClashAPISync() { return true }
                 Thread.sleep(forTimeInterval: 0.5)
             }
             return false
         }
 
+        progressWindow.stopLogMonitor()
+
         if ready {
             isRunning = true
+            progressWindow.close()
             print("[BoxX] sing-box started ✅")
         } else if await runOnBackground({ self.findSingBoxPID() }) != nil {
             isRunning = true
+            progressWindow.close()
             print("[BoxX] sing-box running (API slow)")
         } else {
-            // Read error log for details
+            progressWindow.close()
             let errorLog = (try? String(contentsOfFile: "/tmp/boxx-singbox.log", encoding: .utf8)) ?? ""
-            // 只看 FATAL 级别，ERROR 级别（NTP 超时、连接断开等）是瞬态的，不代表启动失败
             let fatalLines = errorLog.components(separatedBy: "\n")
                 .filter { $0.contains("FATAL") }
                 .prefix(3)
@@ -108,7 +120,7 @@ class SingBoxProcess {
             throw SingBoxError.startFailed(detail)
         }
 
-        // 启动成功后刷新 DNS 缓存，确保系统使用新的 DNS 解析
+        // 启动成功后刷新 DNS 缓存
         if isRunning {
             flushDNS()
         }
@@ -280,5 +292,101 @@ enum SingBoxError: Error, LocalizedError {
         case .notInstalled: return "sing-box 未安装，请运行: brew install sing-box"
         case .startFailed(let msg): return "启动失败: \(msg)"
         }
+    }
+}
+
+// MARK: - Start Progress Window
+
+@MainActor
+class StartProgressWindow {
+    private var window: NSWindow?
+    private var label: NSTextField?
+    private var monitorTask: Task<Void, Never>?
+
+    func show(message: String) {
+        if window == nil {
+            let w = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 80),
+                styleMask: [.titled],
+                backing: .buffered,
+                defer: false
+            )
+            w.title = "BoxX"
+            w.center()
+            w.isReleasedWhenClosed = false
+            w.level = .floating
+
+            let stack = NSStackView()
+            stack.orientation = .horizontal
+            stack.spacing = 12
+            stack.alignment = .centerY
+            stack.translatesAutoresizingMaskIntoConstraints = false
+
+            let spinner = NSProgressIndicator()
+            spinner.style = .spinning
+            spinner.controlSize = .small
+            spinner.startAnimation(nil)
+
+            let lbl = NSTextField(labelWithString: message)
+            lbl.font = NSFont.systemFont(ofSize: 13)
+            lbl.lineBreakMode = .byTruncatingTail
+            lbl.maximumNumberOfLines = 2
+
+            stack.addArrangedSubview(spinner)
+            stack.addArrangedSubview(lbl)
+
+            w.contentView?.addSubview(stack)
+            NSLayoutConstraint.activate([
+                stack.centerXAnchor.constraint(equalTo: w.contentView!.centerXAnchor),
+                stack.centerYAnchor.constraint(equalTo: w.contentView!.centerYAnchor),
+                stack.leadingAnchor.constraint(greaterThanOrEqualTo: w.contentView!.leadingAnchor, constant: 20),
+                stack.trailingAnchor.constraint(lessThanOrEqualTo: w.contentView!.trailingAnchor, constant: -20),
+            ])
+
+            self.window = w
+            self.label = lbl
+        }
+        label?.stringValue = message
+        window?.makeKeyAndOrderFront(nil)
+    }
+
+    func startLogMonitor() {
+        monitorTask = Task { @MainActor in
+            let logPath = "/tmp/boxx-singbox.log"
+            var lastSize: UInt64 = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let attrs = try? FileManager.default.attributesOfItem(atPath: logPath),
+                      let size = attrs[.size] as? UInt64, size > lastSize else { continue }
+                if let handle = FileHandle(forReadingAtPath: logPath) {
+                    handle.seek(toFileOffset: max(0, size - 500))
+                    if let tail = String(data: handle.readDataToEndOfFile(), encoding: .utf8) {
+                        let lastLine = tail.components(separatedBy: "\n").filter { !$0.isEmpty }.last ?? ""
+                        if lastLine.contains("updated rule-set") {
+                            let name = lastLine.components(separatedBy: "updated rule-set ").last ?? ""
+                            label?.stringValue = "正在下载规则集: \(name)"
+                        } else if lastLine.contains("sing-box started") || lastLine.contains("inbound/") {
+                            label?.stringValue = "sing-box 已启动，等待就绪..."
+                        } else if lastLine.contains("rule-set take too much time") {
+                            label?.stringValue = "规则集下载较慢，请耐心等待..."
+                        }
+                    }
+                    handle.closeFile()
+                }
+                lastSize = size
+            }
+        }
+    }
+
+    func stopLogMonitor() {
+        monitorTask?.cancel()
+        monitorTask = nil
+    }
+
+    func close() {
+        stopLogMonitor()
+        window?.close()
+        window = nil
+        label = nil
     }
 }
