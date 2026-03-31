@@ -152,11 +152,52 @@ class ConfigEngine: @unchecked Sendable {
                 proxies[name] = nodes
             }
         }
+
+        // Auto-fix: ensure Proxy contains all subscription groups and region groups
+        if let proxyIdx = config.outbounds.firstIndex(where: { $0.tag == "Proxy" }),
+           case .selector(var proxy) = config.outbounds[proxyIdx] {
+            var changed = false
+            // Add subscription groups
+            let subTags = config.outbounds.compactMap { $0.tag.hasPrefix("📦") ? $0.tag : nil }
+            for subTag in subTags where !proxy.outbounds.contains(subTag) {
+                proxy.outbounds.insert(subTag, at: 0)
+                changed = true
+            }
+            // Add region groups
+            let regionTags = Set(loadGroupPatterns().keys)
+            for regionTag in regionTags.sorted() where !proxy.outbounds.contains(regionTag) {
+                proxy.outbounds.append(regionTag)
+                changed = true
+            }
+            // Keep DIRECT at the end
+            if changed {
+                if let i = proxy.outbounds.firstIndex(of: "DIRECT") {
+                    proxy.outbounds.remove(at: i)
+                }
+                proxy.outbounds.append("DIRECT")
+                config.outbounds[proxyIdx] = .selector(proxy)
+                // Persist fix
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                if let data = try? encoder.encode(config) {
+                    try? data.write(to: configURL, options: .atomic)
+                }
+            }
+        }
     }
 
     // MARK: - Save
 
     func save(restartRequired: Bool = true) throws {
+        // Clean up invalid default references before saving
+        // default must be a member of the selector's own outbounds list
+        for i in config.outbounds.indices {
+            if case .selector(var s) = config.outbounds[i],
+               let d = s.default, !s.outbounds.contains(d) {
+                s.default = nil
+                config.outbounds[i] = .selector(s)
+            }
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)
@@ -167,6 +208,43 @@ class ConfigEngine: @unchecked Sendable {
         if restartRequired {
             try? deployRuntime(skipValidation: true)
         }
+    }
+
+    // MARK: - Reset
+
+    /// Reset user content (subscriptions, proxy nodes, user-added rules, group settings).
+    /// Keeps system defaults: DNS, inbounds, log, ntp, experimental, rule_set rules, service selectors.
+    func resetUserContent() throws {
+        let fm = FileManager.default
+
+        // 1. Replace config.json with bundled default template
+        guard let defaultURL = Bundle.main.url(forResource: "default-config", withExtension: "json"),
+              let defaultData = try? Data(contentsOf: defaultURL) else {
+            throw NSError(domain: "BoxX", code: 1, userInfo: [NSLocalizedDescriptionKey: "找不到默认配置模板"])
+        }
+        try defaultData.write(to: configURL, options: .atomic)
+
+        // 2. Clear subscriptions
+        let subsURL = baseDir.appendingPathComponent("subscriptions.json")
+        try? "[]".data(using: .utf8)?.write(to: subsURL, options: .atomic)
+
+        // 3. Clear proxies directory
+        if fm.fileExists(atPath: proxiesDir.path) {
+            let files = try fm.contentsOfDirectory(at: proxiesDir, includingPropertiesForKeys: nil)
+            for file in files { try? fm.removeItem(at: file) }
+        }
+
+        // 4. Clear group patterns and order
+        try? fm.removeItem(at: groupPatternsURL)
+        try? fm.removeItem(at: groupOrderURL)
+
+        // 5. Clear cache
+        let cacheURL = baseDir.appendingPathComponent("cache.db")
+        try? fm.removeItem(at: cacheURL)
+
+        // 6. Reload clean config into memory
+        proxies = [:]
+        try load()
     }
 
     // MARK: - Merge & Deploy
@@ -191,12 +269,11 @@ class ConfigEngine: @unchecked Sendable {
         for i in runtime.outbounds.indices {
             switch runtime.outbounds[i] {
             case .selector(var s):
-                let before = s.outbounds.count
                 s.outbounds = s.outbounds.filter { allTags.contains($0) }
                 if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
-                if s.outbounds.count != before {
-                    runtime.outbounds[i] = .selector(s)
-                }
+                // Clear default if it references a non-existent outbound
+                if let d = s.default, !s.outbounds.contains(d) { s.default = nil }
+                runtime.outbounds[i] = .selector(s)
             case .urltest(var u):
                 let before = u.outbounds.count
                 u.outbounds = u.outbounds.filter { allTags.contains($0) }
@@ -213,6 +290,19 @@ class ConfigEngine: @unchecked Sendable {
     }
 
     func deployRuntime(skipValidation: Bool = false) throws {
+        // Delete cache.db before deploy — stale cache can reference deleted outbounds
+        // cache.db is owned by root (created by sing-box running as root), so use sudo
+        let cachePath = baseDir.appendingPathComponent("cache.db").path
+        if FileManager.default.fileExists(atPath: cachePath) {
+            let rm = Process()
+            rm.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+            rm.arguments = ["-n", "rm", "-f", cachePath]
+            rm.standardOutput = FileHandle.nullDevice
+            rm.standardError = FileHandle.nullDevice
+            try? rm.run()
+            rm.waitUntilExit()
+        }
+
         var runtime = buildRuntimeConfig()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -262,6 +352,7 @@ class ConfigEngine: @unchecked Sendable {
                     case .selector(var s):
                         s.outbounds = s.outbounds.filter { allTags.contains($0) }
                         if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
+                        if let d = s.default, !s.outbounds.contains(d) { s.default = nil }
                         runtime.outbounds[i] = .selector(s)
                     case .urltest(var u):
                         u.outbounds = u.outbounds.filter { allTags.contains($0) }
@@ -286,6 +377,7 @@ class ConfigEngine: @unchecked Sendable {
                 case .selector(var s):
                     s.outbounds = s.outbounds.filter { finalAllTags.contains($0) }
                     if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
+                    if let d = s.default, !finalAllTags.contains(d) { s.default = nil }
                     runtime.outbounds[i] = .selector(s)
                 case .urltest(var u):
                     u.outbounds = u.outbounds.filter { finalAllTags.contains($0) }

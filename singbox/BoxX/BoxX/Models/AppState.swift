@@ -65,19 +65,25 @@ final class AppState {
             }
         }
 
-        // If config.json doesn't exist, create a minimal one
+        // If config.json doesn't exist, use bundled default template
         let configFile = baseDir.appendingPathComponent("config.json")
         if !fm.fileExists(atPath: configFile.path) {
-            let minimal = """
-            {
-              "log": {"level": "info", "timestamp": true},
-              "inbounds": [{"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 7890}],
-              "outbounds": [{"type": "selector", "tag": "Proxy", "outbounds": ["DIRECT"]}, {"type": "direct", "tag": "DIRECT"}],
-              "route": {"rules": [], "final": "Proxy", "auto_detect_interface": true},
-              "experimental": {"clash_api": {"external_controller": "127.0.0.1:9091", "default_mode": "Rule"}}
+            if let defaultURL = Bundle.main.url(forResource: "default-config", withExtension: "json"),
+               let defaultData = try? Data(contentsOf: defaultURL) {
+                try? defaultData.write(to: configFile)
+            } else {
+                // Fallback minimal config
+                let minimal = """
+                {
+                  "log": {"level": "info", "timestamp": true},
+                  "inbounds": [{"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 7890}],
+                  "outbounds": [{"type": "selector", "tag": "Proxy", "outbounds": ["DIRECT"]}, {"type": "direct", "tag": "DIRECT"}],
+                  "route": {"rules": [], "final": "Proxy", "auto_detect_interface": true},
+                  "experimental": {"clash_api": {"external_controller": "127.0.0.1:9091", "default_mode": "Rule"}}
+                }
+                """
+                try? minimal.data(using: .utf8)?.write(to: configFile)
             }
-            """
-            try? minimal.data(using: .utf8)?.write(to: configFile)
         }
 
         return baseDir

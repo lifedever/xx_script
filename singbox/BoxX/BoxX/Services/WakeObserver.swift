@@ -57,7 +57,7 @@ actor WakeObserver {
             return
         }
 
-        // Step 1: Flush DNS + close all connections
+        // Step 1: 轻量修复 — 刷 DNS + 清连接（解决大多数情况）
         log("Step 1: flush DNS + close connections")
         await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
@@ -67,23 +67,19 @@ actor WakeObserver {
         log("Step 1 result: \(test1 ? "OK" : "FAIL")")
         if test1 { return }
 
-        // Step 2: Retry
-        log("Step 2: retry flush + close")
+        // Step 2: 热重载 — SIGHUP 让 sing-box 刷新内部状态（TUN/路由/DNS 服务）
+        log("Step 2: SIGHUP hot-reload + flush DNS + close connections")
+        await MainActor.run { Task { await singBoxProcess.reload() } }
+        try? await Task.sleep(for: .seconds(3))
         await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
-        try? await Task.sleep(for: .seconds(3))
+        try? await Task.sleep(for: .seconds(2))
 
         let test2 = await probeExternalConnectivity()
         log("Step 2 result: \(test2 ? "OK" : "FAIL")")
         if test2 { return }
 
-        // Step 3: Full restart of sing-box
-        log("Step 3: restarting sing-box process")
-        // We cannot easily restart here without the config path,
-        // but the process is still running (API was reachable).
-        // Just flush DNS one more time.
-        await MainActor.run { singBoxProcess.flushDNS() }
-        log("Step 3: final DNS flush done")
+        log("All recovery steps failed, user may need to manually restart")
     }
 
     private func log(_ message: String) {

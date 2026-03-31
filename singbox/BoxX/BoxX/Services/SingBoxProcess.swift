@@ -38,7 +38,7 @@ class SingBoxProcess {
         done
         # Allow current user to send signals to sing-box without password (for hot-reload)
         SUDOERS_FILE="/etc/sudoers.d/boxx-singbox"
-        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /usr/bin/pkill -9 -x sing-box, /bin/kill -HUP *, \(sbPath) run *' > "$SUDOERS_FILE"
+        echo '\(currentUser) ALL=(root) NOPASSWD: /usr/bin/pkill -HUP -x sing-box, /usr/bin/pkill -x sing-box, /usr/bin/pkill -9 -x sing-box, /bin/kill -HUP *, /usr/bin/killall -HUP mDNSResponder, /bin/rm -f */cache.db, \(sbPath) run *' > "$SUDOERS_FILE"
         chmod 0440 "$SUDOERS_FILE"
         # Rotate logs: rename current log with date, delete logs older than 3 days
         LOG_DIR="/tmp"
@@ -160,8 +160,9 @@ class SingBoxProcess {
         return reachable
     }
 
-    /// Flush DNS
+    /// Flush DNS — must do both: clear cache + restart mDNSResponder
     func flushDNS() {
+        // 1. dscacheutil -flushcache (清除 DNS 缓存)
         let flush = Process()
         flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
         flush.arguments = ["-flushcache"]
@@ -169,6 +170,16 @@ class SingBoxProcess {
         flush.standardError = FileHandle.nullDevice
         try? flush.run()
         flush.waitUntilExit()
+
+        // 2. sudo killall -HUP mDNSResponder (重启 DNS 解析服务，让新的 DNS 配置生效)
+        //    sudoers 规则允许 kill -HUP，mDNSResponder 属于 root 需要 sudo
+        let killDNS = Process()
+        killDNS.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+        killDNS.arguments = ["-n", "killall", "-HUP", "mDNSResponder"]  // -n = 非交互，不弹密码
+        killDNS.standardOutput = FileHandle.nullDevice
+        killDNS.standardError = FileHandle.nullDevice
+        try? killDNS.run()
+        killDNS.waitUntilExit()
     }
 
     // MARK: - Background helpers

@@ -11,6 +11,7 @@ struct ProxiesView: View {
     @State private var popoverGroup: String?
     @State private var selectedGroup: String?
     @State private var showAddGroup = false
+    @State private var editingGroupTag: String?
     @State private var deletingGroupName: String?
 
     // MARK: - Group Classification
@@ -159,7 +160,7 @@ struct ProxiesView: View {
                                 Text("节点数")
                                     .frame(width: 60, alignment: .center)
                                 Text("操作")
-                                    .frame(width: 80, alignment: .center)
+                                    .frame(width: 120, alignment: .center)
                             }
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
@@ -211,6 +212,15 @@ struct ProxiesView: View {
             AddProxyGroupSheet {
                 Task { await refreshGroups() }
             }
+            .environment(appState)
+        }
+        .sheet(isPresented: .init(
+            get: { editingGroupTag != nil },
+            set: { if !$0 { editingGroupTag = nil } }
+        )) {
+            AddProxyGroupSheet(onSave: {
+                Task { await refreshGroups() }
+            }, editingTag: editingGroupTag)
             .environment(appState)
         }
         .confirmationDialog("确认删除", isPresented: .init(
@@ -310,13 +320,16 @@ struct ProxiesView: View {
             // Actions for user-created groups
             HStack(spacing: 4) {
                 if canDelete {
+                    Button("编辑") { editingGroupTag = group.name }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     Button("删除") { deletingGroupName = group.name }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .tint(.red)
                 }
             }
-            .frame(width: 80, alignment: .center)
+            .frame(width: 120, alignment: .center)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -413,8 +426,21 @@ struct ProxiesView: View {
 
     private func deleteGroup(_ tag: String) {
         appState.configEngine.config.outbounds.removeAll { $0.tag == tag }
+        // Also remove references from other groups
+        for i in appState.configEngine.config.outbounds.indices {
+            switch appState.configEngine.config.outbounds[i] {
+            case .selector(var s):
+                s.outbounds.removeAll { $0 == tag }
+                appState.configEngine.config.outbounds[i] = .selector(s)
+            case .urltest(var u):
+                u.outbounds.removeAll { $0 == tag }
+                appState.configEngine.config.outbounds[i] = .urltest(u)
+            default: break
+            }
+        }
         try? appState.configEngine.save(restartRequired: true)
-        Task { await refreshGroups() }
+        // Remove from local list immediately (don't wait for API refresh)
+        groups.removeAll { $0.name == tag }
     }
 
     private func testAllGroupsLatency() {
@@ -541,21 +567,66 @@ struct DelayBadge: View {
     }
 }
 
-// MARK: - Add Proxy Group Sheet
+// MARK: - Add/Edit Proxy Group Sheet
 
 struct AddProxyGroupSheet: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
     let onSave: () -> Void
+    var editingTag: String? = nil
 
     @State private var name = ""
     @State private var groupType = "selector"
+    @State private var selectedOutbounds: [String] = []  // ordered
+    @State private var searchText = ""
     @State private var errorMessage: String?
+
+    private var isEditing: Bool { editingTag != nil }
+    private var selectedSet: Set<String> { Set(selectedOutbounds) }
+
+    // MARK: - Available items categorized
+
+    private struct ItemSection: Identifiable {
+        let id: String
+        let title: String
+        let items: [String]
+    }
+
+    private var allSections: [ItemSection] {
+        let selfTag = editingTag ?? ""
+        var sections: [ItemSection] = []
+
+        // Strategy groups (selector/urltest, excluding self)
+        let groups = appState.configEngine.config.outbounds.compactMap { o -> String? in
+            let t = o.tag
+            if t == selfTag { return nil }
+            switch o {
+            case .selector, .urltest: return t
+            default: return nil
+            }
+        }
+        if !groups.isEmpty { sections.append(ItemSection(id: "groups", title: "策略组", items: groups)) }
+
+        // Proxy nodes by subscription
+        for (subName, nodes) in appState.configEngine.proxies.sorted(by: { $0.key < $1.key }) {
+            let tags = nodes.map(\.tag)
+            if !tags.isEmpty { sections.append(ItemSection(id: "sub-\(subName)", title: "📦 \(subName)", items: tags)) }
+        }
+
+        return sections
+    }
+
+    private func filteredItems(_ items: [String]) -> [String] {
+        guard !searchText.isEmpty else { return items }
+        let q = searchText.lowercased()
+        return items.filter { $0.lowercased().contains(q) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
+            // Header
             HStack {
-                Text("添加策略组").font(.headline)
+                Text(isEditing ? "编辑策略组" : "添加策略组").font(.headline)
                 Spacer()
                 Button { dismiss() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -565,6 +636,7 @@ struct AddProxyGroupSheet: View {
 
             Divider()
 
+            // Settings
             Form {
                 TextField("策略组名称", text: $name)
                     .textFieldStyle(.roundedBorder)
@@ -573,46 +645,176 @@ struct AddProxyGroupSheet: View {
                     Text("手动选择 (selector)").tag("selector")
                     Text("自动最优 (urltest)").tag("urltest")
                 }
-
-                Text("创建后可在策略组列表中看到，节点默认包含 DIRECT")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-
-                if let err = errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
-                }
             }
             .formStyle(.grouped)
+            .frame(maxHeight: 120)
+
+            Divider()
+
+            // Selection area
+            HStack {
+                Text("已选 \(selectedOutbounds.count) 项")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary).font(.caption)
+                    TextField("搜索节点或策略组...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.caption)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.gray.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .frame(width: 200)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+
+            // Two-column layout: available | selected
+            HStack(spacing: 0) {
+                // Left: available items
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("可选").font(.caption.bold()).foregroundStyle(.secondary)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                    Divider()
+                    List {
+                        ForEach(allSections) { section in
+                            let items = filteredItems(section.items).filter { !selectedSet.contains($0) }
+                            if !items.isEmpty {
+                                Section(section.title) {
+                                    ForEach(items, id: \.self) { item in
+                                        HStack {
+                                            Text(item).font(.caption).lineLimit(1)
+                                            Spacer()
+                                            Button {
+                                                selectedOutbounds.append(item)
+                                            } label: {
+                                                Image(systemName: "plus.circle.fill")
+                                                    .foregroundStyle(.green)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+
+                Divider()
+
+                // Right: selected items (ordered, removable)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("已选").font(.caption.bold()).foregroundStyle(.secondary)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                    Divider()
+                    if selectedOutbounds.isEmpty {
+                        VStack {
+                            Spacer()
+                            Text("从左侧添加").font(.caption).foregroundStyle(.tertiary)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        List {
+                            ForEach(selectedOutbounds, id: \.self) { item in
+                                HStack {
+                                    Text(item).font(.caption).lineLimit(1)
+                                    Spacer()
+                                    Button {
+                                        selectedOutbounds.removeAll { $0 == item }
+                                    } label: {
+                                        Image(systemName: "minus.circle.fill")
+                                            .foregroundStyle(.red)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .onMove { from, to in
+                                selectedOutbounds.move(fromOffsets: from, toOffset: to)
+                            }
+                        }
+                        .listStyle(.plain)
+                    }
+                }
+            }
+
+            if let err = errorMessage {
+                Text(err).font(.caption).foregroundStyle(.red).padding(.horizontal)
+            }
 
             Divider()
 
             HStack {
                 Spacer()
                 Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("保存") { save() }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
+                Button("保存") { save() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || selectedOutbounds.isEmpty)
             }
             .padding()
         }
-        .frame(width: 400, height: 280)
+        .frame(width: 600, height: 550)
+        .onAppear { loadExisting() }
+    }
+
+    private func loadExisting() {
+        guard let tag = editingTag else { return }
+        name = tag
+        for outbound in appState.configEngine.config.outbounds where outbound.tag == tag {
+            switch outbound {
+            case .selector(let s):
+                groupType = "selector"
+                selectedOutbounds = s.outbounds
+            case .urltest(let u):
+                groupType = "urltest"
+                selectedOutbounds = u.outbounds
+            default: break
+            }
+        }
     }
 
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { errorMessage = "请输入名称"; return }
+        guard !selectedOutbounds.isEmpty else { errorMessage = "请至少选择一个出站"; return }
 
-        // Check duplicate
-        if appState.configEngine.config.outbounds.contains(where: { $0.tag == trimmed }) {
+        if editingTag != trimmed,
+           appState.configEngine.config.outbounds.contains(where: { $0.tag == trimmed }) {
             errorMessage = "已存在同名策略组"; return
         }
 
         let outbound: Outbound
         if groupType == "urltest" {
-            outbound = .urltest(URLTestOutbound(tag: trimmed, outbounds: ["DIRECT"]))
+            outbound = .urltest(URLTestOutbound(tag: trimmed, outbounds: selectedOutbounds))
         } else {
-            outbound = .selector(SelectorOutbound(tag: trimmed, outbounds: ["DIRECT"]))
+            outbound = .selector(SelectorOutbound(tag: trimmed, outbounds: selectedOutbounds))
         }
 
-        appState.configEngine.config.outbounds.append(outbound)
+        if let tag = editingTag {
+            if let idx = appState.configEngine.config.outbounds.firstIndex(where: { $0.tag == tag }) {
+                appState.configEngine.config.outbounds[idx] = outbound
+            }
+            if tag != trimmed {
+                for i in appState.configEngine.config.outbounds.indices {
+                    switch appState.configEngine.config.outbounds[i] {
+                    case .selector(var s):
+                        if let j = s.outbounds.firstIndex(of: tag) { s.outbounds[j] = trimmed }
+                        appState.configEngine.config.outbounds[i] = .selector(s)
+                    case .urltest(var u):
+                        if let j = u.outbounds.firstIndex(of: tag) { u.outbounds[j] = trimmed }
+                        appState.configEngine.config.outbounds[i] = .urltest(u)
+                    default: break
+                    }
+                }
+            }
+        } else {
+            appState.configEngine.config.outbounds.append(outbound)
+        }
+
         do {
             try appState.configEngine.save(restartRequired: true)
             dismiss()

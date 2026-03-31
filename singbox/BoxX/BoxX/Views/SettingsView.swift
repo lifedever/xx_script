@@ -96,6 +96,13 @@ struct GeneralSettingsTab: View {
                     Button("导出配置") { exportConfig() }
                     Button("导入配置") { importConfig() }
                 }
+                HStack(spacing: 10) {
+                    Button("初始化配置") { resetConfig() }
+                        .foregroundStyle(.red)
+                    Text("清除订阅和自定义规则，恢复为默认配置")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -182,8 +189,35 @@ struct GeneralSettingsTab: View {
                 err.alertStyle = .critical
                 err.runModal()
             }
+    }
+
+    private func resetConfig() {
+
+        let alert = NSAlert()
+        alert.messageText = "确认初始化配置？"
+        alert.informativeText = "将清除所有订阅、代理节点和自定义规则，恢复为默认配置。\n\n建议先导出配置备份。"
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "初始化")
+        alert.addButton(withTitle: "取消")
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        do {
+            try appState.configEngine.resetUserContent()
+            appState.pendingReload = true
+            let ok = NSAlert()
+            ok.messageText = "初始化成功"
+            ok.informativeText = "配置已恢复为默认状态，请点击「应用配置」或重启 sing-box 生效。"
+            ok.runModal()
+        } catch {
+            let err = NSAlert()
+            err.messageText = "初始化失败"
+            err.informativeText = error.localizedDescription
+            err.alertStyle = .critical
+            err.runModal()
         }
     }
+}
 
 // MARK: - Apply saved appearance on launch
 func applySavedAppearance() {

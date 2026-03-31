@@ -95,6 +95,57 @@ class SubscriptionService: @unchecked Sendable {
         for (regionName, tags) in regionGroups {
             ensureSelectorExists(tag: regionName, nodeTags: tags)
         }
+
+        // Update Proxy: add subscription group + all region groups
+        if let proxyIdx = configEngine.config.outbounds.firstIndex(where: { $0.tag == "Proxy" }) {
+            if case .selector(var proxy) = configEngine.config.outbounds[proxyIdx] {
+                // Add subscription group
+                if !proxy.outbounds.contains(subGroupTag) {
+                    proxy.outbounds.insert(subGroupTag, at: proxy.outbounds.startIndex)
+                }
+                // Add region groups
+                for regionName in regionGroups.keys.sorted() {
+                    if !proxy.outbounds.contains(regionName) {
+                        proxy.outbounds.append(regionName)
+                    }
+                }
+                // Keep DIRECT at the end
+                if let i = proxy.outbounds.firstIndex(of: "DIRECT") {
+                    proxy.outbounds.remove(at: i)
+                    proxy.outbounds.append("DIRECT")
+                }
+                configEngine.config.outbounds[proxyIdx] = .selector(proxy)
+            }
+        }
+
+        // Add subscription group + region groups to service selectors (OpenAI, Google, etc.)
+        for i in configEngine.config.outbounds.indices {
+            if case .selector(var sel) = configEngine.config.outbounds[i],
+               sel.tag != "Proxy" && sel.tag != "DIRECT" && !sel.tag.hasPrefix("📦") &&
+               !sel.tag.contains("漏网之鱼") && !regionGroups.keys.contains(sel.tag) {
+                var changed = false
+                // Add Proxy if missing
+                if !sel.outbounds.contains("Proxy") {
+                    sel.outbounds.insert("Proxy", at: 0)
+                    changed = true
+                }
+                // Add subscription group
+                if !sel.outbounds.contains(subGroupTag) {
+                    sel.outbounds.append(subGroupTag)
+                    changed = true
+                }
+                // Add region groups
+                for regionName in regionGroups.keys.sorted() {
+                    if !sel.outbounds.contains(regionName) {
+                        sel.outbounds.append(regionName)
+                        changed = true
+                    }
+                }
+                if changed {
+                    configEngine.config.outbounds[i] = .selector(sel)
+                }
+            }
+        }
     }
 
     private func ensureSelectorExists(tag: String, nodeTags: [String]) {

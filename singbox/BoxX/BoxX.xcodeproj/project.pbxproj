@@ -35,6 +35,7 @@
 		7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B86811409CA8AC5FE242B9 /* HelperProtocol.swift */; };
 		8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A786DA30C59DB926BE25E5A /* Assets.xcassets */; };
 		83473B83FEE9C71B170A7B7D /* config.json in Resources */ = {isa = PBXBuildFile; fileRef = D66DA05B940CC40693AB69E6 /* config.json */; };
+		870AE7DDAD59E46A15CEEA4F /* default-config.json in Resources */ = {isa = PBXBuildFile; fileRef = 3CBAFAFDD4EDBA04C7D99360 /* default-config.json */; };
 		8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */; };
 		963462A43886911BEC9D2CD8 /* SwiftData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 97686E1935EF18A1381BBA97 /* SwiftData.framework */; };
 		9E85A43A0EFE7AD48BA748B9 /* LogConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC97FA8D4B6846EB7C901F48 /* LogConfig.swift */; };
@@ -114,6 +115,7 @@
 		359FAFDB5E064BD58048D440 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3A1528B619F372B267512D08 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyGroupEditSheet.swift; sourceTree = "<group>"; };
+		3CBAFAFDD4EDBA04C7D99360 /* default-config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "default-config.json"; sourceTree = "<group>"; };
 		3DB438A56B425DD4201D80DC /* FileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcher.swift; sourceTree = "<group>"; };
 		3E933712F9588A4920A916AD /* SingBoxJSONParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxJSONParser.swift; sourceTree = "<group>"; };
 		46F312446DB749C20DF79E3D /* RuleSetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetManager.swift; sourceTree = "<group>"; };
@@ -356,6 +358,7 @@
 			isa = PBXGroup;
 			children = (
 				5A786DA30C59DB926BE25E5A /* Assets.xcassets */,
+				3CBAFAFDD4EDBA04C7D99360 /* default-config.json */,
 				CC8166B671B895FBCAA5ADBF /* Localizable.strings */,
 			);
 			path = Resources;
@@ -477,6 +480,7 @@
 			files = (
 				8189A52951925CA4152F7C88 /* Assets.xcassets in Resources */,
 				1E2427A7F9419BC567A20DFB /* Localizable.strings in Resources */,
+				870AE7DDAD59E46A15CEEA4F /* default-config.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
