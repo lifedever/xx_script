@@ -230,15 +230,14 @@ pack() {
     step "打包 DMG: $DMG_NAME ..."
 
     mkdir -p "$DIST_DIR"
+    # 删除所有旧版 DMG
+    rm -f "$DIST_DIR"/BoxX-v*.dmg
 
     # 准备临时目录
     cp -R "$BUILD_DIR/$APP_NAME.app" "$TMP_DIR/$APP_NAME.app"
 
     # 创建 Applications 快捷方式
     ln -s /Applications "$TMP_DIR/Applications"
-
-    # 删除旧 DMG
-    rm -f "$DIST_DIR/$DMG_NAME"
 
     # 创建 DMG
     hdiutil create \
