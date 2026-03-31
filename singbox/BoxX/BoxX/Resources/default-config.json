@@ -521,13 +521,6 @@
       },
       {
         "action": "route",
-        "outbound": "Proxy",
-        "rule_set": [
-          "geosite-geolocation-!cn"
-        ]
-      },
-      {
-        "action": "route",
         "outbound": "DIRECT",
         "rule_set": [
           "geosite-cn",
@@ -553,6 +546,13 @@
         "outbound": "DIRECT",
         "rule_set": [
           "geosite-google-cn"
+        ]
+      },
+      {
+        "action": "route",
+        "outbound": "Proxy",
+        "rule_set": [
+          "geosite-geolocation-!cn"
         ]
       }
     ]
