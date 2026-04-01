@@ -269,6 +269,8 @@ class SingBoxProcess {
         print("[BoxX] Config reloaded via SIGHUP")
     }
 
+
+
     // MARK: - Status
 
     func refreshStatus() async -> Bool {

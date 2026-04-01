@@ -341,7 +341,17 @@ struct ProxiesView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            selectedGroup = (selectedGroup == group.name) ? nil : group.name
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedGroup = (selectedGroup == group.name) ? nil : group.name
+            }
+        }
+
+        // Expandable node list
+        if isSelected {
+            NodeListView(group: group, delays: delays) { node in
+                selectNode(group: group.name, node: node)
+            }
+            .transition(.opacity)
         }
     }
 
@@ -471,74 +481,215 @@ struct ProxiesView: View {
 
 // MARK: - Node Selection Popover
 
-private struct NodeSelectionPopover: View {
+private struct NodeListView: View {
+    @Environment(AppState.self) private var appState
     let group: ProxyGroup
     let delays: [String: Int]
     let onSelect: (String) -> Void
-    @State private var searchText = ""
+    @State private var detourTarget: String?
+    @State private var showDetourPicker = false
 
-    var filteredNodes: [String] {
-        if searchText.isEmpty { return group.displayAll }
-        return group.displayAll.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    private func detourFor(_ tag: String) -> String? {
+        for (_, nodes) in appState.configEngine.proxies {
+            if let node = nodes.first(where: { $0.tag == tag }) {
+                return node.detour
+            }
+        }
+        return nil
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with group name
-            HStack {
-                Text(group.name).font(.headline)
-                Spacer()
-                Text(group.type.lowercased())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.15))
-                    .clipShape(Capsule())
+            ForEach(group.displayAll, id: \.self) { node in
+                Button {
+                    onSelect(node)
+                } label: {
+                    HStack(spacing: 8) {
+                        if node == group.now {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.blue)
+                        } else {
+                            Image(systemName: "circle")
+                                .foregroundStyle(.quaternary)
+                        }
+                        Text(node)
+                            .font(.callout)
+                            .lineLimit(1)
+                        if let detour = detourFor(node) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "link")
+                                Text(detour)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .lineLimit(1)
+                        }
+                        Spacer()
+                        if let d = delays[node], d > 0 {
+                            DelayBadge(delay: d)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .background(node == group.now ? Color.accentColor.opacity(0.06) : Color.clear)
+                .contextMenu {
+                    Button {
+                        detourTarget = node
+                        showDetourPicker = true
+                    } label: {
+                        Label("设置前置代理", systemImage: "link")
+                    }
+                    if detourFor(node) != nil {
+                        Button(role: .destructive) {
+                            setDetour(nodeTag: node, detour: nil)
+                        } label: {
+                            Label("清除前置代理", systemImage: "link.badge.plus")
+                        }
+                    }
+                }
             }
-            .padding(.horizontal)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+        }
+        .padding(.vertical, 4)
+        .background(Color.gray.opacity(0.04))
+        .sheet(isPresented: $showDetourPicker) {
+            if let target = detourTarget {
+                DetourPickerSheet(
+                    nodeTag: target,
+                    currentDetour: detourFor(target),
+                    appState: appState,
+                    onSave: { detour in
+                        setDetour(nodeTag: target, detour: detour)
+                        showDetourPicker = false
+                    },
+                    onCancel: { showDetourPicker = false }
+                )
+            }
+        }
+    }
 
-            // Search
-            TextField("搜索节点...", text: $searchText)
+    private func setDetour(nodeTag: String, detour: String?) {
+        for (subName, nodes) in appState.configEngine.proxies {
+            if let idx = nodes.firstIndex(where: { $0.tag == nodeTag }) {
+                var updated = nodes
+                updated[idx].detour = detour
+                try? appState.configEngine.saveProxies(name: subName, nodes: updated)
+                try? appState.configEngine.save(restartRequired: true)
+                return
+            }
+        }
+    }
+}
+
+// MARK: - Detour Picker
+
+private struct DetourPickerSheet: View {
+    let nodeTag: String
+    let currentDetour: String?
+    let appState: AppState
+    let onSave: (String?) -> Void
+    let onCancel: () -> Void
+    @State private var searchText = ""
+    @State private var selected: String?
+
+    private var filteredSections: [(section: String, tags: [String])] {
+        allOutbounds.compactMap { entry in
+            let tags = searchText.isEmpty ? entry.tags
+                : entry.tags.filter { $0.localizedCaseInsensitiveContains(searchText) }
+            return tags.isEmpty ? nil : (entry.section, tags)
+        }
+    }
+
+    private var allOutbounds: [(section: String, tags: [String])] {
+        var sections: [(String, [String])] = []
+
+        // Strategy groups
+        let groups = appState.configEngine.config.outbounds.compactMap { o -> String? in
+            switch o {
+            case .selector, .urltest: return o.tag
+            default: return nil
+            }
+        }
+        if !groups.isEmpty { sections.append(("策略组", groups)) }
+
+        // Proxy nodes by subscription
+        for (subName, nodes) in appState.configEngine.proxies.sorted(by: { $0.key < $1.key }) {
+            let tags = nodes.compactMap { $0.tag != nodeTag ? $0.tag : nil }
+            if !tags.isEmpty { sections.append(("📦 \(subName)", tags)) }
+        }
+
+        // DIRECT
+        sections.append(("其他", ["DIRECT"]))
+        return sections
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("前置代理").font(.headline)
+                Text(nodeTag).foregroundStyle(.secondary).lineLimit(1)
+                Spacer()
+                Button("取消") { onCancel() }.keyboardShortcut(.cancelAction)
+            }
+            .padding()
+
+            TextField("搜索...", text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
 
             Divider()
 
-            // Node list
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(filteredNodes, id: \.self) { node in
-                        Button {
-                            onSelect(node)
-                        } label: {
-                            HStack(spacing: 8) {
-                                if node == group.now {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.blue)
-                                } else {
-                                    Image(systemName: "circle")
-                                        .foregroundStyle(.quaternary)
-                                }
-                                Text(node)
-                                    .font(.body)
-                                    .lineLimit(1)
-                                Spacer()
-                                if let d = delays[node], d > 0 {
-                                    DelayBadge(delay: d)
-                                }
-                            }
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(filteredSections, id: \.section) { entry in
+                        Text(entry.section)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                             .padding(.horizontal)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
+                            .padding(.top, 8)
+
+                        ForEach(entry.tags, id: \.self) { tag in
+                            Button {
+                                selected = tag
+                            } label: {
+                                HStack {
+                                    Image(systemName: selected == tag ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(selected == tag ? Color.blue : Color.gray.opacity(0.3))
+                                    Text(tag).lineLimit(1)
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 4)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .background(selected == tag ? Color.accentColor.opacity(0.08) : Color.clear)
                         }
-                        .buttonStyle(.plain)
-                        .background(node == group.now ? Color.accentColor.opacity(0.08) : Color.clear)
                     }
                 }
             }
+
+            Divider()
+
+            HStack {
+                if currentDetour != nil {
+                    Button("清除") { onSave(nil) }
+                        .foregroundStyle(.red)
+                }
+                Spacer()
+                Button("确定") {
+                    onSave(selected)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selected == nil)
+            }
+            .padding()
         }
+        .frame(width: 400, height: 450)
+        .onAppear { selected = currentDetour }
     }
 }
 

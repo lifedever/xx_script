@@ -76,6 +76,7 @@
 		FA13DABBE1CB5BDF70828E66 /* ExperimentalConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */; };
 		FCEDFA3F770C35008D856FA3 /* SubscriptionFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E1CBC5CE03DF6787AA4B06 /* SubscriptionFetcher.swift */; };
 		FDC35FBD2B57453A57E1B704 /* JSONValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */; };
+		FF39AFB802A714B6DC29D9FC /* ProxyChainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CCAE94F5546F0A3520602D /* ProxyChainView.swift */; };
 		FFA707EFAC138F990ED0E987 /* SubscriptionUpdateLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 674D89FCFDD9EC08EC12ADA9 /* SubscriptionUpdateLogView.swift */; };
 /* End PBXBuildFile section */
 
@@ -102,6 +103,7 @@
 		0BD7F2BEBB0D0D08B6687582 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		0EDCA672896DFD324138EC9E /* ConfigEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigEngineTests.swift; sourceTree = "<group>"; };
 		14648562F958BE7DF9541A7F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		14CCAE94F5546F0A3520602D /* ProxyChainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyChainView.swift; sourceTree = "<group>"; };
 		167EFFD13A60A868D1FABC99 /* WakeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeObserver.swift; sourceTree = "<group>"; };
 		18B87438B0C89B2C88F9B0D5 /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
 		223B0D94A0BDD5B469B1C6D3 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 				2652550012122DCF0C4B9AA2 /* MonitorView.swift */,
 				236316BA886FAF9975D7C310 /* OverviewView.swift */,
 				F5BD437B4F6F076959897C90 /* ProxiesView.swift */,
+				14CCAE94F5546F0A3520602D /* ProxyChainView.swift */,
 				3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */,
 				33F99ED78125A1129112F680 /* RegionGroupsView.swift */,
 				5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */,
@@ -551,6 +554,7 @@
 				ADE55A7DEDFBFCF4966F3DBD /* OverviewView.swift in Sources */,
 				AF70DEFEF9561D21C86E583B /* ParsedProxy.swift in Sources */,
 				BA39303F0FBFFBAE241596A8 /* ProxiesView.swift in Sources */,
+				FF39AFB802A714B6DC29D9FC /* ProxyChainView.swift in Sources */,
 				51025126A8E2ED63C6A795CD /* ProxyGroupEditSheet.swift in Sources */,
 				A8E081B2AD059A3352B38643 /* ProxyModels.swift in Sources */,
 				45D454CB5D1BE8225857DBB1 /* RegionGroupsView.swift in Sources */,

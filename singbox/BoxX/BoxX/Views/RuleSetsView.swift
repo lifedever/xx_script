@@ -14,9 +14,21 @@ struct RuleSetsView: View {
     enum RuleSetUpdateStatus {
         case idle
         case updating
-        case success
+        case success(Date)
         case failed(String)
     }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss"
+        return f
+    }()
+
+    private static let dateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MM-dd HH:mm"
+        return f
+    }()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -88,6 +100,8 @@ struct RuleSetsView: View {
                                 .frame(width: 60, alignment: .leading)
                             Text("出站")
                                 .frame(width: 100, alignment: .leading)
+                            Text("更新时间")
+                                .frame(width: 70, alignment: .trailing)
                             Text("操作")
                                 .frame(width: 200, alignment: .center)
                         }
@@ -238,6 +252,20 @@ struct RuleSetsView: View {
             }
             .frame(width: 100, alignment: .leading)
 
+            // 文件更新时间
+            if isRemote {
+                let ext = format == "binary" ? "srs" : "json"
+                let filePath = appState.configEngine.baseDir
+                    .appendingPathComponent("rules/\(tag).\(ext)").path
+                let mtime = (try? FileManager.default.attributesOfItem(atPath: filePath))?[.modificationDate] as? Date
+                Text(mtime.map { Self.dateTimeFormatter.string(from: $0) } ?? "—")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 70, alignment: .trailing)
+            } else {
+                Spacer().frame(width: 70)
+            }
+
             // 操作按钮
             HStack(spacing: 6) {
                 Button("查看") {
@@ -252,6 +280,16 @@ struct RuleSetsView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
+                if isRemote {
+                    Button("更新") {
+                        Task { await updateSingleRuleSet(ruleSet) }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.blue)
+                    .disabled(ruleSetUpdateStatus[tag].map { if case .updating = $0 { return true } else { return false } } ?? false)
+                }
+
                 Button("删除") {
                     deletingTag = tag
                     deletingIndex = index
@@ -264,8 +302,10 @@ struct RuleSetsView: View {
                     switch status {
                     case .updating:
                         ProgressView().controlSize(.small)
-                    case .success:
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    case .success(let date):
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .help("更新于 \(Self.timeFormatter.string(from: date))")
                     case .failed(let msg):
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.red).help(msg)
                     case .idle:
@@ -447,47 +487,54 @@ struct RuleSetsView: View {
 
     // MARK: - Rule Set Update
 
-    /// Force sing-box to re-download remote rule sets by clearing cache and reloading.
-    /// sing-box manages its own rule set downloads via update_interval and cache.db.
+    /// Update a single remote rule set: download (overwrite) → mark pending reload.
+    private func updateSingleRuleSet(_ ruleSet: JSONValue) async {
+        guard let tag = ruleSet["tag"]?.stringValue,
+              let urlStr = ruleSet["url"]?.stringValue,
+              let url = URL(string: urlStr) else { return }
+        let format = ruleSet["format"]?.stringValue ?? "binary"
+        let ext = format == "binary" ? "srs" : "json"
+        let rulesDir = appState.configEngine.baseDir.appendingPathComponent("rules")
+
+        ruleSetUpdateStatus[tag] = .updating
+
+        let mgr = RuleSetManager(rulesDir: rulesDir, proxyPort: appState.configEngine.mixedPort)
+        do {
+            _ = try await mgr.downloadRuleSet(url: url, filename: "\(tag).\(ext)")
+            ruleSetUpdateStatus[tag] = .success(Date())
+            try? appState.configEngine.deployRuntime(skipValidation: true)
+        } catch {
+            ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Force re-download all remote rule sets.
     private func forceUpdateRuleSets() async {
         let ruleSets = appState.configEngine.config.route.ruleSet ?? []
         let remoteRuleSets = ruleSets.filter { $0["type"]?.stringValue == "remote" }
-        let remoteTags = remoteRuleSets.compactMap { $0["tag"]?.stringValue }
-        for tag in remoteTags {
+        let rulesDir = appState.configEngine.baseDir.appendingPathComponent("rules")
+        let mgr = RuleSetManager(rulesDir: rulesDir, proxyPort: appState.configEngine.mixedPort)
+
+        for rs in remoteRuleSets {
+            guard let tag = rs["tag"]?.stringValue else { continue }
             ruleSetUpdateStatus[tag] = .updating
         }
 
-        // Delete cached rule set files so sing-box re-downloads them on reload
-        let rulesDir = appState.configEngine.baseDir.appendingPathComponent("rules")
-        let fm = FileManager.default
         for rs in remoteRuleSets {
-            guard let tag = rs["tag"]?.stringValue else { continue }
+            guard let tag = rs["tag"]?.stringValue,
+                  let urlStr = rs["url"]?.stringValue,
+                  let url = URL(string: urlStr) else { continue }
             let format = rs["format"]?.stringValue ?? "binary"
             let ext = format == "binary" ? "srs" : "json"
-            let cached = rulesDir.appendingPathComponent("\(tag).\(ext)").path
-            try? fm.removeItem(atPath: cached)
-        }
-
-        // Hot-reload sing-box to trigger re-download
-        do {
-            try appState.configEngine.deployRuntime(skipValidation: true)
-            await appState.singBoxProcess.reload()
-
-            // Wait for sing-box to re-download rule sets
-            try? await Task.sleep(for: .seconds(5))
-
-            // Check which files were re-downloaded
-            for tag in remoteTags {
-                let format = remoteRuleSets.first { $0["tag"]?.stringValue == tag }?["format"]?.stringValue ?? "binary"
-                let ext = format == "binary" ? "srs" : "json"
-                let cached = rulesDir.appendingPathComponent("\(tag).\(ext)").path
-                ruleSetUpdateStatus[tag] = fm.fileExists(atPath: cached) ? .success : .failed("下载失败")
-            }
-        } catch {
-            for tag in remoteTags {
+            do {
+                _ = try await mgr.downloadRuleSet(url: url, filename: "\(tag).\(ext)")
+                ruleSetUpdateStatus[tag] = .success(Date())
+            } catch {
                 ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
             }
         }
+
+        try? appState.configEngine.deployRuntime(skipValidation: true)
     }
 }
 
@@ -671,6 +718,9 @@ struct RuleSetContentView: View {
     @State private var isLoading = true
     @State private var error: String?
     @State private var ruleCount: Int = 0
+    @State private var isTruncated = false
+
+    private static let maxDisplayLines = 500
 
     private var tag: String { ruleSet["tag"]?.stringValue ?? "unknown" }
     private var format: String { ruleSet["format"]?.stringValue ?? "source" }
@@ -720,6 +770,12 @@ struct RuleSetContentView: View {
                 }
                 .background(Color(nsColor: .textBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                if isTruncated {
+                    Text("⚠️ 文件过大，仅显示前 \(Self.maxDisplayLines) 行")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
         }
         .padding()
@@ -795,7 +851,13 @@ struct RuleSetContentView: View {
     private func prettyPrintJSON(_ data: Data) throws -> String {
         let obj = try JSONSerialization.jsonObject(with: data)
         let pretty = try JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys])
-        return String(data: pretty, encoding: .utf8) ?? ""
+        guard let full = String(data: pretty, encoding: .utf8) else { return "" }
+        let lines = full.components(separatedBy: "\n")
+        if lines.count > Self.maxDisplayLines {
+            isTruncated = true
+            return lines.prefix(Self.maxDisplayLines).joined(separator: "\n")
+        }
+        return full
     }
 
     private func countRules(data: Data) {

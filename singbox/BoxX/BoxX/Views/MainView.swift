@@ -3,6 +3,7 @@ import SwiftUI
 enum SidebarTab: String, CaseIterable {
     case overview = "概览"
     case proxies = "策略组"
+    case proxyChain = "链式代理"
     case ruleOverview = "规则总览"
     case routeRules = "路由规则"
     case dnsRules = "DNS 管理"
@@ -18,6 +19,7 @@ enum SidebarTab: String, CaseIterable {
         switch self {
         case .overview: return "square.grid.2x2"
         case .proxies: return "network"
+        case .proxyChain: return "link"
         case .ruleOverview: return "list.number"
         case .routeRules: return "list.bullet.rectangle"
         case .dnsRules: return "server.rack"
@@ -37,7 +39,7 @@ struct MainView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var selectedTab: SidebarTab = .overview
 
-    private var sourceTabs: [SidebarTab] { [.builtinRules, .regionGroups, .subscriptions] }
+    private var sourceTabs: [SidebarTab] { [.builtinRules, .regionGroups, .proxyChain, .subscriptions] }
     private var ruleTabs: [SidebarTab] { [.routeRules, .dnsRules, .ruleSets, .ruleTest, .blockList] }
     private var systemTabs: [SidebarTab] { [.settings] }
 
@@ -81,6 +83,8 @@ struct MainView: View {
                 OverviewView()
             case .proxies:
                 ProxiesView()
+            case .proxyChain:
+                ProxyChainView()
             case .ruleOverview:
                 RuleOverviewView()
             case .routeRules:

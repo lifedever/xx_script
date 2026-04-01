@@ -335,16 +335,27 @@ class ConfigEngine: @unchecked Sendable {
         let allProxyNodes = proxies.values.flatMap { $0 }.filter { seenTags.insert($0.tag).inserted }
         runtime.outbounds.append(contentsOf: allProxyNodes)
 
-        // Auto-fill update_interval for remote rule sets that don't have one
-        let defaultInterval = UserDefaults.standard.integer(forKey: "ruleSetUpdateInterval")
-        let intervalHours = defaultInterval > 0 ? defaultInterval : 24
+        // Convert remote rule sets to local when the file has been downloaded by BoxX.
+        // This ensures sing-box reads from disk (not its own cache.db), so rule set
+        // updates via the "update" button take effect immediately on reload.
+        let rulesDir = baseDir.appendingPathComponent("rules")
         if var ruleSets = runtime.route.ruleSet {
             for i in ruleSets.indices {
                 guard case .object(var dict) = ruleSets[i],
                       dict["type"]?.stringValue == "remote",
-                      dict["update_interval"] == nil else { continue }
-                dict["update_interval"] = .string("\(intervalHours)h0m0s")
-                ruleSets[i] = .object(dict)
+                      let tag = dict["tag"]?.stringValue else { continue }
+                let format = dict["format"]?.stringValue ?? "binary"
+                let ext = format == "binary" ? "srs" : "json"
+                let localFile = rulesDir.appendingPathComponent("\(tag).\(ext)")
+                if FileManager.default.fileExists(atPath: localFile.path) {
+                    // Rewrite as local rule set pointing to the downloaded file
+                    dict["type"] = .string("local")
+                    dict["path"] = .string(localFile.path)
+                    dict.removeValue(forKey: "url")
+                    dict.removeValue(forKey: "download_detour")
+                    dict.removeValue(forKey: "update_interval")
+                    ruleSets[i] = .object(dict)
+                }
             }
             runtime.route.ruleSet = ruleSets
         }
