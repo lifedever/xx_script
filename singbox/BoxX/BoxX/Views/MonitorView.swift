@@ -53,6 +53,12 @@ struct MonitorView: View {
         return NSWorkspace.shared.icon(forFile: appPath)
     }
 
+    private func resetMonitorState() {
+        selection = .tab(.connections)
+        groupTab = .app
+        connectionSummary = []
+    }
+
     var body: some View {
         NavigationSplitView {
             VStack(spacing: 0) {
@@ -99,16 +105,22 @@ struct MonitorView: View {
             }
             .navigationSplitViewColumnWidth(min: 150, ideal: 190, max: 240)
         } detail: {
-            switch currentTab {
-            case .connections:
+            ZStack {
                 ConnectionsView(groupFilter: groupFilter, onConnectionsUpdate: { conns in
                     connectionSummary = conns
                 })
-            case .logs:
-                LogsView()
+                .opacity(currentTab == .connections ? 1 : 0)
+                .allowsHitTesting(currentTab == .connections)
+
+                if currentTab == .logs {
+                    LogsView()
+                }
             }
         }
         .frame(minWidth: 700, minHeight: 400)
+        .onReceive(NotificationCenter.default.publisher(for: .monitorWindowOpened)) { _ in
+            resetMonitorState()
+        }
     }
 
     @ViewBuilder

@@ -105,6 +105,9 @@
 "connections.detail.outbound_chain" = "Outbound Chain";
 "connections.detail.traffic" = "Traffic";
 "connections.detail.connection_info" = "Connection Info";
+"connections.reconnect" = "Reconnect";
+"connections.close_filtered" = "Close Current";
+"connections.ctx.block" = "Block Domain";
 "connections.pause" = "Pause";
 "connections.resume" = "Resume";
 "connections.clear" = "Clear";
@@ -138,6 +141,21 @@
 "subs.save_and_update" = "Save & Update Subscriptions";
 "subs.updating" = "Updating subscriptions…";
 "subs.update_complete" = "Subscriptions updated successfully";
+
+// Block List
+"block.search" = "Search…";
+"block.count" = "%d blocked";
+"block.add" = "Add";
+"block.clear" = "Clear All";
+"block.delete" = "Delete";
+"block.empty_title" = "No Blocked Domains";
+"block.empty_desc" = "Add domains or IPs to block them at the network level.";
+"block.type" = "Type";
+"block.value" = "Value";
+"block.add_title" = "Add Block Entries";
+"block.add_desc" = "Enter domains or IPs to block, one per line.\nDomains will match as suffix (e.g. example.com also blocks sub.example.com).";
+"block.cancel" = "Cancel";
+"block.confirm" = "Block";
 
 // Logs
 "logs.auto_scroll" = "Auto-scroll";

@@ -9,6 +9,7 @@ enum SidebarTab: String, CaseIterable {
     case ruleSets = "规则集"
     case builtinRules = "服务分流"
     case ruleTest = "规则测试"
+    case blockList = "封锁列表"
     case regionGroups = "地区分组"
     case subscriptions = "订阅"
     case settings = "设置"
@@ -23,6 +24,7 @@ enum SidebarTab: String, CaseIterable {
         case .ruleSets: return "tray.2"
         case .builtinRules: return "shield.checkered"
         case .ruleTest: return "target"
+        case .blockList: return "nosign"
         case .regionGroups: return "globe"
         case .subscriptions: return "antenna.radiowaves.left.and.right"
         case .settings: return "gearshape"
@@ -36,7 +38,7 @@ struct MainView: View {
     @State private var selectedTab: SidebarTab = .overview
 
     private var sourceTabs: [SidebarTab] { [.builtinRules, .regionGroups, .subscriptions] }
-    private var ruleTabs: [SidebarTab] { [.routeRules, .dnsRules, .ruleSets, .ruleTest] }
+    private var ruleTabs: [SidebarTab] { [.routeRules, .dnsRules, .ruleSets, .ruleTest, .blockList] }
     private var systemTabs: [SidebarTab] { [.settings] }
 
     var body: some View {
@@ -68,7 +70,7 @@ struct MainView: View {
                     Label("监控", systemImage: "waveform.badge.magnifyingglass")
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                        .onTapGesture { openWindow(id: "monitor") }
+                        .onTapGesture { openMonitorWindow() }
                 }
             }
             .listStyle(.sidebar)
@@ -95,6 +97,8 @@ struct MainView: View {
                 RegionGroupsView()
             case .subscriptions:
                 SubscriptionsView()
+            case .blockList:
+                BlockListView()
             case .settings:
                 SettingsView()
             }

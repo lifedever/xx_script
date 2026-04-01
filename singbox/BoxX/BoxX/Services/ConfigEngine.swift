@@ -352,6 +352,48 @@ class ConfigEngine: @unchecked Sendable {
         // Enable process detection for monitoring
         runtime.route.unknownFields["find_process"] = .bool(true)
 
+        // Inject block-custom rule set if file exists and is non-empty
+        let blockFile = baseDir.appendingPathComponent("rules/block-custom.json")
+        if FileManager.default.fileExists(atPath: blockFile.path),
+           let blockData = try? Data(contentsOf: blockFile),
+           let blockJSON = try? JSONSerialization.jsonObject(with: blockData) as? [String: Any],
+           let blockRules = blockJSON["rules"] as? [[String: Any]], !blockRules.isEmpty {
+            // Add local rule_set definition
+            let ruleSetEntry: JSONValue = .object([
+                "type": .string("local"),
+                "tag": .string("block-custom"),
+                "format": .string("source"),
+                "path": .string(blockFile.path),
+            ])
+            var ruleSets = runtime.route.ruleSet ?? []
+            if !ruleSets.contains(where: { $0["tag"]?.stringValue == "block-custom" }) {
+                ruleSets.append(ruleSetEntry)
+                runtime.route.ruleSet = ruleSets
+            }
+            // Add reject rule at the front of route.rules (after system rules)
+            var rules = runtime.route.rules ?? []
+            if !rules.contains(where: {
+                $0["rule_set"]?.arrayValue?.contains(where: { $0.stringValue == "block-custom" }) == true
+            }) {
+                let rejectRule: JSONValue = .object([
+                    "rule_set": .array([.string("block-custom")]),
+                    "action": .string("reject"),
+                ])
+                // Insert after system rules (sniff, hijack-dns, ip_is_private, clash_mode)
+                let systemActions: Set<String> = ["sniff", "hijack-dns", "reject"]
+                var insertIdx = 0
+                for rule in rules {
+                    let action = rule["action"]?.stringValue ?? ""
+                    let isSystem = rule["ip_is_private"] != nil || rule["clash_mode"] != nil ||
+                                   rule["rules"] != nil || systemActions.contains(action)
+                    guard isSystem else { break }
+                    insertIdx += 1
+                }
+                rules.insert(rejectRule, at: insertIdx)
+                runtime.route.rules = rules
+            }
+        }
+
         // Inject urltest settings from UserDefaults
         let ud = UserDefaults.standard
         let testURL = ud.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"

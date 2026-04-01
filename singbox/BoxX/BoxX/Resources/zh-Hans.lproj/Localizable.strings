@@ -105,6 +105,9 @@
 "connections.detail.outbound_chain" = "出站链路";
 "connections.detail.traffic" = "流量";
 "connections.detail.connection_info" = "连接信息";
+"connections.reconnect" = "重连";
+"connections.close_filtered" = "关闭当前";
+"connections.ctx.block" = "封锁域名";
 "connections.pause" = "暂停";
 "connections.resume" = "继续";
 "connections.clear" = "清空";
@@ -138,6 +141,21 @@
 "subs.save_and_update" = "保存并更新订阅";
 "subs.updating" = "正在更新订阅…";
 "subs.update_complete" = "订阅更新完成";
+
+// Block List
+"block.search" = "搜索…";
+"block.count" = "%d 条封锁规则";
+"block.add" = "添加";
+"block.clear" = "全部清空";
+"block.delete" = "删除";
+"block.empty_title" = "暂无封锁规则";
+"block.empty_desc" = "添加域名或 IP 以在网络层封锁它们。";
+"block.type" = "类型";
+"block.value" = "值";
+"block.add_title" = "添加封锁条目";
+"block.add_desc" = "输入要封锁的域名或 IP，每行一个。\n域名以后缀匹配（如 example.com 也会封锁 sub.example.com）。";
+"block.cancel" = "取消";
+"block.confirm" = "封锁";
 
 // Logs
 "logs.auto_scroll" = "自动滚动";

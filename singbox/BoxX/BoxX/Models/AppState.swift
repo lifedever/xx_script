@@ -98,6 +98,14 @@ final class AppState {
     func applyConfig() async {
         guard isRunning, pendingReload else { return }
 
+        // Regenerate runtime-config.json (picks up block list, rule changes, etc.)
+        do {
+            try configEngine.deployRuntime()
+        } catch {
+            showAlert("生成运行配置失败: \(error.localizedDescription)")
+            return
+        }
+
         // Validate config before applying
         let rtPath = configEngine.baseDir.appendingPathComponent("runtime-config.json").path
         let valid = await Task.detached {

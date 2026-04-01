@@ -103,12 +103,10 @@ struct ConnectionsView: View {
             debouncedSearchText = searchText
         }
         .onAppear {
-            wsTask?.cancel()
-            startStreaming()
+            if wsTask == nil { startStreaming() }
         }
-        .onDisappear {
-            wsTask?.cancel()
-            wsClient.disconnect()
+        .onReceive(NotificationCenter.default.publisher(for: .monitorWindowOpened)) { _ in
+            reconnect()
         }
     }
 
@@ -140,6 +138,13 @@ struct ConnectionsView: View {
                 .monospacedDigit()
                 .foregroundStyle(.blue)
 
+            // Reconnect
+            Button { reconnect() } label: {
+                Image(systemName: "arrow.trianglehead.2.counterclockwise")
+            }
+            .help(String(localized: "connections.reconnect"))
+            .controlSize(.small)
+
             // Pause / Resume
             Button {
                 isPaused.toggle()
@@ -164,6 +169,18 @@ struct ConnectionsView: View {
             }
             .help(String(localized: "connections.clear"))
             .controlSize(.small)
+
+            // Close filtered connections
+            Button(String(localized: "connections.close_filtered")) {
+                let ids = filteredConnections.filter { !$0.isClosed }.map(\.id)
+                Task {
+                    for id in ids {
+                        try? await appState.api.closeConnection(id: id)
+                    }
+                }
+            }
+            .controlSize(.small)
+            .disabled(filteredConnections.allSatisfy(\.isClosed))
 
             // Disconnect All
             Button(String(localized: "connections.close_all")) {
@@ -290,6 +307,15 @@ struct ConnectionsView: View {
                     addRuleConnection = conn
                     showAddRule = true
                 }
+                Button(String(localized: "connections.ctx.block")) {
+                    let domain = conn.domainForRule
+                    let type = BlockListManager.detectType(domain)
+                    let value = BlockListManager.normalizeValue(domain, type: type)
+                    let entry = BlockEntry(type: type, value: value)
+                    let mgr = BlockListManager(baseDir: appState.configEngine.baseDir)
+                    mgr.add(entries: [entry])
+                    appState.pendingReload = true
+                }
                 Divider()
                 Button(String(localized: "connections.ctx.close")) {
                     Task { try? await appState.api.closeConnection(id: conn.id) }
@@ -324,6 +350,17 @@ struct ConnectionsView: View {
     private func connectionChainDisplay(_ conn: Connection) -> String {
         let reversed = conn.chains.reversed()
         return reversed.joined(separator: " \u{2192} ")
+    }
+
+    private func reconnect() {
+        wsTask?.cancel()
+        wsClient.disconnect()
+        connections.removeAll()
+        downloadTotal = 0
+        uploadTotal = 0
+        selectedID = nil
+        isPaused = false
+        startStreaming()
     }
 
     private func startStreaming() {

@@ -11,11 +11,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if shouldReallyQuit { return .terminateNow }
-        // Cmd+Q: only hide the main window, keep monitor window open
+        // Hide all windows, keep menu bar alive
         for window in NSApp.windows where window.isVisible && window.canBecomeMain {
-            if window.identifier?.rawValue == "main" || window.title == "BoxX" {
-                window.orderOut(nil)
-            }
+            window.orderOut(nil)
         }
         NSApp.setActivationPolicy(.accessory)
         return .terminateCancel
@@ -147,7 +145,10 @@ struct BoxXApp: App {
         Window("监控", id: "monitor") {
             MonitorView()
                 .environment(appState)
-                .onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate() }
+                .onAppear {
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate()
+                }
                 .onDisappear {
                     if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) {
                         NSApp.setActivationPolicy(.accessory)
@@ -188,10 +189,11 @@ struct BoxXApp: App {
 func openMonitorWindow() {
     NSApp.setActivationPolicy(.regular)
     NSApp.activate(ignoringOtherApps: true)
-    // If monitor window already exists, just bring it forward
+    // If monitor window already exists, just bring it forward and tell views to reconnect
     for window in NSApp.windows where window.title == "监控" {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
+        NotificationCenter.default.post(name: .monitorWindowOpened, object: nil)
         return
     }
     // Otherwise post notification so SwiftUI openWindow can handle it
@@ -204,6 +206,7 @@ extension Notification.Name {
     static let subscriptionLogStart = Notification.Name("com.boxx.subscriptionLogStart")
     static let subscriptionUpdateFailed = Notification.Name("com.boxx.subscriptionUpdateFailed")
     static let subscriptionRetry = Notification.Name("com.boxx.subscriptionRetry")
+    static let monitorWindowOpened = Notification.Name("com.boxx.monitorWindowOpened")
 }
 
 /// Holds a strong reference to the AppKit MenuBarController so the NSStatusItem stays alive.

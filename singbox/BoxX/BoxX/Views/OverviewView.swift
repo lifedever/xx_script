@@ -134,7 +134,7 @@ struct OverviewView: View {
                                     .font(.title3.monospacedDigit().bold())
                             }
                             Spacer()
-                            Button("监控") { openWindow(id: "monitor") }
+                            Button("监控") { openMonitorWindow() }
                                 .controlSize(.small)
                                 .buttonStyle(.bordered)
                         }

@@ -109,6 +109,36 @@ struct GeneralSettingsTab: View {
                     .foregroundStyle(.tertiary)
             }
 
+            Section("Helper 服务") {
+                HStack {
+                    if appState.singBoxProcess.isPlistInstalled() {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("已安装")
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                        Text("未安装")
+                    }
+                    Spacer()
+                    if appState.singBoxProcess.isPlistInstalled() {
+                        Button("重装") {
+                            reinstallHelper()
+                        }
+                        Button("卸载") {
+                            uninstallHelper()
+                        }
+                        .foregroundStyle(.red)
+                    } else {
+                        Button("安装") {
+                            installHelper()
+                        }
+                    }
+                }
+                Text("Helper 管理 sing-box 守护进程的启停和免密操作")
+                    .foregroundStyle(.tertiary)
+            }
+
             Section("配置管理") {
                 HStack(spacing: 10) {
                     Button("打开配置目录") {
@@ -209,6 +239,68 @@ struct GeneralSettingsTab: View {
                 err.alertStyle = .critical
                 err.runModal()
             }
+    }
+
+    private func installHelper() {
+        Task {
+            do {
+                try appState.configEngine.deployRuntime()
+                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+                StatusPoller.shared.nudge(appState: appState)
+            } catch {
+                appState.showAlert("安装失败: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func reinstallHelper() {
+        let alert = NSAlert()
+        alert.messageText = "确认重装 Helper？"
+        alert.informativeText = "将重新安装守护进程和 sudoers 免密规则，需要输入管理员密码。"
+        alert.addButton(withTitle: "重装")
+        alert.addButton(withTitle: "取消")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        Task {
+            // Stop first
+            await appState.singBoxProcess.stop()
+            // Remove existing plist
+            await appState.singBoxProcess.removePlist()
+            // Reinstall
+            do {
+                try appState.configEngine.deployRuntime()
+                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
+                StatusPoller.shared.nudge(appState: appState)
+                let ok = NSAlert()
+                ok.messageText = "重装成功"
+                ok.informativeText = "Helper 已重新安装并启动。"
+                ok.runModal()
+            } catch {
+                appState.showAlert("重装失败: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func uninstallHelper() {
+        let alert = NSAlert()
+        alert.messageText = "确认卸载 Helper？"
+        alert.informativeText = "将停止 sing-box 服务并移除守护进程。卸载后需要重新安装才能使用。"
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "卸载")
+        alert.addButton(withTitle: "取消")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        Task {
+            await appState.singBoxProcess.stop()
+            await appState.singBoxProcess.removePlist()
+            StatusPoller.shared.nudge(appState: appState)
+            let ok = NSAlert()
+            ok.messageText = "卸载完成"
+            ok.informativeText = "Helper 已卸载，sing-box 服务已停止。"
+            ok.runModal()
+        }
     }
 
     private func resetConfig() {

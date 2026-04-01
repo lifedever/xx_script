@@ -27,6 +27,7 @@
 		47453C12227D762DD0C77C18 /* RouteRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */; };
 		51025126A8E2ED63C6A795CD /* ProxyGroupEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */; };
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
+		5E291D591D3AA6A0E69EA68D /* BlockListManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E8A35858142C0EB93250D /* BlockListManager.swift */; };
 		60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978990E5B126418AE87D12CB /* SingBoxConfig.swift */; };
 		633D1C59207385917825B026 /* OutboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */; };
 		6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */; };
@@ -68,6 +69,7 @@
 		E27B3A934011CD4D322519DD /* ConfigEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDCA672896DFD324138EC9E /* ConfigEngineTests.swift */; };
 		E79724C91A58535D716F7685 /* DNSConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3894A1ADD33B80A2ED9DF3 /* DNSConfig.swift */; };
 		E90CA122DD57879F17A9FDA6 /* ClashWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */; };
+		E99A995D07B5B1D439F96D30 /* BlockListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520AB0AD273B75F2BD926D23 /* BlockListView.swift */; };
 		EA7D5850BAD79996E1D08848 /* SingBoxJSONParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E933712F9588A4920A916AD /* SingBoxJSONParser.swift */; };
 		ED796EFF6EB83CE60430DA4E /* RingBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B2E2745BD1FB6D6EC8B7F3 /* RingBufferTests.swift */; };
 		F2796695A657AA73B939B202 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAEE62A30EDCED844892451 /* ConnectionsView.swift */; };
@@ -120,6 +122,7 @@
 		3E933712F9588A4920A916AD /* SingBoxJSONParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingBoxJSONParser.swift; sourceTree = "<group>"; };
 		46F312446DB749C20DF79E3D /* RuleSetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetManager.swift; sourceTree = "<group>"; };
 		4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClashWebSocket.swift; sourceTree = "<group>"; };
+		520AB0AD273B75F2BD926D23 /* BlockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockListView.swift; sourceTree = "<group>"; };
 		5402AF02BFFEE79DF3A8DE7B /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		55BF15A9C4FD0CD05E132272 /* RuleSetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSetsView.swift; sourceTree = "<group>"; };
 		5975E85C1AC288ECD9ACB896 /* RouteRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRulesView.swift; sourceTree = "<group>"; };
@@ -138,6 +141,7 @@
 		9AB458E77F97DBFFAE29805E /* BoxX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoxX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F9360A996360ED7484C86E3 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
 		A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboundConfig.swift; sourceTree = "<group>"; };
+		A81E8A35858142C0EB93250D /* BlockListManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockListManager.swift; sourceTree = "<group>"; };
 		A98575A5D775E837DBA98714 /* ExperimentalConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalConfig.swift; sourceTree = "<group>"; };
 		AB3894A1ADD33B80A2ED9DF3 /* DNSConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSConfig.swift; sourceTree = "<group>"; };
 		AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueTests.swift; sourceTree = "<group>"; };
@@ -196,6 +200,7 @@
 			isa = PBXGroup;
 			children = (
 				7D1F107044EE7E7A2AC75600 /* AutoGrouper.swift */,
+				A81E8A35858142C0EB93250D /* BlockListManager.swift */,
 				33FF2D74D270C7533F9221B0 /* ClashAPI.swift */,
 				4EA0BF8E5758326717E287B6 /* ClashWebSocket.swift */,
 				7C95AF63924DE05973F05781 /* ClashYAMLParser.swift */,
@@ -286,6 +291,7 @@
 			isa = PBXGroup;
 			children = (
 				B338DCB7DE90B84AD9FC8007 /* AddRuleSheet.swift */,
+				520AB0AD273B75F2BD926D23 /* BlockListView.swift */,
 				67565F801F9A7191D8493FEC /* BuiltinRulesView.swift */,
 				8CAEE62A30EDCED844892451 /* ConnectionsView.swift */,
 				2305BD26AC7E82D1077AE522 /* DNSRulesView.swift */,
@@ -516,6 +522,8 @@
 				C98DC03EB3377D52C59A0277 /* AddRuleSheet.swift in Sources */,
 				A3072BC62B8FEB7F752979F1 /* AppState.swift in Sources */,
 				C2DA449DAC046D928ADFB90E /* AutoGrouper.swift in Sources */,
+				5E291D591D3AA6A0E69EA68D /* BlockListManager.swift in Sources */,
+				E99A995D07B5B1D439F96D30 /* BlockListView.swift in Sources */,
 				A4833F03D896633115A6F126 /* BoxXApp.swift in Sources */,
 				A6C70809E9CF4B3F59BB4C45 /* BuiltinRuleSet.swift in Sources */,
 				C9A87347AF25126EEBD846AF /* BuiltinRulesView.swift in Sources */,

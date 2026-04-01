@@ -450,41 +450,38 @@ struct RuleSetsView: View {
     /// Force sing-box to re-download remote rule sets by clearing cache and reloading.
     /// sing-box manages its own rule set downloads via update_interval and cache.db.
     private func forceUpdateRuleSets() async {
-        let remoteTags = (appState.configEngine.config.route.ruleSet ?? [])
-            .filter { $0["type"]?.stringValue == "remote" }
-            .compactMap { $0["tag"]?.stringValue }
+        let ruleSets = appState.configEngine.config.route.ruleSet ?? []
+        let remoteRuleSets = ruleSets.filter { $0["type"]?.stringValue == "remote" }
+        let remoteTags = remoteRuleSets.compactMap { $0["tag"]?.stringValue }
         for tag in remoteTags {
             ruleSetUpdateStatus[tag] = .updating
         }
 
-        // Delete sing-box cache (owned by root) so it re-downloads all remote rule sets on reload
-        let cachePath = appState.configEngine.baseDir.appendingPathComponent("cache.db").path
-        let rm = Process()
-        rm.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
-        rm.arguments = ["/bin/rm", "-f", cachePath]
-        rm.standardOutput = FileHandle.nullDevice
-        rm.standardError = FileHandle.nullDevice
-        try? rm.run()
-        rm.waitUntilExit()
+        // Delete cached rule set files so sing-box re-downloads them on reload
+        let rulesDir = appState.configEngine.baseDir.appendingPathComponent("rules")
+        let fm = FileManager.default
+        for rs in remoteRuleSets {
+            guard let tag = rs["tag"]?.stringValue else { continue }
+            let format = rs["format"]?.stringValue ?? "binary"
+            let ext = format == "binary" ? "srs" : "json"
+            let cached = rulesDir.appendingPathComponent("\(tag).\(ext)").path
+            try? fm.removeItem(atPath: cached)
+        }
 
         // Hot-reload sing-box to trigger re-download
         do {
             try appState.configEngine.deployRuntime(skipValidation: true)
             await appState.singBoxProcess.reload()
 
-            // Poll for cache.db to reappear (sing-box creates it after downloading rule sets)
-            let fm = FileManager.default
-            var success = false
-            for _ in 0..<15 {  // up to 15 seconds
-                try? await Task.sleep(for: .seconds(1))
-                if fm.fileExists(atPath: cachePath) {
-                    success = true
-                    break
-                }
-            }
+            // Wait for sing-box to re-download rule sets
+            try? await Task.sleep(for: .seconds(5))
 
+            // Check which files were re-downloaded
             for tag in remoteTags {
-                ruleSetUpdateStatus[tag] = success ? .success : .failed("更新超时")
+                let format = remoteRuleSets.first { $0["tag"]?.stringValue == tag }?["format"]?.stringValue ?? "binary"
+                let ext = format == "binary" ? "srs" : "json"
+                let cached = rulesDir.appendingPathComponent("\(tag).\(ext)").path
+                ruleSetUpdateStatus[tag] = fm.fileExists(atPath: cached) ? .success : .failed("下载失败")
             }
         } catch {
             for tag in remoteTags {
