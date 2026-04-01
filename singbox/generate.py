@@ -696,7 +696,7 @@ def main():
                 "enabled": True,
                 "path": os.path.join(OUTPUT_DIR, "cache.db"),
                 "store_fakeip": True,
-                "store_rdrc": True,
+                "store_rdrc": False,
             },
             "clash_api": {
                 "external_controller": "127.0.0.1:9091",

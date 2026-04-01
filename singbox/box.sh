@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG="$SCRIPT_DIR/config.json"
 PID_FILE="$SCRIPT_DIR/.sing-box.pid"
 LOG_FILE="$SCRIPT_DIR/sing-box.log"
+CACHE_FILE="$SCRIPT_DIR/cache.db"
 PANEL_URL="https://yacd.metacubex.one"
 API_ADDR="127.0.0.1:9091"
 PROXY_PORT=7890

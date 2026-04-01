@@ -308,6 +308,37 @@ class SingBoxProcess {
         FileManager.default.fileExists(atPath: plistPath)
     }
 
+    func removePlist() async {
+        await runOnBackground {
+            // Unload daemon
+            let unload = Process()
+            unload.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+            unload.arguments = ["-n", "launchctl", "bootout", "system/\(self.plistLabel)"]
+            unload.standardOutput = FileHandle.nullDevice
+            unload.standardError = FileHandle.nullDevice
+            try? unload.run()
+            unload.waitUntilExit()
+        }
+        // Remove plist file (needs osascript for root access)
+        let script = """
+        rm -f '\(plistPath)'
+        rm -f /etc/sudoers.d/boxx-singbox
+        """
+        let scriptPath = "/tmp/boxx-uninstall-helper.sh"
+        try? script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: scriptPath)
+        await runOnBackground {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            proc.arguments = ["-e", "do shell script \"\(scriptPath)\" with administrator privileges"]
+            proc.standardOutput = FileHandle.nullDevice
+            proc.standardError = FileHandle.nullDevice
+            try? proc.run()
+            proc.waitUntilExit()
+        }
+        try? FileManager.default.removeItem(atPath: scriptPath)
+    }
+
     private func updatePlistConfigPath(_ configPath: String) async {
         guard let data = FileManager.default.contents(atPath: plistPath),
               let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],

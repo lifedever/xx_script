@@ -10,6 +10,7 @@ actor WakeObserver {
     private var observation: NSObjectProtocol?
     private var pathMonitor: NWPathMonitor?
     private var lastPathStatus: NWPath.Status?
+    private var pendingPathChange: Task<Void, Never>?
     private let logFile: String = {
         let fm = FileManager.default
         let sharedDir = "/Library/Application Support/BoxX"
@@ -73,10 +74,16 @@ actor WakeObserver {
             return
         }
 
-        log("Network restored, starting recovery...")
-        // Brief delay to let interfaces stabilize
-        try? await Task.sleep(for: .seconds(2))
-        await recover(source: "network-change")
+        // Debounce: cancel any pending recovery and wait 3s for network to stabilize.
+        // Prevents rapid unsatisfied↔satisfied flips from spawning multiple concurrent recoveries
+        // which can race with SwiftUI rendering and cause EXC_BAD_ACCESS.
+        pendingPathChange?.cancel()
+        pendingPathChange = Task {
+            log("Network restored, waiting 3s for stabilization...")
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            await recover(source: "network-change")
+        }
     }
 
     private func handleWake() async {
@@ -98,17 +105,19 @@ actor WakeObserver {
             return
         }
 
-        // Step 1: 轻量修复 — 刷 DNS + 清连接（解决大多数情况）
-        log("[\(source)] Step 1: flush DNS + close connections")
+        // Step 1: 刷 DNS + 清连接 + 热重载配置（重建所有 outbound 连接池）
+        log("[\(source)] Step 1: flush DNS + close connections + reload config")
         await MainActor.run { singBoxProcess.flushDNS() }
         try? await api.closeAllConnections()
+        let runtimePath = await MainActor.run { configEngine.baseDir.appendingPathComponent("runtime-config.json").path }
+        try? await api.reloadConfig(path: runtimePath)
         try? await Task.sleep(for: .seconds(2))
 
         let test1 = await probeExternalConnectivity()
         log("[\(source)] Step 1 result: \(test1 ? "OK" : "FAIL")")
         if test1 { return }
 
-        // Step 2: 热重载 — SIGHUP 让 sing-box 刷新内部状态（TUN/路由/DNS 服务）
+        // Step 2: SIGHUP 重启 — 完整刷新 TUN/路由/DNS 服务
         log("[\(source)] Step 2: SIGHUP hot-reload + flush DNS + close connections")
         await MainActor.run { Task { await singBoxProcess.reload() } }
         try? await Task.sleep(for: .seconds(3))
@@ -119,6 +128,28 @@ actor WakeObserver {
         let test2 = await probeExternalConnectivity()
         log("[\(source)] Step 2 result: \(test2 ? "OK" : "FAIL")")
         if test2 { return }
+
+        // Step 3: 完全重启进程，彻底销毁出站连接池（不清 cache.db，保留节点选择）
+        log("[\(source)] Step 3: full process restart via launchctl kickstart -k")
+        await MainActor.run {
+            Task {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+                proc.arguments = ["-n", "launchctl", "kickstart", "-k", "system/com.boxx.singbox"]
+                proc.standardOutput = FileHandle.nullDevice
+                proc.standardError = FileHandle.nullDevice
+                try? proc.run()
+                proc.waitUntilExit()
+            }
+        }
+        // 等待进程重启并就绪
+        try? await Task.sleep(for: .seconds(5))
+        await MainActor.run { singBoxProcess.flushDNS() }
+        try? await Task.sleep(for: .seconds(2))
+
+        let test3 = await probeExternalConnectivity()
+        log("[\(source)] Step 3 result: \(test3 ? "OK" : "FAIL")")
+        if test3 { return }
 
         log("[\(source)] All recovery steps failed, user may need to manually restart")
     }
