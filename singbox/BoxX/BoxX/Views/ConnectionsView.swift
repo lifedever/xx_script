@@ -359,6 +359,8 @@ struct ConnectionsView: View {
         downloadTotal = 0
         uploadTotal = 0
         selectedID = nil
+        searchText = ""
+        debouncedSearchText = ""
         isPaused = false
         startStreaming()
     }

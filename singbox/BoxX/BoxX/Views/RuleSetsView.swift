@@ -90,18 +90,17 @@ struct RuleSetsView: View {
                             Text("#")
                                 .frame(width: 30, alignment: .leading)
                             Text("标签")
-                                .frame(width: 180, alignment: .leading)
+                                .frame(width: 150, alignment: .leading)
                             Text("类型")
                                 .frame(width: 70, alignment: .leading)
                             Text("URL/路径")
-                                .frame(minWidth: 160, alignment: .leading)
-                            Spacer()
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             Text("格式")
-                                .frame(width: 60, alignment: .leading)
+                                .frame(width: 50, alignment: .leading)
                             Text("出站")
-                                .frame(width: 100, alignment: .leading)
+                                .frame(width: 80, alignment: .leading)
                             Text("更新时间")
-                                .frame(width: 70, alignment: .trailing)
+                                .frame(width: 80, alignment: .trailing)
                             Text("操作")
                                 .frame(width: 200, alignment: .center)
                         }
@@ -212,7 +211,7 @@ struct RuleSetsView: View {
             Text(tag)
                 .monospaced()
                 .lineLimit(1)
-                .frame(width: 180, alignment: .leading)
+                .frame(width: 150, alignment: .leading)
 
             // Type badge column
             Text(type)
@@ -229,15 +228,13 @@ struct RuleSetsView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(minWidth: 160, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .help(location)
-
-            Spacer()
 
             // Format column
             Text(format)
                 .foregroundStyle(.tertiary)
-                .frame(width: 60, alignment: .leading)
+                .frame(width: 50, alignment: .leading)
 
             // Outbound column (plain text, no picker)
             Group {
@@ -250,7 +247,7 @@ struct RuleSetsView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .frame(width: 100, alignment: .leading)
+            .frame(width: 80, alignment: .leading)
 
             // 文件更新时间
             if isRemote {
@@ -261,13 +258,13 @@ struct RuleSetsView: View {
                 Text(mtime.map { Self.dateTimeFormatter.string(from: $0) } ?? "—")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                    .frame(width: 70, alignment: .trailing)
+                    .frame(width: 80, alignment: .trailing)
             } else {
-                Spacer().frame(width: 70)
+                Spacer().frame(width: 80)
             }
 
             // 操作按钮
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Button("查看") {
                     viewingRuleSet = ruleSet
                 }

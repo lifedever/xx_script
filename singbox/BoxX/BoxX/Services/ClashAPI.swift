@@ -47,12 +47,38 @@ actor ClashAPI {
         _ = try await put("/proxies/\(encoded)", body: body)
     }
 
-    func getDelay(name: String, url: String = "http://www.gstatic.com/generate_204", timeout: Int = 8000) async throws -> Int {
+    func getDelay(name: String, url: String = "http://www.gstatic.com/generate_204", timeout: Int = 5000) async throws -> Int {
         let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let encodedURL = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url
-        let data = try await get("/proxies/\(encoded)/delay?url=\(encodedURL)&timeout=\(timeout)")
+        let path = "/proxies/\(encoded)/delay?url=\(encodedURL)&timeout=\(timeout)"
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = "GET"
+        // Allow enough time for sing-box to complete the delay test
+        request.timeoutInterval = TimeInterval(timeout / 1000 + 3)
+        addAuth(&request)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
+            throw ClashAPIError.httpError((response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
         let result = try JSONDecoder().decode([String: Int].self, from: data)
         return result["delay"] ?? 0
+    }
+
+    /// Test all proxies in a group at once via Clash group delay API.
+    /// Returns a dictionary of node name → delay (ms). Nodes with 0 delay are timed out.
+    func getGroupDelay(group: String, url: String = "http://cp.cloudflare.com/generate_204", timeout: Int = 5000) async throws -> [String: Int] {
+        let encoded = group.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? group
+        let encodedURL = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url
+        let path = "/group/\(encoded)/delay?url=\(encodedURL)&timeout=\(timeout)"
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = "GET"
+        request.timeoutInterval = TimeInterval(timeout / 1000 + 5)
+        addAuth(&request)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
+            throw ClashAPIError.httpError((response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
+        return try JSONDecoder().decode([String: Int].self, from: data)
     }
 
     func getRules() async throws -> [Rule] {

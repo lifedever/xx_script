@@ -329,6 +329,14 @@ class ConfigEngine: @unchecked Sendable {
 
     func buildRuntimeConfig() -> SingBoxConfig {
         var runtime = config
+
+        // Remove TUN inbound when disabled in settings (default: enabled)
+        let tunEnabled = UserDefaults.standard.object(forKey: "tunEnabled") as? Bool ?? true
+        if !tunEnabled {
+            runtime.inbounds.removeAll { $0["type"]?.stringValue == "tun" }
+            // Also disable auto_route/strict_route related route settings
+            runtime.route.unknownFields.removeValue(forKey: "auto_detect_interface")
+        }
         // Deduplicate proxy nodes across subscriptions (same tag = keep first)
         let existingTags = Set(runtime.outbounds.map { $0.tag })
         var seenTags = existingTags
@@ -407,7 +415,7 @@ class ConfigEngine: @unchecked Sendable {
 
         // Inject urltest settings from UserDefaults
         let ud = UserDefaults.standard
-        let testURL = ud.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"
+        let testURL = ud.string(forKey: "speedTestURL") ?? "http://1.1.1.1/generate_204"
         let testInterval = ud.string(forKey: "urlTestInterval").flatMap({ $0.isEmpty ? nil : $0 }) ?? "3m"
         let testTolerance = ud.integer(forKey: "urlTestTolerance")
         let toleranceValue = testTolerance > 0 ? testTolerance : 50

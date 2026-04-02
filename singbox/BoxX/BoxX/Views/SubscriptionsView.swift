@@ -86,6 +86,7 @@ struct SubscriptionsView: View {
             SubscriptionEditSheet(subscription: nil) { newSub in
                 subscriptions.append(newSub)
                 saveSubscriptions()
+                Task { await updateSingle(newSub) }
             }
         }
         .sheet(item: $editingSubscription) { sub in
@@ -113,28 +114,34 @@ struct SubscriptionsView: View {
         subscriptions.removeAll { $0.name == sub.name }
         saveSubscriptions()
 
-        // Delete proxy nodes file
+        // Collect node tags before deleting the proxy file
+        let nodePrefix = "\(sub.name) · "
         let proxyFile = appState.configEngine.baseDir
             .appendingPathComponent("proxies")
             .appendingPathComponent("\(sub.name).json")
         try? FileManager.default.removeItem(at: proxyFile)
 
-        // Remove 📦subscription selector from config
+        // Remove 📦subscription selector and all its proxy node outbounds from config
         let subTag = "📦\(sub.name)"
-        appState.configEngine.config.outbounds.removeAll { $0.tag == subTag }
+        appState.configEngine.config.outbounds.removeAll { ob in
+            let tag = ob.tag
+            return tag == subTag || tag.hasPrefix(nodePrefix)
+        }
 
-        // Remove references to this subscription from all selectors
+        // Remove references to subscription group AND individual nodes from all selectors
         for i in appState.configEngine.config.outbounds.indices {
             switch appState.configEngine.config.outbounds[i] {
             case .selector(var s):
-                if s.outbounds.contains(subTag) {
-                    s.outbounds.removeAll { $0 == subTag }
+                let before = s.outbounds.count
+                s.outbounds.removeAll { $0 == subTag || $0.hasPrefix(nodePrefix) }
+                if s.outbounds.count != before {
                     if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
                     appState.configEngine.config.outbounds[i] = .selector(s)
                 }
             case .urltest(var u):
-                if u.outbounds.contains(subTag) {
-                    u.outbounds.removeAll { $0 == subTag }
+                let before = u.outbounds.count
+                u.outbounds.removeAll { $0 == subTag || $0.hasPrefix(nodePrefix) }
+                if u.outbounds.count != before {
                     if u.outbounds.isEmpty { u.outbounds = ["DIRECT"] }
                     appState.configEngine.config.outbounds[i] = .urltest(u)
                 }
@@ -142,9 +149,10 @@ struct SubscriptionsView: View {
             }
         }
 
-        // Reload config (re-reads proxies dir) and save
-        try? appState.configEngine.load()
+        // Save modified config, then reload (re-reads proxies dir), then auto-apply
         try? appState.configEngine.save(restartRequired: true)
+        try? appState.configEngine.load()
+        Task { await appState.applyConfig() }
     }
 
     private func saveSubscriptions() {
@@ -204,6 +212,11 @@ struct SubscriptionsView: View {
             if let info = result.info {
                 subscriptionInfos[sub.name] = info
             }
+            // Auto-apply: reload sing-box, flush DNS, close stale connections
+            await appState.singBoxProcess.reload()
+            appState.singBoxProcess.flushDNS()
+            try? await appState.api.closeAllConnections()
+            appState.pendingReload = false
         } catch {
             updateResults[sub.name] = .failure(error.localizedDescription)
             subLog("\(sub.name) 失败: \(error.localizedDescription)")
@@ -245,6 +258,12 @@ struct SubscriptionsView: View {
             }
         }
 
+        // Auto-apply: reload sing-box, flush DNS, close stale connections
+        subLog("正在应用配置...")
+        await appState.singBoxProcess.reload()
+        appState.singBoxProcess.flushDNS()
+        try? await appState.api.closeAllConnections()
+        appState.pendingReload = false
         subLog("全部更新完成")
         try? await Task.sleep(for: .seconds(5))
         updateResults.removeAll()

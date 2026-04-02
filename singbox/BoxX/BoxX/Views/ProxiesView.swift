@@ -461,18 +461,37 @@ struct ProxiesView: View {
     }
 
     private func testGroupLatency(_ group: ProxyGroup) {
+        let testURL = UserDefaults.standard.string(forKey: "speedTestURL") ?? "http://1.1.1.1/generate_204"
         Task {
             testingGroups.insert(group.name)
             defer { testingGroups.remove(group.name) }
+
+            // Clear previous results for this group
+            for node in group.displayAll { delays.removeValue(forKey: node) }
+
+            // Sliding window: max 10 concurrent, 3s timeout, results appear one by one
+            let nodes = group.displayAll
+            let maxConcurrent = 10
             await withTaskGroup(of: (String, Int).self) { taskGroup in
-                for node in group.displayAll {
+                var idx = 0
+                while idx < nodes.count && idx < maxConcurrent {
+                    let node = nodes[idx]
                     taskGroup.addTask {
-                        let d = (try? await appState.api.getDelay(name: node)) ?? 0
+                        let d = (try? await appState.api.getDelay(name: node, url: testURL, timeout: 3000)) ?? 0
                         return (node, d)
                     }
+                    idx += 1
                 }
                 for await (node, delay) in taskGroup {
                     delays[node] = delay
+                    if idx < nodes.count {
+                        let next = nodes[idx]
+                        taskGroup.addTask {
+                            let d = (try? await appState.api.getDelay(name: next, url: testURL, timeout: 3000)) ?? 0
+                            return (next, d)
+                        }
+                        idx += 1
+                    }
                 }
             }
         }

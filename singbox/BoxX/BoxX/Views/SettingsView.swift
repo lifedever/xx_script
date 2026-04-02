@@ -30,10 +30,11 @@ struct GeneralSettingsTab: View {
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("singboxRunAtLoad") private var singboxRunAtLoad = false
     @AppStorage("appearanceMode") private var appearanceMode = "system"
-    @AppStorage("speedTestURL") private var speedTestURL = "http://cp.cloudflare.com/generate_204"
+    @AppStorage("speedTestURL") private var speedTestURL = "http://1.1.1.1/generate_204"
     @AppStorage("urlTestInterval") private var urlTestInterval = "3m"
     @AppStorage("urlTestTolerance") private var urlTestTolerance = 50
     @AppStorage("ruleSetUpdateInterval") private var ruleSetUpdateInterval = 24
+    @AppStorage("tunEnabled") private var tunEnabled = true
     @State private var loginError: String?
 
     var body: some View {
@@ -72,10 +73,18 @@ struct GeneralSettingsTab: View {
                 .onChange(of: appearanceMode) { _, newValue in
                     applyAppearance(newValue)
                 }
+
+                Toggle("TUN 模式", isOn: $tunEnabled)
+                    .onChange(of: tunEnabled) { _, _ in
+                        appState.pendingReload = true
+                    }
+                Text("接管全部系统流量。关闭后仅作为 HTTP/SOCKS 代理，与 VPN 客户端共存时建议关闭")
+                    .foregroundStyle(.tertiary)
             }
 
             Section("URLTest 设置") {
                 Picker("测速 URL", selection: $speedTestURL) {
+                    Text("Cloudflare (IP 直连，最快)").tag("http://1.1.1.1/generate_204")
                     Text("Cloudflare").tag("http://cp.cloudflare.com/generate_204")
                     Text("Google").tag("http://www.gstatic.com/generate_204")
                     Text("Apple").tag("http://captive.apple.com/generate_204")

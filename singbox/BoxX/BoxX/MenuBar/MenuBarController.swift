@@ -131,6 +131,28 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         )
         modeItem.view = modeView
         menu.addItem(modeItem)
+
+        // ── TUN mode ──
+        let tunEnabled = UserDefaults.standard.object(forKey: "tunEnabled") as? Bool ?? true
+        let tunMenu = NSMenu()
+        let tunOnItem = NSMenuItem(title: "开启", action: #selector(setTUNOn), keyEquivalent: "")
+        tunOnItem.target = self
+        tunOnItem.state = tunEnabled ? .on : .off
+        tunMenu.addItem(tunOnItem)
+        let tunOffItem = NSMenuItem(title: "关闭", action: #selector(setTUNOff), keyEquivalent: "")
+        tunOffItem.target = self
+        tunOffItem.state = tunEnabled ? .off : .on
+        tunMenu.addItem(tunOffItem)
+        let tunItem = NSMenuItem()
+        tunItem.submenu = tunMenu
+        let tunView = ProxyGroupMenuItemView(
+            groupName: "TUN 模式",
+            nodeName: tunEnabled ? "开启" : "关闭",
+            width: 320,
+            height: 22
+        )
+        tunItem.view = tunView
+        menu.addItem(tunItem)
         menu.addItem(.separator())
 
         // ── Proxy groups ──
@@ -427,6 +449,20 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         appState.singBoxProcess.flushDNS()
     }
 
+    @objc private func setTUNOn() { setTUN(true) }
+    @objc private func setTUNOff() { setTUN(false) }
+
+    private func setTUN(_ enabled: Bool) {
+        let current = UserDefaults.standard.object(forKey: "tunEnabled") as? Bool ?? true
+        guard enabled != current else { return }
+        UserDefaults.standard.set(enabled, forKey: "tunEnabled")
+        appState.pendingReload = true
+        Task {
+            await appState.applyConfig()
+            rebuildMenuFromCache()
+        }
+    }
+
     @objc private func switchMode(_ sender: NSMenuItem) {
         guard let mode = sender.representedObject as? String else { return }
         Task {
@@ -482,6 +518,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                     NotificationCenter.default.post(name: .subscriptionUpdateFailed, object: sub)
                 }
             }
+            menuSubLog("正在应用配置...")
+            await appState.singBoxProcess.reload()
+            appState.singBoxProcess.flushDNS()
+            try? await appState.api.closeAllConnections()
+            appState.pendingReload = false
             menuSubLog("全部更新完成")
         }
     }
@@ -495,6 +536,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             do {
                 let result = try await appState.subscriptionService.updateSubscription(name: sub.name, url: url)
                 menuSubLog("\(sub.name) 完成, \(result.nodeCount) 个节点")
+                await appState.singBoxProcess.reload()
+                appState.singBoxProcess.flushDNS()
+                try? await appState.api.closeAllConnections()
+                appState.pendingReload = false
             } catch {
                 menuSubLog("\(sub.name) 失败: \(error.localizedDescription)")
                 NotificationCenter.default.post(name: .subscriptionUpdateFailed, object: sub)
@@ -519,21 +564,39 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let testView = submenu.items.first?.view as? SpeedTestMenuItemView
         testView?.setTesting(true)
 
-        let testURL = UserDefaults.standard.string(forKey: "speedTestURL") ?? "http://cp.cloudflare.com/generate_204"
-        let nodes = group.displayAll
+        let testURL = UserDefaults.standard.string(forKey: "speedTestURL") ?? "http://1.1.1.1/generate_204"
         let api = appState.api
 
+        // Clear previous results for this group
+        for node in group.displayAll {
+            delayResults.removeValue(forKey: node)
+            updateNodeMenuItem(in: submenu, node: node)
+        }
+
         Task {
+            let nodes = group.displayAll
+            let maxConcurrent = 10
             await withTaskGroup(of: (String, Int).self) { taskGroup in
-                for node in nodes {
+                var idx = 0
+                while idx < nodes.count && idx < maxConcurrent {
+                    let node = nodes[idx]
                     taskGroup.addTask {
-                        let delay = (try? await api.getDelay(name: node, url: testURL)) ?? 0
+                        let delay = (try? await api.getDelay(name: node, url: testURL, timeout: 3000)) ?? 0
                         return (node, delay)
                     }
+                    idx += 1
                 }
                 for await (node, delay) in taskGroup {
                     delayResults[node] = delay
                     updateNodeMenuItem(in: submenu, node: node)
+                    if idx < nodes.count {
+                        let next = nodes[idx]
+                        taskGroup.addTask {
+                            let delay = (try? await api.getDelay(name: next, url: testURL, timeout: 3000)) ?? 0
+                            return (next, delay)
+                        }
+                        idx += 1
+                    }
                 }
             }
             testView?.setTesting(false)
