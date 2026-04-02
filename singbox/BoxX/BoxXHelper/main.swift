@@ -267,6 +267,47 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         }
     }
 
+    // MARK: - Version
+
+    func getSingBoxVersion(withReply reply: @escaping (String?) -> Void) {
+        serialQueue.async {
+            guard FileManager.default.fileExists(atPath: HelperConstants.singBoxPath) else {
+                reply(nil)
+                return
+            }
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: HelperConstants.singBoxPath)
+            proc.arguments = ["version"]
+            proc.environment = [
+                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
+                "HOME": "/var/root",
+            ]
+            let pipe = Pipe()
+            proc.standardOutput = pipe
+            proc.standardError = FileHandle.nullDevice
+            do {
+                try proc.run()
+                proc.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                guard let output = String(data: data, encoding: .utf8) else {
+                    reply(nil)
+                    return
+                }
+                // Output format: "sing-box version 1.12.0\n..."
+                // Extract version number from first line
+                let firstLine = output.components(separatedBy: "\n").first ?? ""
+                let parts = firstLine.components(separatedBy: " ")
+                if let versionStr = parts.last, !versionStr.isEmpty {
+                    reply(versionStr)
+                } else {
+                    reply(nil)
+                }
+            } catch {
+                reply(nil)
+            }
+        }
+    }
+
     // MARK: - Legacy Migration
 
     func removeLegacyDaemon(withReply reply: @escaping (Bool) -> Void) {

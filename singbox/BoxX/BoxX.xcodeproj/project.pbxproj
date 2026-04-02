@@ -28,6 +28,7 @@
 		51025126A8E2ED63C6A795CD /* ProxyGroupEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C569861D71122ED40ADFD3E /* ProxyGroupEditSheet.swift */; };
 		53B52F9D001AF0CB95F78C66 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9360A996360ED7484C86E3 /* RingBuffer.swift */; };
 		5E291D591D3AA6A0E69EA68D /* BlockListManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E8A35858142C0EB93250D /* BlockListManager.swift */; };
+		5F93D4215219D464403A94CC /* DNSConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51EF7AA8ED5DDD1B3B998C /* DNSConfigTests.swift */; };
 		60202CF3DF8681CD0E864087 /* SingBoxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978990E5B126418AE87D12CB /* SingBoxConfig.swift */; };
 		633D1C59207385917825B026 /* OutboundConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A6AEAB861E8AA72EA2E5E3 /* OutboundConfig.swift */; };
 		6BDB4F66FDC4F1A6D35C6EBA /* RouteConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8094DC64A4C5660F62F8AE /* RouteConfig.swift */; };
@@ -161,6 +162,7 @@
 		D72790DF23CDE00B9E32DBC2 /* RuleOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleOverviewView.swift; sourceTree = "<group>"; };
 		D8254EFC2D2594D80531A454 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		DC8356E67918A3E954AF83EA /* ProxyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyModels.swift; sourceTree = "<group>"; };
+		DD51EF7AA8ED5DDD1B3B998C /* DNSConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSConfigTests.swift; sourceTree = "<group>"; };
 		DE0AB6349EE68DC78FC26EB5 /* BoxX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BoxX.entitlements; sourceTree = "<group>"; };
 		DE353F21CA0E9C04DF5D59DE /* AutoGrouperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoGrouperTests.swift; sourceTree = "<group>"; };
 		E43674654CE4FEB3AE5A3CDD /* BuiltinRuleSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuiltinRuleSet.swift; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 				C6FFD72F51F8022D51A9B97F /* ClashAPITests.swift */,
 				2AFF60EAC876987ABDF8C54C /* ClashYAMLParserTests.swift */,
 				0EDCA672896DFD324138EC9E /* ConfigEngineTests.swift */,
+				DD51EF7AA8ED5DDD1B3B998C /* DNSConfigTests.swift */,
 				AE8D01BF71F2F21A5137B99F /* JSONValueTests.swift */,
 				FA2C045DE653866E54C14171 /* OutboundConfigTests.swift */,
 				ED348366D4264B44087DB5E9 /* ProxyModelsTests.swift */,
@@ -596,6 +599,7 @@
 				8A47BB92E28FACF32C838A05 /* ClashAPITests.swift in Sources */,
 				ABF5219BC4BB5079D2A82B87 /* ClashYAMLParserTests.swift in Sources */,
 				E27B3A934011CD4D322519DD /* ConfigEngineTests.swift in Sources */,
+				5F93D4215219D464403A94CC /* DNSConfigTests.swift in Sources */,
 				7A8B62CF433218E270AC8878 /* HelperProtocol.swift in Sources */,
 				FDC35FBD2B57453A57E1B704 /* JSONValueTests.swift in Sources */,
 				B67AF501AE3B8D8096D46095 /* OutboundConfigTests.swift in Sources */,
@@ -694,6 +698,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -715,6 +721,7 @@
 				CODE_SIGN_IDENTITY = "BoxX Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = BoxX/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.app;
@@ -730,6 +737,7 @@
 				CODE_SIGN_IDENTITY = "BoxX Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = BoxX/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.boxx.app;
@@ -841,6 +849,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

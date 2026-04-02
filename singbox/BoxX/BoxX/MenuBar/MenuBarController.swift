@@ -240,12 +240,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         opsItem.submenu = opsMenu
         menu.addItem(opsItem)
 
-        let monitorItem = NSMenuItem(title: "监控", action: #selector(openMonitor), keyEquivalent: "m")
+        let monitorItem = NSMenuItem(title: "打开 监控", action: #selector(openMonitor), keyEquivalent: "m")
         monitorItem.target = self
         monitorItem.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(monitorItem)
 
-        let showWindowItem = NSMenuItem(title: "显示主窗口", action: #selector(showMainWindow), keyEquivalent: "m")
+        let showWindowItem = NSMenuItem(title: "打开 BoxX", action: #selector(showMainWindow), keyEquivalent: "m")
         showWindowItem.target = self
         showWindowItem.keyEquivalentModifierMask = [.command]
         menu.addItem(showWindowItem)

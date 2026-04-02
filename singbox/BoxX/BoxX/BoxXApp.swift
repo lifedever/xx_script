@@ -250,10 +250,17 @@ final class WakeObserverHolder {
 }
 
 /// XPC-based status monitor — watches sing-box process exit via Helper (zero CPU)
+/// Also runs a periodic heartbeat to detect zombie/hung sing-box processes.
 @MainActor
 final class StatusPoller {
     static let shared = StatusPoller()
     private var watchTask: Task<Void, Never>?
+    private var heartbeatTask: Task<Void, Never>?
+
+    /// Consecutive heartbeat failures before declaring zombie
+    private static let maxFailures = 3
+    /// Heartbeat check interval in seconds
+    private static let heartbeatInterval: Duration = .seconds(30)
 
     func start(appState: AppState) {
         Task { @MainActor in
@@ -261,6 +268,7 @@ final class StatusPoller {
             MenuBarHolder.shared.controller?.updateIcon()
             if appState.isRunning {
                 startWatchLoop(appState: appState)
+                startHeartbeat(appState: appState)
             }
         }
     }
@@ -272,8 +280,9 @@ final class StatusPoller {
             MenuBarHolder.shared.controller?.updateIcon()
             if appState.isRunning {
                 startWatchLoop(appState: appState)
+                startHeartbeat(appState: appState)
             } else {
-                stopWatchLoop()
+                stopAll()
             }
         }
     }
@@ -295,6 +304,7 @@ final class StatusPoller {
 
                 if !appState.isRunning {
                     // Process is gone, stop watching
+                    stopHeartbeat()
                     break
                 }
                 // If still running (auto-restarted), loop continues watching
@@ -303,8 +313,79 @@ final class StatusPoller {
         }
     }
 
+    // MARK: - Heartbeat (zombie detection)
+
+    private func startHeartbeat(appState: AppState) {
+        guard heartbeatTask == nil else { return }
+        heartbeatTask = Task { @MainActor in
+            var consecutiveFailures = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Self.heartbeatInterval)
+                guard !Task.isCancelled else { break }
+
+                // Only check when we think sing-box is running
+                guard appState.isRunning else { break }
+
+                let alive = await Self.pingClashAPI()
+                if alive {
+                    consecutiveFailures = 0
+                } else {
+                    consecutiveFailures += 1
+                    print("[BoxX] Heartbeat failed (\(consecutiveFailures)/\(Self.maxFailures))")
+
+                    if consecutiveFailures >= Self.maxFailures {
+                        print("[BoxX] sing-box unresponsive, forcing restart...")
+                        // Force stop — Helper's auto-restart will bring it back
+                        await appState.singBoxProcess.stop()
+                        consecutiveFailures = 0
+
+                        // Wait for Helper auto-restart, then refresh
+                        try? await Task.sleep(for: .seconds(4))
+                        appState.isRunning = await appState.singBoxProcess.refreshStatus()
+                        MenuBarHolder.shared.controller?.updateIcon()
+
+                        if !appState.isRunning {
+                            break
+                        }
+                    }
+                }
+            }
+            heartbeatTask = nil
+        }
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+    }
+
     private func stopWatchLoop() {
         watchTask?.cancel()
         watchTask = nil
+    }
+
+    private func stopAll() {
+        stopWatchLoop()
+        stopHeartbeat()
+    }
+
+    /// Ping Clash API to check if sing-box is responsive
+    private nonisolated static func pingClashAPI() async -> Bool {
+        await withCheckedContinuation { cont in
+            guard let url = URL(string: "http://127.0.0.1:9091/version") else {
+                cont.resume(returning: false)
+                return
+            }
+            let config = URLSessionConfiguration.ephemeral
+            config.connectionProxyDictionary = [:]
+            config.timeoutIntervalForRequest = 5
+            let session = URLSession(configuration: config)
+            let task = session.dataTask(with: URLRequest(url: url, timeoutInterval: 5)) { _, response, _ in
+                let ok = (response as? HTTPURLResponse)?.statusCode == 200
+                cont.resume(returning: ok)
+                session.invalidateAndCancel()
+            }
+            task.resume()
+        }
     }
 }

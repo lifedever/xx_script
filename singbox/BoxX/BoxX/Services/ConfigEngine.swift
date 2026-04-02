@@ -369,14 +369,15 @@ class ConfigEngine: @unchecked Sendable {
                 } else if directDNS.hasPrefix("doh-ip://") {
                     // DoH via IP address (e.g. "doh-ip://223.5.5.5" → HTTPS to 223.5.5.5)
                     let ip = directDNS.replacingOccurrences(of: "doh-ip://", with: "")
-                    // Map IP → SNI domain for TLS certificate validation
-                    let sni: String
-                    switch ip {
-                    case "223.5.5.5", "223.6.6.6": sni = "dns.alidns.com"
-                    case "1.12.12.12", "120.53.53.53": sni = "dot.pub"
-                    default: sni = ""
-                    }
+                    let sni = Self.sniForIP(ip)
                     dict["type"] = .string("https")
+                    dict["server"] = .string(ip)
+                    if !sni.isEmpty { dict["tls"] = .object(["server_name": .string(sni)]) }
+                } else if directDNS.hasPrefix("doq://") {
+                    // DoQ via IP address (e.g. "doq://223.5.5.5" → QUIC to 223.5.5.5)
+                    let ip = directDNS.replacingOccurrences(of: "doq://", with: "")
+                    let sni = Self.sniForIP(ip)
+                    dict["type"] = .string("quic")
                     dict["server"] = .string(ip)
                     if !sni.isEmpty {
                         dict["tls"] = .object(["server_name": .string(sni)])
@@ -506,8 +507,8 @@ class ConfigEngine: @unchecked Sendable {
             case .selector(var s):
                 s.outbounds = s.outbounds.filter { allTags.contains($0) }
                 if s.outbounds.isEmpty { s.outbounds = ["DIRECT"] }
-                // Clear default if it references a non-existent outbound
                 if let d = s.default, !s.outbounds.contains(d) { s.default = nil }
+                s.unknownFields["interrupt_exist_connections"] = .bool(true)
                 runtime.outbounds[i] = .selector(s)
             case .urltest(var u):
                 let before = u.outbounds.count
@@ -516,6 +517,7 @@ class ConfigEngine: @unchecked Sendable {
                 u.url = testURL
                 u.interval = testInterval
                 u.tolerance = toleranceValue
+                u.unknownFields["interrupt_exist_connections"] = .bool(true)
                 runtime.outbounds[i] = .urltest(u)
             default: break
             }
@@ -800,6 +802,17 @@ class ConfigEngine: @unchecked Sendable {
         if let pattern = patterns.removeValue(forKey: oldTag) {
             patterns[newTag] = pattern
             saveGroupPatterns(patterns)
+        }
+    }
+
+    // MARK: - DNS Helpers
+
+    /// Map DNS server IP to its TLS SNI domain for certificate validation
+    static func sniForIP(_ ip: String) -> String {
+        switch ip {
+        case "223.5.5.5", "223.6.6.6": return "dns.alidns.com"
+        case "1.12.12.12", "120.53.53.53": return "dot.pub"
+        default: return ""
         }
     }
 }

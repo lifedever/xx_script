@@ -45,6 +45,58 @@ class SingBoxProcess {
         } as? HelperProtocol
     }
 
+    // MARK: - Version Check
+
+    /// Query sing-box version via Helper and validate compatibility
+    func checkSingBoxVersion() async throws -> String {
+        guard let helper = connectToHelper() else {
+            throw SingBoxError.startFailed("无法连接 Helper，请在设置中重装 Helper")
+        }
+
+        let version: String? = await withCheckedContinuation { cont in
+            var replied = false
+            let lock = NSLock()
+
+            helper.getSingBoxVersion { ver in
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: ver) }
+            }
+
+            DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: nil) }
+            }
+        }
+
+        guard let version else {
+            throw SingBoxError.startFailed("未找到 sing-box，请先安装: brew install sing-box")
+        }
+
+        if !Self.isVersionCompatible(version, minimum: HelperConstants.minimumSingBoxVersion) {
+            throw SingBoxError.startFailed(
+                "sing-box 版本过低: \(version)，最低要求 \(HelperConstants.minimumSingBoxVersion)。请执行: brew upgrade sing-box"
+            )
+        }
+
+        return version
+    }
+
+    /// Compare semantic version strings (e.g. "1.12.0" >= "1.12.0")
+    nonisolated static func isVersionCompatible(_ current: String, minimum: String) -> Bool {
+        let parse: (String) -> [Int] = { str in
+            str.components(separatedBy: ".").compactMap { Int($0) }
+        }
+        let cur = parse(current)
+        let min = parse(minimum)
+        for i in 0..<max(cur.count, min.count) {
+            let c = i < cur.count ? cur[i] : 0
+            let m = i < min.count ? min[i] : 0
+            if c > m { return true }
+            if c < m { return false }
+        }
+        return true // equal
+    }
+
     // MARK: - Start
 
     func start(configPath: String, mixedPort: Int = 7890) async throws {
@@ -52,6 +104,10 @@ class SingBoxProcess {
             print("[BoxX] sing-box already running, skipping start")
             return
         }
+
+        progressMessage = "正在检查 sing-box 版本..."
+        let version = try await checkSingBoxVersion()
+        print("[BoxX] sing-box version: \(version)")
 
         progressMessage = "正在启动 sing-box..."
         print("[BoxX] Starting sing-box via Helper...")

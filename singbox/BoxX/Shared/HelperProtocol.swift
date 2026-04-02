@@ -14,9 +14,14 @@ import Foundation
 
     /// Clean up legacy launchd daemon (one-time migration)
     func removeLegacyDaemon(withReply reply: @escaping (Bool) -> Void)
+
+    /// Query sing-box binary version string (e.g. "1.12.0")
+    func getSingBoxVersion(withReply reply: @escaping (String?) -> Void)
 }
 
 enum HelperConstants {
     static let machServiceName = "com.boxx.helper"
     static let singBoxPath = "/opt/homebrew/bin/sing-box"
+    /// Minimum sing-box version required by BoxX
+    static let minimumSingBoxVersion = "1.12.0"
 }

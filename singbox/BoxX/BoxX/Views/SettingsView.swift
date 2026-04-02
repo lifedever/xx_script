@@ -36,6 +36,7 @@ struct GeneralSettingsTab: View {
     @AppStorage("tunEnabled") private var tunEnabled = true
     @State private var loginError: String?
     @State private var helperInstalled = false
+    @State private var singBoxVersion: String?
 
     var body: some View {
         Form {
@@ -136,6 +137,26 @@ struct GeneralSettingsTab: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                 }
+                HStack {
+                    Text("sing-box")
+                        .foregroundStyle(.secondary)
+                    if let ver = singBoxVersion {
+                        let compatible = SingBoxProcess.isVersionCompatible(ver, minimum: HelperConstants.minimumSingBoxVersion)
+                        Text("v\(ver)")
+                            .foregroundColor(compatible ? .secondary : .red)
+                        if !compatible {
+                            Text("(需要 ≥ \(HelperConstants.minimumSingBoxVersion))")
+                                .foregroundStyle(.red)
+                                .font(.caption)
+                        }
+                    } else if helperInstalled {
+                        Text("未安装或无法检测")
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("—")
+                            .foregroundStyle(.tertiary)
+                    }
+                }
                 Text("Helper 以 root 权限管理 sing-box 进程，崩溃自动重启")
                     .foregroundStyle(.tertiary)
             }
@@ -162,6 +183,9 @@ struct GeneralSettingsTab: View {
             Task {
                 if appState.singBoxProcess.isHelperInstalled() {
                     helperInstalled = await appState.singBoxProcess.isHelperResponding()
+                    if helperInstalled {
+                        singBoxVersion = try? await appState.singBoxProcess.checkSingBoxVersion()
+                    }
                 } else {
                     helperInstalled = false
                 }
@@ -329,18 +353,21 @@ struct AdvancedSettingsTab: View {
                     Text("TCP（推荐）").tag("tcp")
                     Text("UDP（最快，可能不稳定）").tag("udp")
                     Text("DoH（加密，较慢）").tag("https")
+                    Text("QUIC (DoQ)（加密，低延迟）").tag("quic")
+                    Text("H3 (DoH3)（加密，HTTP/3）").tag("h3")
                 }
                 Text("海外域名的 DNS 查询协议。流量已在代理隧道内加密，TCP 兼顾速度和稳定性")
                     .foregroundStyle(.tertiary)
 
                 Picker("国内 DNS", selection: $directDNS) {
-                    Text("AliDNS DoH（加密，推荐）").tag("doh-ip://223.5.5.5")
+                    Text("AliDNS DoQ（加密，推荐）").tag("doq://223.5.5.5")
+                    Text("AliDNS DoH（加密）").tag("doh-ip://223.5.5.5")
                     Text("腾讯 DoH（加密）").tag("doh-ip://1.12.12.12")
                     Text("AliDNS UDP（明文）").tag("udp://223.5.5.5")
                     Text("腾讯 DNS UDP（明文）").tag("udp://119.29.29.29")
                     Text("系统 DNS").tag("local")
                 }
-                Text("国内域名的 DNS 解析服务器。DoH 加密可防止 ISP 劫持和窥探")
+                Text("DoQ 基于 QUIC 加密传输，比 DoH 少一次握手，防劫持且延迟更低")
                     .foregroundStyle(.tertiary)
 
                 Picker("DNS 缓存容量", selection: $dnsCacheCapacity) {
@@ -523,6 +550,9 @@ struct AdvancedSettingsTab: View {
 // MARK: - About
 
 struct AboutTab: View {
+    @Environment(AppState.self) private var appState
+    @State private var singBoxVersion: String?
+
     var body: some View {
         VStack(spacing: 16) {
             Image(nsImage: NSApp.applicationIconImage)
@@ -534,7 +564,14 @@ struct AboutTab: View {
                 .foregroundStyle(.secondary)
             Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
                 .foregroundStyle(.tertiary)
+            if let ver = singBoxVersion {
+                Text("sing-box v\(ver)")
+                    .foregroundStyle(.tertiary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task {
+            singBoxVersion = try? await appState.singBoxProcess.checkSingBoxVersion()
+        }
     }
 }
