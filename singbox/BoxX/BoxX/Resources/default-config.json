@@ -78,7 +78,7 @@
         "detour": "Proxy",
         "server": "8.8.8.8",
         "tag": "dns_proxy",
-        "type": "https"
+        "type": "udp"
       },
       {
         "tag": "dns_local",

@@ -4,6 +4,11 @@ import Security
 final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
     private var singBoxProcess: Process?
     private let serialQueue = DispatchQueue(label: "com.boxx.helper.serial")
+    private var lastConfigPath: String?
+    private var isStopping = false
+    /// Pending watchProcessExit callbacks
+    private var exitWatchers: [(Bool, Int32) -> Void] = []
+    private var processSource: DispatchSourceProcess?
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
         // Validate caller's code signature
@@ -33,6 +38,8 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         return true
     }
 
+    // MARK: - Start
+
     func startSingBox(configPath: String, withReply reply: @escaping (Bool, String?) -> Void) {
         serialQueue.async { [self] in
             guard (configPath.hasPrefix("/tmp/boxx/") || configPath.contains("/Library/Application Support/BoxX/")) && configPath.hasSuffix(".json") else {
@@ -44,16 +51,18 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
                 return
             }
 
+            isStopping = false
+
             // Kill any existing sing-box process first
             killAllSingBox()
-
-            // Wait for ports and TUN to be released
             waitForCleanup()
+
+            // Rotate logs
+            rotateLog()
 
             let process = Process()
             process.executableURL = URL(fileURLWithPath: HelperConstants.singBoxPath)
             process.arguments = ["run", "-c", configPath]
-            // Set working directory to config's directory
             let configDir = (configPath as NSString).deletingLastPathComponent
             process.currentDirectoryURL = URL(fileURLWithPath: configDir)
             process.environment = [
@@ -62,15 +71,17 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
             ]
             umask(0o022)
 
-            // Capture stderr for error reporting
-            let stderrPipe = Pipe()
-            process.standardError = stderrPipe
-            // Don't capture stdout (sing-box writes logs there)
-            process.standardOutput = FileHandle.nullDevice
+            // Log to file
+            let logPath = "/tmp/boxx-singbox.log"
+            FileManager.default.createFile(atPath: logPath, contents: nil)
+            let logHandle = FileHandle(forWritingAtPath: logPath)
+            process.standardOutput = logHandle ?? FileHandle.nullDevice
+            process.standardError = logHandle ?? FileHandle.nullDevice
 
             do {
                 try process.run()
                 singBoxProcess = process
+                lastConfigPath = configPath
 
                 // Poll up to 3 seconds to confirm process stays alive
                 var isAlive = false
@@ -80,14 +91,16 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
                     isAlive = true
                 }
                 if isAlive {
+                    // Setup process exit monitoring
+                    setupProcessMonitor(pid: process.processIdentifier)
                     reply(true, nil)
                 } else {
-                    // Read stderr for error details
-                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrData = (try? Data(contentsOf: URL(fileURLWithPath: logPath))) ?? Data()
                     let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
                     let lastLines = stderrStr.components(separatedBy: "\n").suffix(5).joined(separator: "\n")
                     reply(false, "sing-box exited (code \(process.terminationStatus)): \(lastLines)")
                     singBoxProcess = nil
+                    lastConfigPath = nil
                 }
             } catch {
                 reply(false, error.localizedDescription)
@@ -95,9 +108,13 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         }
     }
 
+    // MARK: - Stop
+
     func stopSingBox(withReply reply: @escaping (Bool, String?) -> Void) {
         serialQueue.async { [self] in
-            // Kill managed process
+            isStopping = true
+            cancelProcessMonitor()
+
             if let proc = singBoxProcess, proc.isRunning {
                 proc.terminate()
                 for _ in 0..<20 {
@@ -113,13 +130,16 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
 
             // Also kill any orphan sing-box processes
             killAllSingBox()
-
-            // Wait for cleanup
             waitForCleanup()
+
+            // Notify watchers that process stopped (deliberate)
+            notifyWatchers(exitCode: 0)
 
             reply(true, nil)
         }
     }
+
+    // MARK: - Status
 
     func getStatus(withReply reply: @escaping (Bool, Int32) -> Void) {
         serialQueue.async { [self] in
@@ -136,17 +156,15 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         }
     }
 
-    // MARK: - v2 New Methods
+    // MARK: - Reload
 
     func reloadSingBox(withReply reply: @escaping (Bool, String?) -> Void) {
         serialQueue.async { [self] in
-            // Try managed process first
             if let proc = singBoxProcess, proc.isRunning {
                 kill(proc.processIdentifier, SIGHUP)
                 reply(true, nil)
                 return
             }
-            // Try orphan process
             if let pid = findSingBoxPID() {
                 kill(pid, SIGHUP)
                 reply(true, nil)
@@ -156,16 +174,16 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         }
     }
 
+    // MARK: - DNS
+
     func flushDNS(withReply reply: @escaping (Bool) -> Void) {
         serialQueue.async {
-            // Flush DNS cache (runs as root)
             let flush = Process()
             flush.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
             flush.arguments = ["-flushcache"]
             try? flush.run()
             flush.waitUntilExit()
 
-            // Restart mDNSResponder
             let killMDNS = Process()
             killMDNS.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
             killMDNS.arguments = ["-HUP", "mDNSResponder"]
@@ -175,6 +193,8 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
             reply(true)
         }
     }
+
+    // MARK: - System Proxy
 
     func setSystemProxy(port: Int32, withReply reply: @escaping (Bool) -> Void) {
         serialQueue.async {
@@ -218,13 +238,108 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         }
     }
 
+    // MARK: - Watch Process Exit
+
+    func watchProcessExit(withReply reply: @escaping (Bool, Int32) -> Void) {
+        serialQueue.async { [self] in
+            // If not running, reply immediately
+            let pid: Int32?
+            if let proc = singBoxProcess, proc.isRunning {
+                pid = proc.processIdentifier
+            } else {
+                pid = findSingBoxPID()
+            }
+
+            guard let activePID = pid else {
+                reply(false, 0)
+                return
+            }
+
+            // If we already have a monitor, just add the watcher
+            exitWatchers.append(reply)
+
+            // Setup monitor if not already active
+            if processSource == nil {
+                setupProcessMonitor(pid: activePID)
+            }
+        }
+    }
+
+    // MARK: - Legacy Migration
+
+    func removeLegacyDaemon(withReply reply: @escaping (Bool) -> Void) {
+        serialQueue.async {
+            let legacyPlist = "/Library/LaunchDaemons/com.boxx.singbox.plist"
+            let legacySudoers = "/etc/sudoers.d/boxx-singbox"
+
+            // Unload legacy daemon
+            let bootout = Process()
+            bootout.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+            bootout.arguments = ["bootout", "system/com.boxx.singbox"]
+            bootout.standardOutput = FileHandle.nullDevice
+            bootout.standardError = FileHandle.nullDevice
+            try? bootout.run()
+            bootout.waitUntilExit()
+
+            // Remove files
+            try? FileManager.default.removeItem(atPath: legacyPlist)
+            try? FileManager.default.removeItem(atPath: legacySudoers)
+
+            reply(true)
+        }
+    }
+
+    // MARK: - Process Monitoring
+
+    private func setupProcessMonitor(pid: Int32) {
+        cancelProcessMonitor()
+        let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: serialQueue)
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.cancelProcessMonitor()
+
+            let exitCode = self.singBoxProcess?.terminationStatus ?? -1
+            self.singBoxProcess = nil
+
+            // Notify all watchers
+            self.notifyWatchers(exitCode: exitCode)
+
+            // Auto-restart on crash (not deliberate stop)
+            if !self.isStopping, let configPath = self.lastConfigPath {
+                // Wait 2 seconds before restarting to avoid rapid loops
+                sleep(2)
+                self.startSingBox(configPath: configPath) { success, error in
+                    if success {
+                        print("[BoxXHelper] Auto-restarted sing-box after crash")
+                    } else {
+                        print("[BoxXHelper] Auto-restart failed: \(error ?? "unknown")")
+                    }
+                }
+            }
+        }
+        source.resume()
+        processSource = source
+    }
+
+    private func cancelProcessMonitor() {
+        processSource?.cancel()
+        processSource = nil
+    }
+
+    private func notifyWatchers(exitCode: Int32) {
+        let watchers = exitWatchers
+        exitWatchers.removeAll()
+        for watcher in watchers {
+            watcher(true, exitCode)
+        }
+    }
+
     // MARK: - Helpers
 
-    /// Find PID of running sing-box
     private func findSingBoxPID() -> Int32? {
         let finder = Process()
         finder.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        finder.arguments = ["-x", "sing-box"]  // exact match, not -f
+        finder.arguments = ["-x", "sing-box"]
         let pipe = Pipe()
         finder.standardOutput = pipe
         try? finder.run()
@@ -239,22 +354,18 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         return pid
     }
 
-    /// Kill all sing-box processes
     private func killAllSingBox() {
-        // Use pkill -x for exact process name match (not -f which matches args)
         let killer = Process()
         killer.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
         killer.arguments = ["-x", "sing-box"]
         try? killer.run()
         killer.waitUntilExit()
 
-        // Wait for processes to die
         for _ in 0..<30 {
             if findSingBoxPID() == nil { return }
             usleep(100_000)
         }
 
-        // Force kill if still alive
         let forceKiller = Process()
         forceKiller.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
         forceKiller.arguments = ["-9", "-x", "sing-box"]
@@ -263,34 +374,51 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         usleep(500_000)
     }
 
-    /// Wait for port 7890 and 9091 to be released
     private func waitForCleanup() {
-        for _ in 0..<30 {  // up to 3 seconds
+        for _ in 0..<30 {
             if !isPortInUse(7890) && !isPortInUse(9091) { return }
             usleep(100_000)
         }
     }
 
-    /// Check if a TCP port is in use
     private func isPortInUse(_ port: UInt16) -> Bool {
         let sock = socket(AF_INET, SOCK_STREAM, 0)
         guard sock >= 0 else { return false }
         defer { close(sock) }
-
         var addr = sockaddr_in()
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = port.bigEndian
         addr.sin_addr.s_addr = inet_addr("127.0.0.1")
-
         var optval: Int32 = 1
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, socklen_t(MemoryLayout<Int32>.size))
-
         let result = withUnsafePointer(to: &addr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
                 bind(sock, sockPtr, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
-        return result != 0  // bind fails = port in use
+        return result != 0
+    }
+
+    private func rotateLog() {
+        let logPath = "/tmp/boxx-singbox.log"
+        let fm = FileManager.default
+        if fm.fileExists(atPath: logPath) {
+            let df = DateFormatter()
+            df.dateFormat = "yyyyMMdd-HHmmss"
+            let backup = "/tmp/boxx-singbox-\(df.string(from: Date())).log"
+            try? fm.moveItem(atPath: logPath, toPath: backup)
+        }
+        // Clean old logs (>3 days)
+        if let files = try? fm.contentsOfDirectory(atPath: "/tmp") {
+            for file in files where file.hasPrefix("boxx-singbox-") && file.hasSuffix(".log") {
+                let path = "/tmp/\(file)"
+                if let attrs = try? fm.attributesOfItem(atPath: path),
+                   let date = attrs[.modificationDate] as? Date,
+                   Date().timeIntervalSince(date) > 3 * 86400 {
+                    try? fm.removeItem(atPath: path)
+                }
+            }
+        }
     }
 }
 

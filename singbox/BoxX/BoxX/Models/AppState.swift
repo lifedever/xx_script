@@ -11,6 +11,8 @@ final class AppState {
     var errorMessage: String?
     var showError = false
     var configVersion = 0  // Bump to force UI refresh after config reset
+    var startupComplete = false
+    private var isApplyingConfig = false
     var pendingReload: Bool {
         didSet { UserDefaults.standard.set(pendingReload, forKey: "pendingReload") }
     }
@@ -30,11 +32,12 @@ final class AppState {
         api = ClashAPI()
         subscriptionService = SubscriptionService(configEngine: configEngine)
 
-        // When config deploys and sing-box is running, mark pending reload
+        // When config deploys and sing-box is running, auto-apply
         configEngine.onDeployComplete = { [weak self] in
             Task { @MainActor in
-                guard let self, self.singBoxProcess.isRunning else { return }
+                guard let self, self.startupComplete, self.singBoxProcess.isRunning else { return }
                 self.pendingReload = true
+                await self.applyConfig()
             }
         }
     }
@@ -96,7 +99,9 @@ final class AppState {
 
     /// Apply pending config changes via SIGHUP (brief ~1s reconnect)
     func applyConfig() async {
-        guard isRunning, pendingReload else { return }
+        guard isRunning, pendingReload, !isApplyingConfig else { return }
+        isApplyingConfig = true
+        defer { isApplyingConfig = false }
 
         // Regenerate runtime-config.json (picks up block list, rule changes, etc.)
         do {

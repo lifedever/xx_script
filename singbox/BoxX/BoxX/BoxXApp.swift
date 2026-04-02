@@ -45,7 +45,10 @@ struct BoxXApp: App {
                 state.showAlert("Failed to load config: \(error.localizedDescription)")
             }
 
-            // Initial status check: see if sing-box is already running
+            // Migrate legacy launchd daemon to XPC Helper (one-time)
+            await state.singBoxProcess.migrateLegacyDaemon()
+
+            // Initial status check: see if sing-box is already running (via XPC Helper)
             state.isRunning = await state.singBoxProcess.refreshStatus()
 
             // Create AppKit menu bar (NSStatusItem + NSMenu for Surge-style layout)
@@ -53,6 +56,9 @@ struct BoxXApp: App {
 
             // Start adaptive polling
             StatusPoller.shared.start(appState: state)
+
+            // Startup complete — enable auto-apply for config changes
+            state.startupComplete = true
 
             // Start watching config.json for external changes (delay to avoid race during startup)
             try? await Task.sleep(for: .seconds(3))
@@ -224,99 +230,62 @@ final class WakeObserverHolder {
     var observer: WakeObserver?
 }
 
-/// Adaptive status polling -- fast when stopped, slow when running
+/// XPC-based status monitor — watches sing-box process exit via Helper (zero CPU)
 @MainActor
 final class StatusPoller {
     static let shared = StatusPoller()
-    private var timer: Timer?
+    private var watchTask: Task<Void, Never>?
 
     func start(appState: AppState) {
-        guard timer == nil else { return }
-        if appState.isRunning {
-            scheduleSlowPoll(appState: appState)
-        } else {
-            scheduleFastPoll(appState: appState)
+        Task { @MainActor in
+            appState.isRunning = await appState.singBoxProcess.refreshStatus()
+            MenuBarHolder.shared.controller?.updateIcon()
+            if appState.isRunning {
+                startWatchLoop(appState: appState)
+            }
         }
-    }
-
-    /// Check running status via SingBoxProcess (managed process or Clash API fallback)
-    private func checkStatus(appState: AppState) async -> Bool {
-        return await appState.singBoxProcess.refreshStatus()
     }
 
     /// Call this after any operation that changes state (start/stop/restart/wake)
     func nudge(appState: AppState) {
         Task { @MainActor in
-            appState.isRunning = await checkStatus(appState: appState)
+            appState.isRunning = await appState.singBoxProcess.refreshStatus()
             MenuBarHolder.shared.controller?.updateIcon()
             if appState.isRunning {
-                scheduleSlowPoll(appState: appState)
+                startWatchLoop(appState: appState)
             } else {
-                scheduleFastPoll(appState: appState)
+                stopWatchLoop()
             }
         }
     }
 
-    private func scheduleFastPoll(appState: AppState) {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                appState.isRunning = await self.checkStatus(appState: appState)
+    private func startWatchLoop(appState: AppState) {
+        // Don't start duplicate watch loops
+        guard watchTask == nil else { return }
+        watchTask = Task { @MainActor in
+            while !Task.isCancelled {
+                // Block until sing-box exits (Helper holds the XPC reply)
+                let (_, _) = await appState.singBoxProcess.watchProcessExit()
+
+                guard !Task.isCancelled else { break }
+
+                // Process exited — refresh status (Helper may have auto-restarted it)
+                try? await Task.sleep(for: .seconds(1))
+                appState.isRunning = await appState.singBoxProcess.refreshStatus()
                 MenuBarHolder.shared.controller?.updateIcon()
-                if appState.isRunning {
-                    self.scheduleSlowPoll(appState: appState)
+
+                if !appState.isRunning {
+                    // Process is gone, stop watching
+                    break
                 }
+                // If still running (auto-restarted), loop continues watching
             }
+            watchTask = nil
         }
     }
 
-    private func scheduleSlowPoll(appState: AppState) {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                let wasRunning = appState.isRunning
-                appState.isRunning = await self.checkStatus(appState: appState)
-                MenuBarHolder.shared.controller?.updateIcon()
-                if wasRunning && !appState.isRunning {
-                    if !appState.isRestarting {
-                        // sing-box unexpectedly stopped — notify user
-                        self.notifyUnexpectedStop()
-                    }
-                    self.scheduleFastPoll(appState: appState)
-                }
-            }
-        }
-    }
-
-    /// 启动后的静默期（秒），期间不触发"意外停止"通知
-    private var launchTime = Date()
-
-    private func notifyUnexpectedStop() {
-        // 启动后 15 秒内不触发通知（给 build-install 流程留出缓冲）
-        if Date().timeIntervalSince(launchTime) < 15 { return }
-
-        // 检查是否正在 build-install 升级中（build.sh 写入的信号文件）
-        if FileManager.default.fileExists(atPath: "/tmp/boxx-upgrading") { return }
-
-        // Write to log file
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
-        let logLine = "[\(timestamp)] [BoxX] sing-box unexpectedly stopped. Check /tmp/boxx-singbox.log for details.\n"
-        if let data = logLine.data(using: .utf8) {
-            let logURL = URL(fileURLWithPath: "/tmp/boxx-singbox.log")
-            if let handle = try? FileHandle(forWritingTo: logURL) {
-                handle.seekToEndOfFile()
-                handle.write(data)
-                handle.closeFile()
-            }
-        }
-        // macOS notification (UNUserNotificationCenter for macOS 13+)
-        let content = UNMutableNotificationContent()
-        content.title = "BoxX"
-        content.body = "sing-box 服务已意外停止，请检查日志"
-        content.sound = .default
-        let request = UNNotificationRequest(identifier: "boxx-unexpected-stop-\(UUID().uuidString)", content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+    private func stopWatchLoop() {
+        watchTask?.cancel()
+        watchTask = nil
     }
 }

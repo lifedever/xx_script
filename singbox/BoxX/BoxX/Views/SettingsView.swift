@@ -28,7 +28,6 @@ struct SettingsView: View {
 struct GeneralSettingsTab: View {
     @Environment(AppState.self) private var appState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("singboxRunAtLoad") private var singboxRunAtLoad = false
     @AppStorage("appearanceMode") private var appearanceMode = "system"
     @AppStorage("speedTestURL") private var speedTestURL = "http://1.1.1.1/generate_204"
     @AppStorage("urlTestInterval") private var urlTestInterval = "3m"
@@ -36,6 +35,7 @@ struct GeneralSettingsTab: View {
     @AppStorage("ruleSetUpdateInterval") private var ruleSetUpdateInterval = 24
     @AppStorage("tunEnabled") private var tunEnabled = true
     @State private var loginError: String?
+    @State private var helperInstalled = false
 
     var body: some View {
         Form {
@@ -57,13 +57,7 @@ struct GeneralSettingsTab: View {
                 if let err = loginError {
                     Text(err).foregroundStyle(.red)
                 }
-                Toggle("sing-box 开机自启", isOn: $singboxRunAtLoad)
-                    .onChange(of: singboxRunAtLoad) { _, newValue in
-                        Task {
-                            await appState.singBoxProcess.updateRunAtLoad(newValue)
-                        }
-                    }
-                Text("系统启动时自动运行代理服务，需要先启动一次以安装服务")
+                Text("sing-box 由 Helper 管理，崩溃后自动重启")
                     .foregroundStyle(.tertiary)
                 Picker("外观模式", selection: $appearanceMode) {
                     Text("跟随系统").tag("system")
@@ -120,7 +114,7 @@ struct GeneralSettingsTab: View {
 
             Section("Helper 服务") {
                 HStack {
-                    if appState.singBoxProcess.isPlistInstalled() {
+                    if helperInstalled {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                         Text("已安装")
@@ -130,21 +124,8 @@ struct GeneralSettingsTab: View {
                         Text("未安装")
                     }
                     Spacer()
-                    if appState.singBoxProcess.isPlistInstalled() {
-                        Button("重装") {
-                            reinstallHelper()
-                        }
-                        Button("卸载") {
-                            uninstallHelper()
-                        }
-                        .foregroundStyle(.red)
-                    } else {
-                        Button("安装") {
-                            installHelper()
-                        }
-                    }
                 }
-                Text("Helper 管理 sing-box 守护进程的启停和免密操作")
+                Text("Helper 以 root 权限管理 sing-box 进程，崩溃自动重启")
                     .foregroundStyle(.tertiary)
             }
 
@@ -165,7 +146,24 @@ struct GeneralSettingsTab: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { applyAppearance(appearanceMode) }
+        .onAppear {
+            applyAppearance(appearanceMode)
+            // Check if Helper is reachable via XPC
+            Task {
+                helperInstalled = await appState.singBoxProcess.refreshStatus() || true
+                // Actually check by calling getStatus - if XPC connects, helper is installed
+                let connection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
+                connection.remoteObjectInterface = NSXPCInterface(with: HelperProtocol.self)
+                connection.resume()
+                if let proxy = connection.remoteObjectProxyWithErrorHandler({ _ in }) as? HelperProtocol {
+                    proxy.getStatus { running, _ in
+                        Task { @MainActor in self.helperInstalled = true }
+                    }
+                } else {
+                    helperInstalled = false
+                }
+            }
+        }
     }
 
     private func applyAppearance(_ mode: String) {
@@ -239,7 +237,7 @@ struct GeneralSettingsTab: View {
                 appState.pendingReload = true
                 let ok = NSAlert()
                 ok.messageText = "导入成功"
-                ok.informativeText = "配置已导入，请点击「应用配置」生效。"
+                ok.informativeText = "配置已导入，将自动应用。"
                 ok.runModal()
             } else {
                 let err = NSAlert()
@@ -250,67 +248,6 @@ struct GeneralSettingsTab: View {
             }
     }
 
-    private func installHelper() {
-        Task {
-            do {
-                try appState.configEngine.deployRuntime()
-                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
-                StatusPoller.shared.nudge(appState: appState)
-            } catch {
-                appState.showAlert("安装失败: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func reinstallHelper() {
-        let alert = NSAlert()
-        alert.messageText = "确认重装 Helper？"
-        alert.informativeText = "将重新安装守护进程和 sudoers 免密规则，需要输入管理员密码。"
-        alert.addButton(withTitle: "重装")
-        alert.addButton(withTitle: "取消")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        Task {
-            // Stop first
-            await appState.singBoxProcess.stop()
-            // Remove existing plist
-            await appState.singBoxProcess.removePlist()
-            // Reinstall
-            do {
-                try appState.configEngine.deployRuntime()
-                let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
-                try await appState.singBoxProcess.start(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
-                StatusPoller.shared.nudge(appState: appState)
-                let ok = NSAlert()
-                ok.messageText = "重装成功"
-                ok.informativeText = "Helper 已重新安装并启动。"
-                ok.runModal()
-            } catch {
-                appState.showAlert("重装失败: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func uninstallHelper() {
-        let alert = NSAlert()
-        alert.messageText = "确认卸载 Helper？"
-        alert.informativeText = "将停止 sing-box 服务并移除守护进程。卸载后需要重新安装才能使用。"
-        alert.alertStyle = .critical
-        alert.addButton(withTitle: "卸载")
-        alert.addButton(withTitle: "取消")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        Task {
-            await appState.singBoxProcess.stop()
-            await appState.singBoxProcess.removePlist()
-            StatusPoller.shared.nudge(appState: appState)
-            let ok = NSAlert()
-            ok.messageText = "卸载完成"
-            ok.informativeText = "Helper 已卸载，sing-box 服务已停止。"
-            ok.runModal()
-        }
-    }
 
     private func resetConfig() {
 
@@ -329,7 +266,7 @@ struct GeneralSettingsTab: View {
             appState.pendingReload = true
             let ok = NSAlert()
             ok.messageText = "初始化成功"
-            ok.informativeText = "配置已恢复为默认状态，请点击「应用配置」或重启 sing-box 生效。"
+            ok.informativeText = "配置已恢复为默认状态，将自动应用。"
             ok.runModal()
         } catch {
             let err = NSAlert()
@@ -362,6 +299,7 @@ struct AdvancedSettingsTab: View {
     @State private var ipv6Enabled = false
     @State private var logLevel = "info"
     @State private var saved = false
+    @AppStorage("proxyDNS") private var proxyDNS = "tcp"
     @AppStorage("directDNS") private var directDNS = "udp://223.5.5.5"
     @AppStorage("dnsCacheCapacity") private var dnsCacheCapacity = 0
     @AppStorage("endpointIndependentNAT") private var endpointIndependentNAT = false
@@ -384,6 +322,14 @@ struct AdvancedSettingsTab: View {
             }
 
             Section("DNS") {
+                Picker("代理 DNS", selection: $proxyDNS) {
+                    Text("TCP（推荐）").tag("tcp")
+                    Text("UDP（最快，可能不稳定）").tag("udp")
+                    Text("DoH（加密，较慢）").tag("https")
+                }
+                Text("海外域名的 DNS 查询协议。流量已在代理隧道内加密，TCP 兼顾速度和稳定性")
+                    .foregroundStyle(.tertiary)
+
                 Picker("国内 DNS", selection: $directDNS) {
                     Text("AliDNS DoH（加密，推荐）").tag("doh-ip://223.5.5.5")
                     Text("腾讯 DoH（加密）").tag("doh-ip://1.12.12.12")
@@ -473,7 +419,7 @@ struct AdvancedSettingsTab: View {
                 HStack {
                     Spacer()
                     if saved {
-                        Text("已保存，应用配置后生效")
+                        Text("已保存")
                             .foregroundStyle(.green)
                     }
                     Button("保存") { saveAdvanced() }

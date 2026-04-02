@@ -479,6 +479,31 @@ enum Outbound: Codable, Equatable, Sendable {
         }
     }
 
+    /// Read/write `tcp_fast_open` via unknownFields.
+    var tcpFastOpen: Bool? {
+        get {
+            switch self {
+            case .vmess(let o): o.unknownFields["tcp_fast_open"]?.boolValue
+            case .shadowsocks(let o): o.unknownFields["tcp_fast_open"]?.boolValue
+            case .trojan(let o): o.unknownFields["tcp_fast_open"]?.boolValue
+            case .hysteria2(let o): o.unknownFields["tcp_fast_open"]?.boolValue
+            case .vless(let o): o.unknownFields["tcp_fast_open"]?.boolValue
+            default: nil
+            }
+        }
+        set {
+            let val: JSONValue? = newValue.map { .bool($0) }
+            switch self {
+            case .vmess(var o): o.unknownFields["tcp_fast_open"] = val; self = .vmess(o)
+            case .shadowsocks(var o): o.unknownFields["tcp_fast_open"] = val; self = .shadowsocks(o)
+            case .trojan(var o): o.unknownFields["tcp_fast_open"] = val; self = .trojan(o)
+            case .hysteria2(var o): o.unknownFields["tcp_fast_open"] = val; self = .hysteria2(o)
+            case .vless(var o): o.unknownFields["tcp_fast_open"] = val; self = .vless(o)
+            default: break
+            }
+        }
+    }
+
     /// Whether this outbound is a proxy node (not a group or direct).
     var isProxyNode: Bool {
         switch self {

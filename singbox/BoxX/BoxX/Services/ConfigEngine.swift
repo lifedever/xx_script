@@ -368,11 +368,19 @@ class ConfigEngine: @unchecked Sendable {
                     dict["type"] = .string("local")
                 } else if directDNS.hasPrefix("doh-ip://") {
                     // DoH via IP address (e.g. "doh-ip://223.5.5.5" → HTTPS to 223.5.5.5)
-                    // Must set detour=DIRECT so DoH traffic (port 443) bypasses TUN routing
                     let ip = directDNS.replacingOccurrences(of: "doh-ip://", with: "")
+                    // Map IP → SNI domain for TLS certificate validation
+                    let sni: String
+                    switch ip {
+                    case "223.5.5.5", "223.6.6.6": sni = "dns.alidns.com"
+                    case "1.12.12.12", "120.53.53.53": sni = "dot.pub"
+                    default: sni = ""
+                    }
                     dict["type"] = .string("https")
                     dict["server"] = .string(ip)
-                    dict["detour"] = .string("DIRECT")
+                    if !sni.isEmpty {
+                        dict["tls"] = .object(["server_name": .string(sni)])
+                    }
                 } else {
                     // UDP (e.g. "udp://223.5.5.5")
                     dict["type"] = .string("udp")
@@ -380,6 +388,15 @@ class ConfigEngine: @unchecked Sendable {
                 }
                 servers[i] = .object(dict)
             }
+            // Apply proxy DNS server setting
+            let proxyDNSType = ud.string(forKey: "proxyDNS") ?? "tcp"
+            for i in servers.indices where servers[i]["tag"]?.stringValue == "dns_proxy" {
+                if case .object(var dict) = servers[i] {
+                    dict["type"] = .string(proxyDNSType)
+                    servers[i] = .object(dict)
+                }
+            }
+
             dns.servers = servers
 
             // Apply DNS cache capacity
@@ -395,6 +412,11 @@ class ConfigEngine: @unchecked Sendable {
         var seenTags = existingTags
         let allProxyNodes = proxies.values.flatMap { $0 }.filter { seenTags.insert($0.tag).inserted }
         runtime.outbounds.append(contentsOf: allProxyNodes)
+
+        // Enable TCP Fast Open on all proxy outbounds
+        for i in runtime.outbounds.indices where runtime.outbounds[i].isProxyNode {
+            runtime.outbounds[i].tcpFastOpen = true
+        }
 
         // Convert remote rule sets to local when the file has been downloaded by BoxX.
         // This ensures sing-box reads from disk (not its own cache.db), so rule set

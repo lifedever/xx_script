@@ -105,6 +105,11 @@ struct ConnectionsView: View {
         .onAppear {
             if wsTask == nil { startStreaming() }
         }
+        .onDisappear {
+            wsTask?.cancel()
+            wsTask = nil
+            wsClient.disconnect()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .monitorWindowOpened)) { _ in
             reconnect()
         }

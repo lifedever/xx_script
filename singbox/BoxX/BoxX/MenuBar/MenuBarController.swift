@@ -82,21 +82,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
         menu.addItem(si)
 
-        // ── Apply config banner ──
-        if appState.pendingReload && appState.isRunning {
-            let reloadItem = NSMenuItem(title: "", action: #selector(applyConfig), keyEquivalent: "")
-            reloadItem.target = self
-            let str = NSMutableAttributedString()
-            str.append(NSAttributedString(string: "⚠️ ", attributes: [.font: NSFont.menuFont(ofSize: 0)]))
-            str.append(NSAttributedString(string: "配置已更新，点击应用", attributes: [
-                .font: NSFont.menuFont(ofSize: 0),
-                .foregroundColor: NSColor.labelColor,
-            ]))
-            reloadItem.attributedTitle = str
-            menu.addItem(reloadItem)
-            menu.addItem(.separator())
-        }
-
         // ── Outbound mode (top, after status) ──
         let modeMenu = NSMenu()
         for mode in ["rule", "global", "direct"] {
@@ -656,10 +641,57 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quitApp() {
-        // sing-box is managed by launchd, don't stop it on quit
-        // It will keep running in the background
-        AppDelegate.shared?.shouldReallyQuit = true
-        NSApplication.shared.terminate(nil)
+        // Show "正在退出..." HUD window
+        let hudWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 80),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        hudWindow.isOpaque = false
+        hudWindow.backgroundColor = .clear
+        hudWindow.level = .floating
+        hudWindow.center()
+
+        let visualEffect = NSVisualEffectView(frame: hudWindow.contentView!.bounds)
+        visualEffect.material = .hudWindow
+        visualEffect.state = .active
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 12
+        visualEffect.layer?.masksToBounds = true
+
+        let label = NSTextField(labelWithString: "正在退出…")
+        label.font = .systemFont(ofSize: 15, weight: .medium)
+        label.textColor = .labelColor
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.startAnimation(nil)
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = NSStackView(views: [spinner, label])
+        stack.orientation = .horizontal
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        visualEffect.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: visualEffect.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: visualEffect.centerYAnchor),
+        ])
+
+        hudWindow.contentView = visualEffect
+        hudWindow.orderFrontRegardless()
+
+        // Quit app only — sing-box keeps running via launchd
+        Task {
+            await WakeObserverHolder.shared.observer?.stopObserving()
+            AppDelegate.shared?.shouldReallyQuit = true
+            NSApplication.shared.terminate(nil)
+        }
     }
 }
 
