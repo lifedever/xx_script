@@ -124,6 +124,17 @@ struct GeneralSettingsTab: View {
                         Text("未安装")
                     }
                     Spacer()
+                    Button(helperInstalled ? "重装" : "安装") {
+                        Task {
+                            let ok = await appState.singBoxProcess.installHelper()
+                            helperInstalled = ok
+                            if !ok {
+                                appState.showAlert("Helper 安装失败，请确保有管理员权限")
+                            }
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
                 Text("Helper 以 root 权限管理 sing-box 进程，崩溃自动重启")
                     .foregroundStyle(.tertiary)
@@ -148,17 +159,9 @@ struct GeneralSettingsTab: View {
         .formStyle(.grouped)
         .onAppear {
             applyAppearance(appearanceMode)
-            // Check if Helper is reachable via XPC
             Task {
-                helperInstalled = await appState.singBoxProcess.refreshStatus() || true
-                // Actually check by calling getStatus - if XPC connects, helper is installed
-                let connection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
-                connection.remoteObjectInterface = NSXPCInterface(with: HelperProtocol.self)
-                connection.resume()
-                if let proxy = connection.remoteObjectProxyWithErrorHandler({ _ in }) as? HelperProtocol {
-                    proxy.getStatus { running, _ in
-                        Task { @MainActor in self.helperInstalled = true }
-                    }
+                if appState.singBoxProcess.isHelperInstalled() {
+                    helperInstalled = await appState.singBoxProcess.isHelperResponding()
                 } else {
                     helperInstalled = false
                 }
@@ -367,7 +370,6 @@ struct AdvancedSettingsTab: View {
                                     "100.64.0.0/10",
                                     "127.0.0.0/8",
                                     "169.254.0.0/16",
-                                    "172.16.0.0/12",
                                     "192.0.0.0/24",
                                     "192.168.0.0/16",
                                     "224.0.0.0/4",
@@ -494,8 +496,24 @@ struct AdvancedSettingsTab: View {
                 try newData.write(to: configURL, options: .atomic)
             }
             saved = true
-            Task { await appState.applyConfig() }
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saved = false }
+
+            if appState.isRunning {
+                let alert = NSAlert()
+                alert.messageText = "需要重启 sing-box"
+                alert.informativeText = "高级设置已保存。修改 TUN、DNS 等参数需要重启 sing-box 才能生效，重启期间会短暂断网。"
+                alert.addButton(withTitle: "立即重启")
+                alert.addButton(withTitle: "稍后手动重启")
+                if alert.runModal() == .alertFirstButtonReturn {
+                    Task {
+                        let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                        try? await appState.singBoxProcess.restart(configPath: runtimePath)
+                        appState.singBoxProcess.flushDNS()
+                        try? await appState.api.closeAllConnections()
+                        StatusPoller.shared.nudge(appState: appState)
+                    }
+                }
+            }
         } catch {
             appState.showAlert("保存失败: \(error.localizedDescription)")
         }

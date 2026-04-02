@@ -22,9 +22,31 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         rebuildMenuFromCache()
     }
 
+    private weak var dotView: NSView?
+
     func updateIcon() {
-        let icon = appState.isRunning ? "shippingbox.fill" : "shippingbox"
-        statusItem.button?.image = NSImage(systemSymbolName: icon, accessibilityDescription: "BoxX")
+        let iconName = appState.isRunning ? "shippingbox.fill" : "shippingbox"
+        statusItem.button?.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "BoxX")
+
+        dotView?.removeFromSuperview()
+
+        guard appState.isRunning, let button = statusItem.button else { return }
+
+        let tunEnabled = UserDefaults.standard.object(forKey: "tunEnabled") as? Bool ?? true
+        let dotSize: CGFloat = 5
+        let dot = NSView()
+        dot.wantsLayer = true
+        dot.layer?.backgroundColor = (tunEnabled ? NSColor.systemGreen : NSColor.systemBlue).cgColor
+        dot.layer?.cornerRadius = dotSize / 2
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(dot)
+        NSLayoutConstraint.activate([
+            dot.widthAnchor.constraint(equalToConstant: dotSize),
+            dot.heightAnchor.constraint(equalToConstant: dotSize),
+            dot.centerXAnchor.constraint(equalTo: button.centerXAnchor, constant: 8),
+            dot.centerYAnchor.constraint(equalTo: button.centerYAnchor, constant: 6),
+        ])
+        dotView = dot
     }
 
     /// Fetch proxy groups from Clash API, then rebuild menu synchronously
@@ -444,6 +466,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         appState.pendingReload = true
         Task {
             await appState.applyConfig()
+            updateIcon()
             rebuildMenuFromCache()
         }
     }

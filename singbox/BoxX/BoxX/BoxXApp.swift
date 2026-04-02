@@ -35,8 +35,6 @@ struct BoxXApp: App {
         let state = appState
 
         Task { @MainActor in
-            // Register XPC Helper (tries SMAppService, falls back to osascript)
-
             // Load config and regenerate runtime-config.json (picks up code changes)
             do {
                 try state.configEngine.load()
@@ -45,14 +43,35 @@ struct BoxXApp: App {
                 state.showAlert("Failed to load config: \(error.localizedDescription)")
             }
 
+            // Create AppKit menu bar first (so UI is always responsive)
+            MenuBarHolder.shared.controller = MenuBarController(appState: state)
+
+            // Ensure XPC Helper is installed AND running (before any XPC calls)
+            let needsInstall: Bool
+            if !state.singBoxProcess.isHelperInstalled() {
+                print("[BoxX] Helper files not found on disk")
+                needsInstall = true
+            } else if !(await state.singBoxProcess.isHelperResponding()) {
+                print("[BoxX] Helper files exist but daemon not responding")
+                needsInstall = true
+            } else {
+                needsInstall = false
+            }
+
+            if needsInstall {
+                print("[BoxX] Installing/re-registering Helper...")
+                let installed = await state.singBoxProcess.installHelper()
+                if !installed {
+                    state.showAlert("Helper 安装失败。请在「设置 → Helper 服务」中重新安装，或运行 ./build.sh full")
+                }
+            }
+
             // Migrate legacy launchd daemon to XPC Helper (one-time)
             await state.singBoxProcess.migrateLegacyDaemon()
 
-            // Initial status check: see if sing-box is already running (via XPC Helper)
+            // Now safe to use XPC — check if sing-box is already running
             state.isRunning = await state.singBoxProcess.refreshStatus()
-
-            // Create AppKit menu bar (NSStatusItem + NSMenu for Surge-style layout)
-            MenuBarHolder.shared.controller = MenuBarController(appState: state)
+            MenuBarHolder.shared.controller?.updateIcon()
 
             // Start adaptive polling
             StatusPoller.shared.start(appState: state)

@@ -93,6 +93,8 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
                 if isAlive {
                     // Setup process exit monitoring
                     setupProcessMonitor(pid: process.processIdentifier)
+                    // Clean up stale TUN interfaces that conflict with sing-box's fake-ip
+                    self.cleanupStaleFakeIPInterfaces()
                     reply(true, nil)
                 } else {
                     let stderrData = (try? Data(contentsOf: URL(fileURLWithPath: logPath))) ?? Data()
@@ -306,13 +308,13 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
 
             // Auto-restart on crash (not deliberate stop)
             if !self.isStopping, let configPath = self.lastConfigPath {
-                // Wait 2 seconds before restarting to avoid rapid loops
-                sleep(2)
-                self.startSingBox(configPath: configPath) { success, error in
-                    if success {
-                        print("[BoxXHelper] Auto-restarted sing-box after crash")
-                    } else {
-                        print("[BoxXHelper] Auto-restart failed: \(error ?? "unknown")")
+                DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
+                    self?.startSingBox(configPath: configPath) { success, error in
+                        if success {
+                            print("[BoxXHelper] Auto-restarted sing-box after crash")
+                        } else {
+                            print("[BoxXHelper] Auto-restart failed: \(error ?? "unknown")")
+                        }
                     }
                 }
             }
@@ -332,6 +334,55 @@ final class HelperTool: NSObject, HelperProtocol, NSXPCListenerDelegate {
         for watcher in watchers {
             watcher(true, exitCode)
         }
+    }
+
+    // MARK: - Stale TUN Cleanup
+
+    /// Disable stale TUN interfaces holding 198.18.x.x (fake-ip) IPs
+    /// that conflict with sing-box's fake-ip DNS routing (e.g. leftover Shadowrocket utun).
+    private func cleanupStaleFakeIPInterfaces() {
+        let output = runIfconfig()
+        var currentIface = ""
+        var singboxTUN: String?
+
+        // First pass: find sing-box's TUN (has 172.19.0.1)
+        for line in output.components(separatedBy: "\n") {
+            if !line.hasPrefix("\t") && !line.hasPrefix(" ") && line.contains(":") {
+                currentIface = String(line.prefix(while: { $0 != ":" }))
+            }
+            if line.contains("172.19.0.1") && line.contains("inet") {
+                singboxTUN = currentIface
+                break
+            }
+        }
+
+        // Second pass: find and disable stale 198.18.x.x interfaces
+        currentIface = ""
+        for line in output.components(separatedBy: "\n") {
+            if !line.hasPrefix("\t") && !line.hasPrefix(" ") && line.contains(":") {
+                currentIface = String(line.prefix(while: { $0 != ":" }))
+            }
+            if line.contains("198.18.") && line.contains("inet")
+                && currentIface != singboxTUN && !currentIface.isEmpty {
+                print("[BoxXHelper] Disabling stale fake-ip interface: \(currentIface)")
+                let down = Process()
+                down.executableURL = URL(fileURLWithPath: "/sbin/ifconfig")
+                down.arguments = [currentIface, "down"]
+                try? down.run()
+                down.waitUntilExit()
+            }
+        }
+    }
+
+    private func runIfconfig() -> String {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/sbin/ifconfig")
+        proc.arguments = ["-a"]
+        let pipe = Pipe()
+        proc.standardOutput = pipe
+        try? proc.run()
+        proc.waitUntilExit()
+        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
     }
 
     // MARK: - Helpers

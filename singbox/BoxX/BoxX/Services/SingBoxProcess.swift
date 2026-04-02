@@ -10,12 +10,38 @@ class SingBoxProcess {
 
     // MARK: - XPC Connection
 
+    private nonisolated(unsafe) static var _connection: NSXPCConnection?
+    private nonisolated(unsafe) static var connectionLock = NSLock()
+
     nonisolated private func connectToHelper() -> HelperProtocol? {
+        Self.connectionLock.lock()
+        defer { Self.connectionLock.unlock() }
+
+        if let existing = Self._connection {
+            return existing.remoteObjectProxyWithErrorHandler { error in
+                print("[BoxX] XPC proxy error: \(error)")
+                Self.connectionLock.lock()
+                Self._connection?.invalidate()
+                Self._connection = nil
+                Self.connectionLock.unlock()
+            } as? HelperProtocol
+        }
+
         let connection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
         connection.remoteObjectInterface = NSXPCInterface(with: HelperProtocol.self)
+        connection.invalidationHandler = {
+            Self.connectionLock.lock()
+            Self._connection = nil
+            Self.connectionLock.unlock()
+        }
         connection.resume()
+        Self._connection = connection
         return connection.remoteObjectProxyWithErrorHandler { error in
             print("[BoxX] XPC proxy error: \(error)")
+            Self.connectionLock.lock()
+            Self._connection?.invalidate()
+            Self._connection = nil
+            Self.connectionLock.unlock()
         } as? HelperProtocol
     }
 
@@ -92,8 +118,17 @@ class SingBoxProcess {
         guard let helper = connectToHelper() else { return }
 
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            var replied = false
+            let lock = NSLock()
+
             helper.stopSingBox { _, _ in
-                cont.resume()
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume() }
+            }
+
+            DispatchQueue.global().asyncAfter(deadline: .now() + 10) {
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume() }
             }
         }
         isRunning = false
@@ -141,9 +176,18 @@ class SingBoxProcess {
 
     private func getHelperStatus() async -> (Bool, Int32) {
         guard let helper = connectToHelper() else { return (false, 0) }
-        return await withCheckedContinuation { (cont: CheckedContinuation<(Bool, Int32), Never>) in
+        return await withCheckedContinuation { cont in
+            var replied = false
+            let lock = NSLock()
+
             helper.getStatus { running, pid in
-                cont.resume(returning: (running, pid))
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: (running, pid)) }
+            }
+
+            DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: (false, 0)) }
             }
         }
     }
@@ -174,6 +218,124 @@ class SingBoxProcess {
             return
         }
         helper.flushDNS { _ in }
+    }
+
+    // MARK: - Helper Installation
+
+    /// Check if Helper binary and launchd plist are installed on disk
+    nonisolated func isHelperInstalled() -> Bool {
+        let fm = FileManager.default
+        return fm.fileExists(atPath: "/Library/PrivilegedHelperTools/com.boxx.helper")
+            && fm.fileExists(atPath: "/Library/LaunchDaemons/com.boxx.helper.plist")
+    }
+
+    /// Check if Helper daemon is actually responding via XPC (3s timeout)
+    nonisolated func isHelperResponding() async -> Bool {
+        await withCheckedContinuation { cont in
+            let connection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
+            connection.remoteObjectInterface = NSXPCInterface(with: HelperProtocol.self)
+            connection.resume()
+
+            var replied = false
+            let lock = NSLock()
+
+            guard let helper = connection.remoteObjectProxyWithErrorHandler({ _ in
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: false) }
+            }) as? HelperProtocol else {
+                cont.resume(returning: false)
+                return
+            }
+
+            helper.getStatus { _, _ in
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: true) }
+            }
+
+            DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
+                lock.lock(); defer { lock.unlock() }
+                if !replied { replied = true; cont.resume(returning: false) }
+            }
+        }
+    }
+
+    /// Install or upgrade Helper via osascript (admin prompt)
+    func installHelper() async -> Bool {
+        let appPath = Bundle.main.bundlePath
+        let helperSrc = "\(appPath)/Contents/Library/LaunchDaemons/BoxXHelper"
+
+        guard FileManager.default.fileExists(atPath: helperSrc) else {
+            print("[BoxX] Helper binary not found in app bundle: \(helperSrc)")
+            return false
+        }
+
+        // Write install script to temp file (avoids shell escaping nightmares)
+        let scriptPath = "/tmp/boxx-install-helper.sh"
+        let plistXML = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>com.boxx.helper</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>/Library/PrivilegedHelperTools/com.boxx.helper</string>
+            </array>
+            <key>MachServices</key>
+            <dict>
+                <key>com.boxx.helper</key>
+                <true/>
+            </dict>
+            <key>KeepAlive</key>
+            <true/>
+        </dict>
+        </plist>
+        """
+        // Write plist to temp first, then the script moves it to /Library
+        let tmpPlistPath = "/tmp/com.boxx.helper.plist"
+        try? plistXML.write(toFile: tmpPlistPath, atomically: true, encoding: .utf8)
+
+        let scriptContent = """
+        #!/bin/bash
+        set -e
+        launchctl bootout system/com.boxx.helper 2>/dev/null || true
+        sleep 0.5
+        mkdir -p /Library/PrivilegedHelperTools
+        cp '\(helperSrc)' '/Library/PrivilegedHelperTools/com.boxx.helper'
+        chmod 755 '/Library/PrivilegedHelperTools/com.boxx.helper'
+        chown root:wheel '/Library/PrivilegedHelperTools/com.boxx.helper'
+        mv '\(tmpPlistPath)' '/Library/LaunchDaemons/com.boxx.helper.plist'
+        chmod 644 '/Library/LaunchDaemons/com.boxx.helper.plist'
+        chown root:wheel '/Library/LaunchDaemons/com.boxx.helper.plist'
+        launchctl bootstrap system '/Library/LaunchDaemons/com.boxx.helper.plist'
+        """
+
+        do {
+            try scriptContent.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+        } catch {
+            print("[BoxX] Failed to write install script: \(error)")
+            return false
+        }
+
+        let appleScriptSrc = "do shell script \"/bin/bash '\(scriptPath)'\" with administrator privileges"
+
+        return await withCheckedContinuation { cont in
+            DispatchQueue.global().async {
+                var error: NSDictionary?
+                let appleScript = NSAppleScript(source: appleScriptSrc)
+                appleScript?.executeAndReturnError(&error)
+                try? FileManager.default.removeItem(atPath: scriptPath)
+                if let error {
+                    print("[BoxX] Helper install failed: \(error)")
+                    cont.resume(returning: false)
+                } else {
+                    Thread.sleep(forTimeInterval: 1)
+                    print("[BoxX] Helper installed successfully")
+                    cont.resume(returning: true)
+                }
+            }
+        }
     }
 
     // MARK: - Legacy Migration
@@ -216,11 +378,9 @@ class SingBoxProcess {
 }
 
 enum SingBoxError: Error, LocalizedError {
-    case notInstalled
     case startFailed(String)
     var errorDescription: String? {
         switch self {
-        case .notInstalled: return "sing-box 未安装，请运行: brew install sing-box"
         case .startFailed(let msg): return "启动失败: \(msg)"
         }
     }

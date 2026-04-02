@@ -112,6 +112,91 @@ build() {
     fi
 }
 
+# 注册 Helper 服务到 launchd
+register_helper() {
+    step "注册 Helper 服务..."
+
+    local HELPER_SRC="$INSTALL_DIR/$APP_NAME.app/Contents/Library/LaunchDaemons/BoxXHelper"
+    local HELPER_DST="/Library/PrivilegedHelperTools/com.boxx.helper"
+    local PLIST_DST="/Library/LaunchDaemons/com.boxx.helper.plist"
+    local LEGACY_PLIST="/Library/LaunchDaemons/com.boxx.singbox.plist"
+    local LEGACY_SUDOERS="/etc/sudoers.d/boxx-singbox"
+
+    if [ ! -f "$HELPER_SRC" ]; then
+        error "Helper 二进制不存在: $HELPER_SRC"
+        return 1
+    fi
+
+    # 卸载旧版 Helper（如已注册）
+    sudo launchctl bootout system/com.boxx.helper 2>/dev/null || true
+    sleep 0.5
+
+    # 迁移：卸载旧版 sing-box daemon
+    if [ -f "$LEGACY_PLIST" ]; then
+        step "迁移旧版 sing-box daemon..."
+        sudo launchctl bootout system/com.boxx.singbox 2>/dev/null || true
+        sudo rm -f "$LEGACY_PLIST"
+        info "旧版 daemon 已移除"
+    fi
+    if [ -f "$LEGACY_SUDOERS" ]; then
+        sudo rm -f "$LEGACY_SUDOERS"
+        info "旧版 sudoers 规则已移除"
+    fi
+
+    # 创建目标目录
+    sudo mkdir -p /Library/PrivilegedHelperTools
+
+    # 复制 Helper 二进制
+    sudo cp "$HELPER_SRC" "$HELPER_DST"
+    sudo chmod 755 "$HELPER_DST"
+    sudo chown root:wheel "$HELPER_DST"
+
+    # 写入 launchd plist
+    sudo tee "$PLIST_DST" > /dev/null << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.boxx.helper</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/PrivilegedHelperTools/com.boxx.helper</string>
+    </array>
+    <key>MachServices</key>
+    <dict>
+        <key>com.boxx.helper</key>
+        <true/>
+    </dict>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+    sudo chmod 644 "$PLIST_DST"
+    sudo chown root:wheel "$PLIST_DST"
+
+    # 注册到 launchd
+    sudo launchctl bootstrap system "$PLIST_DST"
+
+    # 验证
+    sleep 1
+    if sudo launchctl print system/com.boxx.helper >/dev/null 2>&1; then
+        info "Helper 服务已注册并运行"
+    else
+        warn "Helper 服务注册可能失败，请检查 sudo launchctl list | grep boxx"
+    fi
+}
+
+# 卸载 Helper 服务
+unregister_helper() {
+    step "卸载 Helper 服务..."
+    sudo launchctl bootout system/com.boxx.helper 2>/dev/null || true
+    sudo rm -f /Library/LaunchDaemons/com.boxx.helper.plist
+    sudo rm -f /Library/PrivilegedHelperTools/com.boxx.helper
+    info "Helper 服务已卸载"
+}
+
 # 安装到 /Applications
 install_app() {
     BUILD_DIR=$(get_build_dir)
@@ -167,13 +252,15 @@ launch() {
 uninstall() {
     step "卸载 $APP_NAME ..."
     stop_all
+    # 停止 sing-box
+    sudo pkill -x sing-box 2>/dev/null || true
+    # 卸载 Helper
+    unregister_helper
+    # 卸载旧版 daemon（如果存在）
+    sudo launchctl bootout system/com.boxx.singbox 2>/dev/null || true
+    sudo rm -f /Library/LaunchDaemons/com.boxx.singbox.plist
+    sudo rm -f /etc/sudoers.d/boxx-singbox
     rm -rf "$INSTALL_DIR/$APP_NAME.app"
-    # 清理 sudoers 规则
-    if [ -f /etc/sudoers.d/boxx-singbox ]; then
-        step "清理 sudoers 规则（需要管理员密码）..."
-        sudo rm -f /etc/sudoers.d/boxx-singbox
-        info "已清理 /etc/sudoers.d/boxx-singbox"
-    fi
     info "已从 $INSTALL_DIR 移除"
     echo "  配置目录保留在: ~/Library/Application Support/BoxX/"
     echo "  如需完全清理: rm -rf ~/Library/Application\\ Support/BoxX/"
@@ -204,6 +291,7 @@ full() {
     generate
     build
     install_app
+    register_helper
     launch
 
     echo ""
