@@ -37,9 +37,10 @@ struct BoxXApp: App {
         Task { @MainActor in
             // Register XPC Helper (tries SMAppService, falls back to osascript)
 
-            // Load config
+            // Load config and regenerate runtime-config.json (picks up code changes)
             do {
                 try state.configEngine.load()
+                try state.configEngine.deployRuntime(skipValidation: true)
             } catch {
                 state.showAlert("Failed to load config: \(error.localizedDescription)")
             }

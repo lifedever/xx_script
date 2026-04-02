@@ -330,13 +330,66 @@ class ConfigEngine: @unchecked Sendable {
     func buildRuntimeConfig() -> SingBoxConfig {
         var runtime = config
 
+        let ud = UserDefaults.standard
+
         // Remove TUN inbound when disabled in settings (default: enabled)
-        let tunEnabled = UserDefaults.standard.object(forKey: "tunEnabled") as? Bool ?? true
+        let tunEnabled = ud.object(forKey: "tunEnabled") as? Bool ?? true
         if !tunEnabled {
             runtime.inbounds.removeAll { $0["type"]?.stringValue == "tun" }
-            // Also disable auto_route/strict_route related route settings
             runtime.route.unknownFields.removeValue(forKey: "auto_detect_interface")
         }
+
+        // Apply advanced network settings to TUN inbound
+        if tunEnabled {
+            for i in runtime.inbounds.indices where runtime.inbounds[i]["type"]?.stringValue == "tun" {
+                guard case .object(var tunDict) = runtime.inbounds[i] else { continue }
+                // Endpoint Independent NAT
+                if ud.bool(forKey: "endpointIndependentNAT") {
+                    tunDict["endpoint_independent_nat"] = .bool(true)
+                }
+                // TUN exclude addresses
+                let excludeStr = ud.string(forKey: "tunExcludeAddresses") ?? ""
+                let excludeAddrs = excludeStr.components(separatedBy: CharacterSet.newlines.union(.init(charactersIn: ",")))
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+                if !excludeAddrs.isEmpty {
+                    tunDict["route_exclude_address"] = .array(excludeAddrs.map { .string($0) })
+                }
+                runtime.inbounds[i] = .object(tunDict)
+            }
+        }
+
+        // Apply direct DNS server setting
+        let directDNS = ud.string(forKey: "directDNS") ?? "udp://223.5.5.5"
+        if var dns = runtime.dns, var servers = dns.servers {
+            for i in servers.indices where servers[i]["tag"]?.stringValue == "dns_direct" {
+                var dict: [String: JSONValue] = ["tag": .string("dns_direct")]
+                if directDNS == "local" {
+                    dict["type"] = .string("local")
+                } else if directDNS.hasPrefix("doh-ip://") {
+                    // DoH via IP address (e.g. "doh-ip://223.5.5.5" → HTTPS to 223.5.5.5)
+                    // Must set detour=DIRECT so DoH traffic (port 443) bypasses TUN routing
+                    let ip = directDNS.replacingOccurrences(of: "doh-ip://", with: "")
+                    dict["type"] = .string("https")
+                    dict["server"] = .string(ip)
+                    dict["detour"] = .string("DIRECT")
+                } else {
+                    // UDP (e.g. "udp://223.5.5.5")
+                    dict["type"] = .string("udp")
+                    dict["server"] = .string(directDNS.replacingOccurrences(of: "udp://", with: ""))
+                }
+                servers[i] = .object(dict)
+            }
+            dns.servers = servers
+
+            // Apply DNS cache capacity
+            let cacheCapacity = ud.integer(forKey: "dnsCacheCapacity")
+            if cacheCapacity > 0 {
+                dns.unknownFields["cache_capacity"] = .number(Double(cacheCapacity))
+            }
+            runtime.dns = dns
+        }
+
         // Deduplicate proxy nodes across subscriptions (same tag = keep first)
         let existingTags = Set(runtime.outbounds.map { $0.tag })
         var seenTags = existingTags
@@ -370,6 +423,11 @@ class ConfigEngine: @unchecked Sendable {
 
         // Enable process detection for monitoring
         runtime.route.unknownFields["find_process"] = .bool(true)
+
+        // sing-box 1.12+ requires default_domain_resolver in route (preserve existing, fallback to dns_direct)
+        if runtime.route.unknownFields["default_domain_resolver"] == nil {
+            runtime.route.unknownFields["default_domain_resolver"] = .string("dns_direct")
+        }
 
         // Inject block-custom rule set if file exists and is non-empty
         let blockFile = baseDir.appendingPathComponent("rules/block-custom.json")
@@ -414,7 +472,6 @@ class ConfigEngine: @unchecked Sendable {
         }
 
         // Inject urltest settings from UserDefaults
-        let ud = UserDefaults.standard
         let testURL = ud.string(forKey: "speedTestURL") ?? "http://1.1.1.1/generate_204"
         let testInterval = ud.string(forKey: "urlTestInterval").flatMap({ $0.isEmpty ? nil : $0 }) ?? "3m"
         let testTolerance = ud.integer(forKey: "urlTestTolerance")

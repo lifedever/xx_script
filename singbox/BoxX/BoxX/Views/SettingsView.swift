@@ -362,6 +362,10 @@ struct AdvancedSettingsTab: View {
     @State private var ipv6Enabled = false
     @State private var logLevel = "info"
     @State private var saved = false
+    @AppStorage("directDNS") private var directDNS = "udp://223.5.5.5"
+    @AppStorage("dnsCacheCapacity") private var dnsCacheCapacity = 0
+    @AppStorage("endpointIndependentNAT") private var endpointIndependentNAT = false
+    @AppStorage("tunExcludeAddresses") private var tunExcludeAddresses = ""
 
     var body: some View {
         Form {
@@ -376,6 +380,67 @@ struct AdvancedSettingsTab: View {
                     .font(.body.monospaced())
                 Toggle("启用 IPv6", isOn: $ipv6Enabled)
                 Text("关闭后 TUN 不接管 IPv6 流量，可解决微信发图等国内应用的 IPv6 兼容问题")
+                    .foregroundStyle(.tertiary)
+            }
+
+            Section("DNS") {
+                Picker("国内 DNS", selection: $directDNS) {
+                    Text("AliDNS DoH（加密，推荐）").tag("doh-ip://223.5.5.5")
+                    Text("腾讯 DoH（加密）").tag("doh-ip://1.12.12.12")
+                    Text("AliDNS UDP（明文）").tag("udp://223.5.5.5")
+                    Text("腾讯 DNS UDP（明文）").tag("udp://119.29.29.29")
+                    Text("系统 DNS").tag("local")
+                }
+                Text("国内域名的 DNS 解析服务器。DoH 加密可防止 ISP 劫持和窥探")
+                    .foregroundStyle(.tertiary)
+
+                Picker("DNS 缓存容量", selection: $dnsCacheCapacity) {
+                    Text("默认").tag(0)
+                    Text("1024").tag(1024)
+                    Text("2048").tag(2048)
+                    Text("4096（推荐）").tag(4096)
+                    Text("8192").tag(8192)
+                }
+                Text("DNS 查询结果的 LRU 缓存条数，越大命中率越高，解析越快")
+                    .foregroundStyle(.tertiary)
+            }
+
+            Section("NAT 与排除") {
+                Toggle("Endpoint Independent NAT", isOn: $endpointIndependentNAT)
+                Text("改善游戏、视频通话等 P2P 场景的 NAT 穿透能力。仅 TUN 模式生效")
+                    .foregroundStyle(.tertiary)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("TUN 排除地址")
+                        Spacer()
+                        if tunExcludeAddresses.isEmpty {
+                            Button("填入常见内网地址") {
+                                tunExcludeAddresses = [
+                                    "10.0.0.0/8",
+                                    "100.64.0.0/10",
+                                    "127.0.0.0/8",
+                                    "169.254.0.0/16",
+                                    "172.16.0.0/12",
+                                    "192.0.0.0/24",
+                                    "192.168.0.0/16",
+                                    "224.0.0.0/4",
+                                    "240.0.0.0/4",
+                                    "255.255.255.255/32",
+                                ].joined(separator: ", ")
+                            }
+                            .controlSize(.small)
+                        } else {
+                            Button("清空") { tunExcludeAddresses = "" }
+                                .controlSize(.small)
+                        }
+                    }
+                    TextEditor(text: $tunExcludeAddresses)
+                        .font(.body.monospaced())
+                        .frame(height: 80)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3)))
+                }
+                Text("逗号或换行分隔。这些地址段不走 TUN 代理，直接访问")
                     .foregroundStyle(.tertiary)
             }
 
@@ -483,6 +548,7 @@ struct AdvancedSettingsTab: View {
                 try newData.write(to: configURL, options: .atomic)
             }
             saved = true
+            Task { await appState.applyConfig() }
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saved = false }
         } catch {
             appState.showAlert("保存失败: \(error.localizedDescription)")
