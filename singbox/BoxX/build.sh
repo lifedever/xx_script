@@ -339,7 +339,67 @@ pack() {
     rm -rf "$TMP_DIR"
 
     info "DMG 已生成: $DIST_DIR/$DMG_NAME"
-    open "$DIST_DIR"
+
+    # 上传到 Telegram 频道
+    upload_telegram "$DIST_DIR/$DMG_NAME" "$VERSION"
+}
+
+# Telegram 通知
+TG_BOT_TOKEN="8679930345:AAEpBPhGOOrpS8e16-jBzPaDPnWgq8N__Fk"
+TG_CHAT_ID="-1003782709194"
+
+upload_telegram() {
+    local FILE_PATH="$1"
+    local VERSION="$2"
+
+    if [ ! -f "$FILE_PATH" ]; then
+        warn "DMG 文件不存在，跳过上传"
+        return
+    fi
+
+    step "上传到 Telegram 频道..."
+
+    local BUILD_NUM
+    BUILD_NUM=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$SCRIPT_DIR/BoxX/Info.plist" 2>/dev/null || echo "?")
+
+    # 获取更新内容（git 需要在 repo 根目录执行）
+    local GIT_ROOT
+    GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+    local CHANGELOG=""
+    if [ -n "$GIT_ROOT" ]; then
+        local LAST_TAG
+        LAST_TAG=$(git -C "$GIT_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "")
+        if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git -C "$GIT_ROOT" log "${LAST_TAG}..HEAD" --pretty=format:"• %s" -- singbox/BoxX/ 2>/dev/null | head -4)
+        fi
+        if [ -z "$CHANGELOG" ]; then
+            CHANGELOG=$(git -C "$GIT_ROOT" log -4 --pretty=format:"• %s" -- singbox/BoxX/ 2>/dev/null)
+        fi
+    fi
+
+    # 清理 commit message：去掉 "feat(BoxX): " 等前缀，只保留描述
+    CHANGELOG=$(echo "$CHANGELOG" | sed 's/• [a-z]*([^)]*): /• /g')
+
+    local CAPTION="📦 <b>BoxX v${VERSION}</b> (build ${BUILD_NUM})"
+    CAPTION="${CAPTION}
+$(date '+%Y-%m-%d %H:%M')"
+    CAPTION="${CAPTION}
+
+<b>更新内容:</b>
+${CHANGELOG}"
+
+    local RESPONSE
+    RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument" \
+        -F chat_id="${TG_CHAT_ID}" \
+        -F document=@"${FILE_PATH}" \
+        --form-string caption="${CAPTION}" \
+        --form-string parse_mode="HTML")
+
+    if echo "$RESPONSE" | grep -q '"ok":true'; then
+        info "已上传到 Telegram 频道"
+    else
+        warn "Telegram 上传失败: $RESPONSE"
+    fi
 }
 
 # 主入口
