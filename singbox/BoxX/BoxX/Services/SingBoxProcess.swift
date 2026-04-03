@@ -224,6 +224,8 @@ class SingBoxProcess {
             }
         }
         print("[BoxX] Config reloaded via SIGHUP")
+        // Process is still alive after SIGHUP — refresh state from Helper
+        await refreshStatus()
     }
 
     // MARK: - Status

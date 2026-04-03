@@ -90,7 +90,8 @@ bump_version() {
 
 # 构建
 build() {
-    step "构建 $APP_NAME (Release)..."
+    local ARCH="${1:-arm64}"
+    step "构建 $APP_NAME (Release, $ARCH)..."
     cd "$SCRIPT_DIR"
 
     BUILD_DIR=$(get_build_dir)
@@ -98,14 +99,14 @@ build() {
     xcodebuild build \
         -scheme "$SCHEME" \
         -configuration Release \
-        -destination 'platform=macOS,arch=arm64' \
+        -destination "platform=macOS,arch=$ARCH" \
         -derivedDataPath "$DERIVED_DATA" \
-        ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+        ARCHS="$ARCH" ONLY_ACTIVE_ARCH=NO \
         -quiet \
         2>&1 | tail -5
 
     if [ -d "$BUILD_DIR/$APP_NAME.app" ]; then
-        info "构建成功: $BUILD_DIR/$APP_NAME.app"
+        info "构建成功 ($ARCH): $BUILD_DIR/$APP_NAME.app"
     else
         error "构建失败：找不到 $BUILD_DIR/$APP_NAME.app"
         exit 1
@@ -300,33 +301,22 @@ full() {
 }
 
 # 打包 DMG
-pack() {
-    BUILD_DIR=$(get_build_dir)
-
-    if [ ! -d "$BUILD_DIR/$APP_NAME.app" ]; then
-        error "找不到构建产物，请先运行 ./build.sh build"
-        exit 1
-    fi
-
-    local VERSION
-    VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$SCRIPT_DIR/BoxX/Info.plist" 2>/dev/null || echo "0.0")
-    local DIST_DIR="$SCRIPT_DIR/dist"
-    local DMG_NAME="BoxX-v${VERSION}.dmg"
+create_dmg() {
+    local ARCH="$1"
+    local VERSION="$2"
+    local DIST_DIR="$3"
+    local BUILD_DIR=$(get_build_dir)
+    local SUFFIX=""
+    [ "$ARCH" = "arm64" ] && SUFFIX="-arm64"
+    [ "$ARCH" = "x86_64" ] && SUFFIX="-x86_64"
+    local DMG_NAME="BoxX-v${VERSION}${SUFFIX}.dmg"
     local TMP_DIR=$(mktemp -d)
 
     step "打包 DMG: $DMG_NAME ..."
 
-    mkdir -p "$DIST_DIR"
-    # 删除所有旧版 DMG
-    rm -f "$DIST_DIR"/BoxX-v*.dmg
-
-    # 准备临时目录
     cp -R "$BUILD_DIR/$APP_NAME.app" "$TMP_DIR/$APP_NAME.app"
-
-    # 创建 Applications 快捷方式
     ln -s /Applications "$TMP_DIR/Applications"
 
-    # 创建 DMG
     hdiutil create \
         -volname "$APP_NAME" \
         -srcfolder "$TMP_DIR" \
@@ -335,32 +325,66 @@ pack() {
         "$DIST_DIR/$DMG_NAME" \
         -quiet
 
-    # 清理
     rm -rf "$TMP_DIR"
-
     info "DMG 已生成: $DIST_DIR/$DMG_NAME"
-
-    # 上传到 Telegram 频道
-    upload_telegram "$DIST_DIR/$DMG_NAME" "$VERSION"
+    # 返回 DMG 路径（通过全局变量，避免 stdout 被污染）
+    _DMG_RESULT="$DIST_DIR/$DMG_NAME"
 }
 
-# Telegram 通知
-TG_BOT_TOKEN="8679930345:AAEpBPhGOOrpS8e16-jBzPaDPnWgq8N__Fk"
-TG_CHAT_ID="-1003782709194"
+pack() {
+    local VERSION
+    VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$SCRIPT_DIR/BoxX/Info.plist" 2>/dev/null || echo "0.0")
+    local DIST_DIR="$SCRIPT_DIR/dist"
+
+    mkdir -p "$DIST_DIR"
+    rm -f "$DIST_DIR"/BoxX-v*.dmg
+
+    # 构建 arm64
+    step "清理构建缓存..."
+    rm -rf "$DERIVED_DATA"
+    build arm64
+    create_dmg arm64 "$VERSION" "$DIST_DIR"
+    local ARM_DMG="$_DMG_RESULT"
+
+    # 构建 x86_64
+    step "清理构建缓存..."
+    rm -rf "$DERIVED_DATA"
+    build x86_64
+    create_dmg x86_64 "$VERSION" "$DIST_DIR"
+    local X86_DMG="$_DMG_RESULT"
+
+    # 上传到 Telegram 频道
+    upload_telegram "$ARM_DMG" "$VERSION" "arm64"
+    upload_telegram "$X86_DMG" "$VERSION" "x86_64"
+}
+
+# Telegram 通知（从环境变量读取，可在 ~/.zshrc 中设置）
+TG_BOT_TOKEN="${BOXX_TG_BOT_TOKEN:-}"
+TG_CHAT_ID="${BOXX_TG_CHAT_ID:-}"
 
 upload_telegram() {
     local FILE_PATH="$1"
     local VERSION="$2"
+    local ARCH="${3:-}"
 
     if [ ! -f "$FILE_PATH" ]; then
         warn "DMG 文件不存在，跳过上传"
         return
     fi
 
-    step "上传到 Telegram 频道..."
+    if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
+        warn "未配置 Telegram，跳过上传。请设置环境变量 BOXX_TG_BOT_TOKEN 和 BOXX_TG_CHAT_ID"
+        return
+    fi
+
+    step "上传到 Telegram 频道 ($ARCH)..."
 
     local BUILD_NUM
     BUILD_NUM=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$SCRIPT_DIR/BoxX/Info.plist" 2>/dev/null || echo "?")
+
+    local ARCH_LABEL=""
+    [ "$ARCH" = "arm64" ] && ARCH_LABEL=" (Apple Silicon)"
+    [ "$ARCH" = "x86_64" ] && ARCH_LABEL=" (Intel)"
 
     # 获取更新内容（git 需要在 repo 根目录执行）
     local GIT_ROOT
@@ -380,7 +404,12 @@ upload_telegram() {
     # 清理 commit message：去掉 "feat(BoxX): " 等前缀，只保留描述
     CHANGELOG=$(echo "$CHANGELOG" | sed 's/• [a-z]*([^)]*): /• /g')
 
-    local CAPTION="📦 <b>BoxX v${VERSION}</b> (build ${BUILD_NUM})"
+    # 如果有 RELEASE_NOTES 文件，优先使用
+    if [ -f "$SCRIPT_DIR/.release-notes" ]; then
+        CHANGELOG=$(cat "$SCRIPT_DIR/.release-notes")
+    fi
+
+    local CAPTION="📦 <b>BoxX v${VERSION}</b>${ARCH_LABEL} (build ${BUILD_NUM})"
     CAPTION="${CAPTION}
 $(date '+%Y-%m-%d %H:%M')"
     CAPTION="${CAPTION}
@@ -396,7 +425,7 @@ ${CHANGELOG}"
         --form-string parse_mode="HTML")
 
     if echo "$RESPONSE" | grep -q '"ok":true'; then
-        info "已上传到 Telegram 频道"
+        info "已上传到 Telegram 频道 ($ARCH)"
     else
         warn "Telegram 上传失败: $RESPONSE"
     fi
@@ -410,7 +439,7 @@ case "${1:-full}" in
     install)    install_app ;;
     run|launch) launch ;;
     uninstall)  uninstall ;;
-    pack|dmg)   bump_version && generate && build && pack ;;
+    pack|dmg)   bump_version && generate && pack ;;
     full|"")    full ;;
     *)
         echo "用法: $0 [命令]"

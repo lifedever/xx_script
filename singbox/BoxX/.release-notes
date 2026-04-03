@@ -1,0 +1,9 @@
+• DNS 性能优化：默认代理 DNS 改为 AliDNS DoH 直连，解析速度从 ~300ms 降至 ~1ms
+• DNS 管理：编辑 DNS 服务器时新增预设下拉（AliDNS、腾讯、Google 等），无需手动填写
+• 设置页面精简：移除 DNS 相关设置，统一在「DNS 管理」页面配置
+
+⚠️ 老用户请手动修改 dns_proxy：
+主窗口 → DNS 管理 → 点击 dns_proxy 右侧「编辑」→ 预设选择「AliDNS DoH（加密，推荐）」→ 出站留空 → 保存
+
+修改前：dns_proxy 经代理到 8.8.8.8（每次 DNS 查询 ~300ms）
+修改后：dns_proxy 直连 AliDNS 223.5.5.5（每次 DNS 查询 ~1ms）

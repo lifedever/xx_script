@@ -141,6 +141,12 @@
 "subs.save_and_update" = "保存并更新订阅";
 "subs.updating" = "正在更新订阅…";
 "subs.update_complete" = "订阅更新完成";
+"subs.choose_file" = "选择文件…";
+"subs.no_file" = "未选择文件";
+"subs.source.remote" = "网络订阅";
+"subs.source.local" = "本地文件";
+"subs.source.type" = "类型";
+"subs.update" = "更新";
 
 // Block List
 "block.search" = "搜索…";

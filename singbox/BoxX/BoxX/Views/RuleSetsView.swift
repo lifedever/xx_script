@@ -305,6 +305,9 @@ struct RuleSetsView: View {
                             .help("更新于 \(Self.timeFormatter.string(from: date))")
                     case .failed(let msg):
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.red).help(msg)
+                            .onTapGesture {
+                                appState.showAlert("规则集更新失败\n\n\(msg)")
+                            }
                     case .idle:
                         EmptyView()
                     }
@@ -500,8 +503,10 @@ struct RuleSetsView: View {
             _ = try await mgr.downloadRuleSet(url: url, filename: "\(tag).\(ext)")
             ruleSetUpdateStatus[tag] = .success(Date())
             try? appState.configEngine.deployRuntime(skipValidation: true)
+            StatusPoller.shared.nudge(appState: appState)
         } catch {
             ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
+            appState.showAlert("规则集 \(tag) 更新失败\n\n\(error.localizedDescription)")
         }
     }
 
@@ -511,6 +516,8 @@ struct RuleSetsView: View {
         let remoteRuleSets = ruleSets.filter { $0["type"]?.stringValue == "remote" }
         let rulesDir = appState.configEngine.baseDir.appendingPathComponent("rules")
         let mgr = RuleSetManager(rulesDir: rulesDir, proxyPort: appState.configEngine.mixedPort)
+
+        var failedTags: [String] = []
 
         for rs in remoteRuleSets {
             guard let tag = rs["tag"]?.stringValue else { continue }
@@ -528,10 +535,16 @@ struct RuleSetsView: View {
                 ruleSetUpdateStatus[tag] = .success(Date())
             } catch {
                 ruleSetUpdateStatus[tag] = .failed(error.localizedDescription)
+                failedTags.append("\(tag): \(error.localizedDescription)")
             }
         }
 
+        if !failedTags.isEmpty {
+            appState.showAlert("部分规则集更新失败\n\n\(failedTags.joined(separator: "\n"))")
+        }
+
         try? appState.configEngine.deployRuntime(skipValidation: true)
+        StatusPoller.shared.nudge(appState: appState)
     }
 }
 

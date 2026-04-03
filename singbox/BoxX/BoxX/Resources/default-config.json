@@ -75,10 +75,12 @@
         "type": "hosts"
       },
       {
-        "detour": "Proxy",
-        "server": "8.8.8.8",
+        "server": "223.5.5.5",
         "tag": "dns_proxy",
-        "type": "udp"
+        "type": "https",
+        "tls": {
+          "server_name": "dns.alidns.com"
+        }
       },
       {
         "tag": "dns_local",
@@ -267,7 +269,7 @@
         "format": "binary",
         "tag": "geosite-apple-cn",
         "type": "remote",
-        "url": "https://testingcf.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-apple@cn.srs"
+        "url": "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/apple-cn.txt"
       },
       {
         "download_detour": "DIRECT",
@@ -281,7 +283,7 @@
         "format": "binary",
         "tag": "geosite-google-cn",
         "type": "remote",
-        "url": "https://testingcf.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-google@cn.srs"
+        "url": "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/google-cn.txt"
       },
       {
         "download_detour": "DIRECT",
@@ -365,7 +367,7 @@
         "format": "binary",
         "tag": "geosite-geolocation-!cn",
         "type": "remote",
-        "url": "https://testingcf.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-geolocation-!cn.srs"
+        "url": "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/proxy-list.txt"
       },
       {
         "download_detour": "DIRECT",

@@ -30,6 +30,12 @@ struct SubscriptionFetcher: Sendable {
     var proxyPort: Int = 0
 
     func fetch(url: URL) async throws -> FetchResult {
+        // Local file support: file:// URLs read directly from disk
+        if url.isFileURL {
+            let data = try Data(contentsOf: url)
+            return FetchResult(data: data, info: nil)
+        }
+
         var request = URLRequest(url: url)
         request.setValue("clash-verge/v2.0.0", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 60

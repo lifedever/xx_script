@@ -359,47 +359,8 @@ class ConfigEngine: @unchecked Sendable {
             }
         }
 
-        // Apply direct DNS server setting
-        let directDNS = ud.string(forKey: "directDNS") ?? "udp://223.5.5.5"
-        if var dns = runtime.dns, var servers = dns.servers {
-            for i in servers.indices where servers[i]["tag"]?.stringValue == "dns_direct" {
-                var dict: [String: JSONValue] = ["tag": .string("dns_direct")]
-                if directDNS == "local" {
-                    dict["type"] = .string("local")
-                } else if directDNS.hasPrefix("doh-ip://") {
-                    // DoH via IP address (e.g. "doh-ip://223.5.5.5" → HTTPS to 223.5.5.5)
-                    let ip = directDNS.replacingOccurrences(of: "doh-ip://", with: "")
-                    let sni = Self.sniForIP(ip)
-                    dict["type"] = .string("https")
-                    dict["server"] = .string(ip)
-                    if !sni.isEmpty { dict["tls"] = .object(["server_name": .string(sni)]) }
-                } else if directDNS.hasPrefix("doq://") {
-                    // DoQ via IP address (e.g. "doq://223.5.5.5" → QUIC to 223.5.5.5)
-                    let ip = directDNS.replacingOccurrences(of: "doq://", with: "")
-                    let sni = Self.sniForIP(ip)
-                    dict["type"] = .string("quic")
-                    dict["server"] = .string(ip)
-                    if !sni.isEmpty {
-                        dict["tls"] = .object(["server_name": .string(sni)])
-                    }
-                } else {
-                    // UDP (e.g. "udp://223.5.5.5")
-                    dict["type"] = .string("udp")
-                    dict["server"] = .string(directDNS.replacingOccurrences(of: "udp://", with: ""))
-                }
-                servers[i] = .object(dict)
-            }
-            // Apply proxy DNS server setting
-            let proxyDNSType = ud.string(forKey: "proxyDNS") ?? "tcp"
-            for i in servers.indices where servers[i]["tag"]?.stringValue == "dns_proxy" {
-                if case .object(var dict) = servers[i] {
-                    dict["type"] = .string(proxyDNSType)
-                    servers[i] = .object(dict)
-                }
-            }
-
-            dns.servers = servers
-
+        // Apply DNS settings (strategy, cache) — DNS servers are managed in DNS management page
+        if var dns = runtime.dns {
             // Set DNS strategy based on TUN IPv6 state
             let hasIPv6 = runtime.inbounds.contains { inb in
                 guard inb["type"]?.stringValue == "tun",

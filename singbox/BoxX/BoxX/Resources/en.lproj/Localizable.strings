@@ -141,6 +141,12 @@
 "subs.save_and_update" = "Save & Update Subscriptions";
 "subs.updating" = "Updating subscriptions…";
 "subs.update_complete" = "Subscriptions updated successfully";
+"subs.choose_file" = "Choose File…";
+"subs.no_file" = "No file selected";
+"subs.source.remote" = "Remote URL";
+"subs.source.local" = "Local File";
+"subs.source.type" = "Type";
+"subs.update" = "Update";
 
 // Block List
 "block.search" = "Search…";

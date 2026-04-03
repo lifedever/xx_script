@@ -747,6 +747,8 @@ struct DNSServerEditSheet: View {
     @State private var serverType = "udp"
     @State private var address = ""
     @State private var detour = ""
+    @State private var selectedPreset = "custom"
+    @State private var isApplyingPreset = false
     @State private var errorMessage: String?
 
     private var isEditing: Bool {
@@ -754,17 +756,42 @@ struct DNSServerEditSheet: View {
         return false
     }
 
+    private struct DNSPreset: Identifiable {
+        let id: String
+        let label: String
+        let type: String
+        let server: String
+        let detour: String
+        let tlsServerName: String
+    }
+
+    private let presets: [DNSPreset] = [
+        DNSPreset(id: "ali-udp", label: "AliDNS UDP（最快）", type: "udp", server: "223.5.5.5", detour: "", tlsServerName: ""),
+        DNSPreset(id: "ali-doh", label: "AliDNS DoH（加密，推荐）", type: "https", server: "223.5.5.5", detour: "", tlsServerName: "dns.alidns.com"),
+        DNSPreset(id: "ali-doq", label: "AliDNS DoQ（加密，低延迟）", type: "quic", server: "223.5.5.5", detour: "", tlsServerName: "dns.alidns.com"),
+        DNSPreset(id: "tencent-udp", label: "腾讯 DNS UDP", type: "udp", server: "119.29.29.29", detour: "", tlsServerName: ""),
+        DNSPreset(id: "tencent-doh", label: "腾讯 DNS DoH（加密）", type: "https", server: "1.12.12.12", detour: "", tlsServerName: "dot.pub"),
+        DNSPreset(id: "google-proxy", label: "Google 8.8.8.8 经代理（慢，防泄露）", type: "tcp", server: "8.8.8.8", detour: "Proxy", tlsServerName: ""),
+        DNSPreset(id: "cloudflare-proxy", label: "Cloudflare 1.1.1.1 经代理", type: "tcp", server: "1.1.1.1", detour: "Proxy", tlsServerName: ""),
+        DNSPreset(id: "system", label: "系统本地 DNS", type: "local", server: "", detour: "", tlsServerName: ""),
+        DNSPreset(id: "custom", label: "自定义", type: "udp", server: "", detour: "", tlsServerName: ""),
+    ]
+
     private let serverTypes = [
         ("udp", "UDP"),
+        ("tcp", "TCP"),
         ("https", "HTTPS (DoH)"),
+        ("quic", "QUIC (DoQ)"),
         ("tls", "TLS (DoT)"),
         ("local", "Local"),
     ]
 
     private var serverTypeHint: String {
         switch serverType {
-        case "udp": return "传统 DNS，速度快，明文传输（如阿里 223.5.5.5）"
-        case "https": return "DNS over HTTPS，加密传输（如 Google 8.8.8.8）"
+        case "udp": return "传统 DNS，速度快，明文传输"
+        case "tcp": return "TCP DNS，稳定性好"
+        case "https": return "DNS over HTTPS，加密传输"
+        case "quic": return "DNS over QUIC，加密且低延迟"
         case "tls": return "DNS over TLS，加密传输"
         case "local": return "使用系统本地 DNS 解析"
         default: return ""
@@ -789,26 +816,41 @@ struct DNSServerEditSheet: View {
                     .textFieldStyle(.roundedBorder)
                     .disabled(isEditing)
 
+                Picker("预设", selection: $selectedPreset) {
+                    ForEach(presets) { preset in
+                        Text(preset.label).tag(preset.id)
+                    }
+                }
+                .onChange(of: selectedPreset) { _, newValue in
+                    if let preset = presets.first(where: { $0.id == newValue }), newValue != "custom" {
+                        isApplyingPreset = true
+                        serverType = preset.type
+                        address = preset.server
+                        detour = preset.detour
+                        DispatchQueue.main.async { isApplyingPreset = false }
+                    }
+                }
+
+                if serverType != "local" {
+                    TextField("服务器地址", text: $address, prompt: Text("223.5.5.5"))
+                        .textFieldStyle(.roundedBorder)
+                        .monospaced()
+                        .onChange(of: address) { _, _ in if !isApplyingPreset { selectedPreset = "custom" } }
+                }
+
                 Picker("类型", selection: $serverType) {
                     ForEach(serverTypes, id: \.0) { type in
                         Text(type.1).tag(type.0)
                     }
                 }
+                .onChange(of: serverType) { _, _ in if !isApplyingPreset { selectedPreset = "custom" } }
 
                 Text(serverTypeHint)
                     .foregroundStyle(.tertiary)
 
-                if serverType != "local" {
-                    TextField("服务器地址", text: $address, prompt: Text(serverType == "udp" ? "223.5.5.5" : "8.8.8.8"))
-                        .textFieldStyle(.roundedBorder)
-                        .monospaced()
-
-                    Text(serverType == "udp" ? "UDP DNS 服务器地址" : "DoH/DoT 服务器地址")
-                        .foregroundStyle(.tertiary)
-                }
-
                 TextField("出站", text: $detour, prompt: Text("留空为直连，填 Proxy 走代理"))
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: detour) { _, _ in if !isApplyingPreset { selectedPreset = "custom" } }
 
                 if let err = errorMessage {
                     Text(err).foregroundStyle(.red)
@@ -825,13 +867,18 @@ struct DNSServerEditSheet: View {
             }
             .padding()
         }
-        .frame(width: 480, height: 380)
+        .frame(width: 480, height: 420)
         .onAppear {
             if case .edit(_, let server) = mode {
+                isApplyingPreset = true
                 tag = server["tag"]?.stringValue ?? ""
                 serverType = server["type"]?.stringValue ?? "udp"
                 address = server["server"]?.stringValue ?? ""
                 detour = server["detour"]?.stringValue ?? ""
+                selectedPreset = presets.first(where: {
+                    $0.type == serverType && $0.server == address && $0.detour == detour
+                })?.id ?? "custom"
+                DispatchQueue.main.async { isApplyingPreset = false }
             }
         }
     }
@@ -848,6 +895,11 @@ struct DNSServerEditSheet: View {
         let trimmedAddr = address.trimmingCharacters(in: .whitespaces)
         if !trimmedAddr.isEmpty {
             dict["server"] = .string(trimmedAddr)
+        }
+
+        // Add TLS server_name for DoH/DoQ presets
+        if let preset = presets.first(where: { $0.id == selectedPreset }), !preset.tlsServerName.isEmpty {
+            dict["tls"] = .object(["server_name": .string(preset.tlsServerName)])
         }
 
         let trimmedDetour = detour.trimmingCharacters(in: .whitespaces)

@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct Subscription: Identifiable, Codable {
     var id: String { name }
@@ -184,7 +185,7 @@ struct SubscriptionsView: View {
     private func fetchAllSubscriptionInfos() async {
         let fetcher = SubscriptionFetcher()
         for sub in subscriptions {
-            guard let url = URL(string: sub.url) else { continue }
+            guard let url = URL(string: sub.url), !url.isFileURL else { continue }
             if let result = try? await fetcher.fetch(url: url) {
                 subscriptionInfos[sub.name] = result.info
             }
@@ -212,11 +213,9 @@ struct SubscriptionsView: View {
             if let info = result.info {
                 subscriptionInfos[sub.name] = info
             }
-            // Auto-apply: reload sing-box, flush DNS, close stale connections
-            await appState.singBoxProcess.reload()
-            appState.singBoxProcess.flushDNS()
-            try? await appState.api.closeAllConnections()
-            appState.pendingReload = false
+            // Auto-apply with connectivity check and restart fallback
+            appState.pendingReload = true
+            await appState.applyConfig()
         } catch {
             updateResults[sub.name] = .failure(error.localizedDescription)
             subLog("\(sub.name) 失败: \(error.localizedDescription)")
@@ -258,12 +257,10 @@ struct SubscriptionsView: View {
             }
         }
 
-        // Auto-apply: reload sing-box, flush DNS, close stale connections
+        // Auto-apply with connectivity check and restart fallback
         subLog("正在应用配置...")
-        await appState.singBoxProcess.reload()
-        appState.singBoxProcess.flushDNS()
-        try? await appState.api.closeAllConnections()
-        appState.pendingReload = false
+        appState.pendingReload = true
+        await appState.applyConfig()
         subLog("全部更新完成")
         try? await Task.sleep(for: .seconds(5))
         updateResults.removeAll()
@@ -311,11 +308,25 @@ struct SubscriptionCard: View {
                             statusBadge(status)
                         }
 
-                        // Per-subscription update button
-                        Button("更新") { onUpdate() }
-                            .controlSize(.small)
+                        // Action buttons
+                        HStack(spacing: 4) {
+                            Button { onEdit() } label: {
+                                Label(String(localized: "subs.edit"), systemImage: "pencil")
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button(role: .destructive) { onDelete() } label: {
+                                Label(String(localized: "subs.delete"), systemImage: "trash")
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button { onUpdate() } label: {
+                                Label(String(localized: "subs.update"), systemImage: "arrow.triangle.2.circlepath")
+                            }
                             .buttonStyle(.bordered)
                             .disabled(status != nil)
+                        }
+                        .controlSize(.small)
                     }
 
                     Text(subscription.url)
@@ -393,12 +404,26 @@ struct SubscriptionCard: View {
 
 // MARK: - Edit Sheet
 
+enum SubscriptionSourceMode: String, CaseIterable {
+    case remote
+    case local
+
+    var label: String {
+        switch self {
+        case .remote: String(localized: "subs.source.remote")
+        case .local: String(localized: "subs.source.local")
+        }
+    }
+}
+
 struct SubscriptionEditSheet: View {
     let subscription: Subscription?
     let onSave: (Subscription) -> Void
 
     @State private var name: String
     @State private var url: String
+    @State private var sourceMode: SubscriptionSourceMode
+    @State private var selectedFileName: String = ""
     @Environment(\.dismiss) private var dismiss
 
     init(subscription: Subscription?, onSave: @escaping (Subscription) -> Void) {
@@ -406,6 +431,12 @@ struct SubscriptionEditSheet: View {
         self.onSave = onSave
         _name = State(initialValue: subscription?.name ?? "")
         _url = State(initialValue: subscription?.url ?? "")
+        // Detect mode from existing URL
+        let isFile = subscription?.url.hasPrefix("file://") ?? false
+        _sourceMode = State(initialValue: isFile ? .local : .remote)
+        if isFile, let u = subscription?.url, let fileURL = URL(string: u) {
+            _selectedFileName = State(initialValue: fileURL.lastPathComponent)
+        }
     }
 
     var isEditing: Bool { subscription != nil }
@@ -418,9 +449,47 @@ struct SubscriptionEditSheet: View {
             Form {
                 TextField(String(localized: "subs.name"), text: $name)
                     .textFieldStyle(.roundedBorder)
-                TextField(String(localized: "subs.url"), text: $url)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced())
+
+                Picker(String(localized: "subs.source.type"), selection: $sourceMode) {
+                    ForEach(SubscriptionSourceMode.allCases, id: \.self) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: sourceMode) {
+                    url = ""
+                    selectedFileName = ""
+                }
+
+                if sourceMode == .remote {
+                    TextField(String(localized: "subs.url"), text: $url)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.body.monospaced())
+                } else {
+                    HStack {
+                        if selectedFileName.isEmpty {
+                            Text(String(localized: "subs.no_file"))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Label(selectedFileName, systemImage: "doc.fill")
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        Spacer()
+                        Button(String(localized: "subs.choose_file")) {
+                            let panel = NSOpenPanel()
+                            panel.allowedContentTypes = [.yaml, .json, .plainText]
+                            panel.allowsMultipleSelection = false
+                            if panel.runModal() == .OK, let fileURL = panel.url {
+                                url = fileURL.absoluteString
+                                selectedFileName = fileURL.lastPathComponent
+                                if name.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    name = fileURL.deletingPathExtension().lastPathComponent
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .formStyle(.grouped)
 

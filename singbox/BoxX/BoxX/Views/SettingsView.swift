@@ -365,9 +365,6 @@ struct AdvancedSettingsTab: View {
     @State private var ipv6Enabled = false
     @State private var logLevel = "info"
     @State private var saved = false
-    @AppStorage("proxyDNS") private var proxyDNS = "tcp"
-    @AppStorage("directDNS") private var directDNS = "udp://223.5.5.5"
-    @AppStorage("dnsCacheCapacity") private var dnsCacheCapacity = 0
     @AppStorage("endpointIndependentNAT") private var endpointIndependentNAT = false
     @AppStorage("tunExcludeAddresses") private var tunExcludeAddresses = ""
 
@@ -384,39 +381,6 @@ struct AdvancedSettingsTab: View {
                     .font(.body.monospaced())
                 Toggle("启用 IPv6", isOn: $ipv6Enabled)
                 Text("关闭后 TUN 不接管 IPv6 流量，可解决微信发图等国内应用的 IPv6 兼容问题")
-                    .foregroundStyle(.tertiary)
-            }
-
-            Section("DNS") {
-                Picker("代理 DNS", selection: $proxyDNS) {
-                    Text("TCP（推荐）").tag("tcp")
-                    Text("UDP（最快，可能不稳定）").tag("udp")
-                    Text("DoH（加密，较慢）").tag("https")
-                    Text("QUIC (DoQ)（加密，低延迟）").tag("quic")
-                    Text("H3 (DoH3)（加密，HTTP/3）").tag("h3")
-                }
-                Text("海外域名的 DNS 查询协议。流量已在代理隧道内加密，TCP 兼顾速度和稳定性")
-                    .foregroundStyle(.tertiary)
-
-                Picker("国内 DNS", selection: $directDNS) {
-                    Text("AliDNS DoQ（加密，推荐）").tag("doq://223.5.5.5")
-                    Text("AliDNS DoH（加密）").tag("doh-ip://223.5.5.5")
-                    Text("腾讯 DoH（加密）").tag("doh-ip://1.12.12.12")
-                    Text("AliDNS UDP（明文）").tag("udp://223.5.5.5")
-                    Text("腾讯 DNS UDP（明文）").tag("udp://119.29.29.29")
-                    Text("系统 DNS").tag("local")
-                }
-                Text("DoQ 基于 QUIC 加密传输，比 DoH 少一次握手，防劫持且延迟更低")
-                    .foregroundStyle(.tertiary)
-
-                Picker("DNS 缓存容量", selection: $dnsCacheCapacity) {
-                    Text("默认").tag(0)
-                    Text("1024").tag(1024)
-                    Text("2048").tag(2048)
-                    Text("4096（推荐）").tag(4096)
-                    Text("8192").tag(8192)
-                }
-                Text("DNS 查询结果的 LRU 缓存条数，越大命中率越高，解析越快")
                     .foregroundStyle(.tertiary)
             }
 
