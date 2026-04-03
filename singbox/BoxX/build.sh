@@ -291,7 +291,6 @@ full() {
     generate
     build
     install_app
-    register_helper
     launch
 
     echo ""

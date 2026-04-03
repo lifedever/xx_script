@@ -400,6 +400,14 @@ class ConfigEngine: @unchecked Sendable {
 
             dns.servers = servers
 
+            // Set DNS strategy based on TUN IPv6 state
+            let hasIPv6 = runtime.inbounds.contains { inb in
+                guard inb["type"]?.stringValue == "tun",
+                      case .array(let addrs) = inb["address"] else { return false }
+                return addrs.compactMap(\.stringValue).contains { $0.contains(":") }
+            }
+            dns.strategy = hasIPv6 ? "prefer_ipv4" : "ipv4_only"
+
             // Apply DNS cache capacity
             let cacheCapacity = ud.integer(forKey: "dnsCacheCapacity")
             if cacheCapacity > 0 {
@@ -526,7 +534,7 @@ class ConfigEngine: @unchecked Sendable {
         return runtime
     }
 
-    func deployRuntime(skipValidation: Bool = false) throws {
+    func deployRuntime(skipValidation: Bool = false, autoApply: Bool = true) throws {
         // cache.db is deleted by the launcher script (runs as root)
         // No need to delete here — can't sudo rm paths with spaces in sudoers
 
@@ -544,7 +552,7 @@ class ConfigEngine: @unchecked Sendable {
 
         // Skip validation when only rules/outbound changes (not node changes)
         if skipValidation {
-            onDeployComplete?()
+            if autoApply { onDeployComplete?() }
             return
         }
 
@@ -617,7 +625,7 @@ class ConfigEngine: @unchecked Sendable {
             try data.write(to: runtimeURL, options: .atomic)
             print("[BoxX] Deployed with \(validProxies.count)/\(proxyOutbounds.count) valid proxy nodes")
         }
-        onDeployComplete?()
+        if autoApply { onDeployComplete?() }
     }
 
     // MARK: - Proxy File Management

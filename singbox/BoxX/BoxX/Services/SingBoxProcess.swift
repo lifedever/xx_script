@@ -81,6 +81,21 @@ class SingBoxProcess {
         return version
     }
 
+    /// Fetch latest sing-box version from GitHub releases
+    nonisolated static func fetchLatestVersion() async -> String? {
+        guard let url = URL(string: "https://api.github.com/repos/SagerNet/sing-box/releases/latest") else { return nil }
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 10
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let tagName = json["tag_name"] as? String else { return nil }
+        // tag_name is like "v1.13.5", strip the "v" prefix
+        return tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
+    }
+
     /// Compare semantic version strings (e.g. "1.12.0" >= "1.12.0")
     nonisolated static func isVersionCompatible(_ current: String, minimum: String) -> Bool {
         let parse: (String) -> [Int] = { str in

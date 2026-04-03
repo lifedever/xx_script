@@ -37,6 +37,9 @@ struct GeneralSettingsTab: View {
     @State private var loginError: String?
     @State private var helperInstalled = false
     @State private var singBoxVersion: String?
+    @State private var latestVersion: String?
+    @State private var checkingUpdate = false
+    @State private var updateCheckDone = false
 
     var body: some View {
         Form {
@@ -156,6 +159,36 @@ struct GeneralSettingsTab: View {
                         Text("—")
                             .foregroundStyle(.tertiary)
                     }
+                    Spacer()
+                    if checkingUpdate {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("检查更新…")
+                            .foregroundStyle(.tertiary)
+                            .font(.caption)
+                    } else if updateCheckDone, latestVersion == nil {
+                        Text("检查失败")
+                            .foregroundStyle(.tertiary)
+                            .font(.caption)
+                    } else if let latest = latestVersion, let current = singBoxVersion,
+                              latest != current, SingBoxProcess.isVersionCompatible(latest, minimum: current) {
+                        Text("v\(latest) 可用")
+                            .foregroundStyle(.orange)
+                            .font(.caption)
+                        Button("复制升级命令") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString("brew upgrade sing-box", forType: .string)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                    } else if latestVersion != nil {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                        Text("已是最新")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    }
                 }
                 Text("Helper 以 root 权限管理 sing-box 进程，崩溃自动重启")
                     .foregroundStyle(.tertiary)
@@ -189,6 +222,12 @@ struct GeneralSettingsTab: View {
                 } else {
                     helperInstalled = false
                 }
+            }
+            Task {
+                checkingUpdate = true
+                latestVersion = await SingBoxProcess.fetchLatestVersion()
+                checkingUpdate = false
+                updateCheckDone = true
             }
         }
     }

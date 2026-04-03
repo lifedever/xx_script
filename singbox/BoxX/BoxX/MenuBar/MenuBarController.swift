@@ -426,7 +426,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         Task {
             appState.isRestarting = true
             do {
-                try appState.configEngine.deployRuntime()
+                try appState.configEngine.deployRuntime(autoApply: false)
                 let runtimePath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
                 try await appState.singBoxProcess.restart(configPath: runtimePath, mixedPort: appState.configEngine.mixedPort)
                 // 重启后必须刷新 DNS 缓存 + 关闭存量连接，否则系统层面的旧状态会导致上不了网
