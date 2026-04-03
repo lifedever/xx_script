@@ -86,6 +86,11 @@ struct LogsView: View {
             wsTask?.cancel()
             wsClient.disconnect()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .allWindowsHidden)) { _ in
+            wsTask?.cancel()
+            wsTask = nil
+            wsClient.disconnect()
+        }
     }
 
     private func startWebSocket() {

@@ -249,6 +249,9 @@ struct OverviewView: View {
             if running { startStatsPolling() } else { stopStatsPolling(); resetStats() }
         }
         .onDisappear { stopStatsPolling() }
+        .onReceive(NotificationCenter.default.publisher(for: .allWindowsHidden)) { _ in
+            stopStatsPolling()
+        }
         .sheet(isPresented: $showPortSheet) {
             ProxyPortSheet(onSaved: {
                 if appState.isRunning { showRestartAlert = true }

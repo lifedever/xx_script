@@ -113,6 +113,11 @@ struct ConnectionsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .monitorWindowOpened)) { _ in
             reconnect()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .allWindowsHidden)) { _ in
+            wsTask?.cancel()
+            wsTask = nil
+            wsClient.disconnect()
+        }
     }
 
     // MARK: - Toolbar

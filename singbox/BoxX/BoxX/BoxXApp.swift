@@ -16,6 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.orderOut(nil)
         }
         NSApp.setActivationPolicy(.accessory)
+        // Notify views to stop background work (WebSocket, timers)
+        NotificationCenter.default.post(name: .allWindowsHidden, object: nil)
         return .terminateCancel
     }
 }
@@ -233,6 +235,7 @@ extension Notification.Name {
     static let subscriptionUpdateFailed = Notification.Name("com.boxx.subscriptionUpdateFailed")
     static let subscriptionRetry = Notification.Name("com.boxx.subscriptionRetry")
     static let monitorWindowOpened = Notification.Name("com.boxx.monitorWindowOpened")
+    static let allWindowsHidden = Notification.Name("com.boxx.allWindowsHidden")
 }
 
 /// Holds a strong reference to the AppKit MenuBarController so the NSStatusItem stays alive.
