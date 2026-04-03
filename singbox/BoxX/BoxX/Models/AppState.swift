@@ -97,9 +97,9 @@ final class AppState {
         showError = true
     }
 
-    /// Apply pending config changes via SIGHUP (brief ~1s reconnect)
+    /// Apply pending config changes via SIGHUP, with automatic restart fallback
     func applyConfig() async {
-        guard isRunning, pendingReload, !isApplyingConfig else { return }
+        guard isRunning, pendingReload, !isApplyingConfig, !isRestarting else { return }
         isApplyingConfig = true
         defer { isApplyingConfig = false }
 
@@ -129,9 +129,61 @@ final class AppState {
             return
         }
 
+        // Step 1: Try SIGHUP hot reload
         await singBoxProcess.reload()
-        // Flush macOS DNS cache after reload to help network recovery
         singBoxProcess.flushDNS()
+        try? await api.closeAllConnections()
+
+        // Step 2: Verify connectivity after SIGHUP — if broken, auto-restart
+        try? await Task.sleep(for: .seconds(3))
+        let ok = await probeConnectivity()
+        if !ok {
+            // Retry probe once more before escalating
+            try? await Task.sleep(for: .seconds(2))
+            let ok2 = await probeConnectivity()
+            if !ok2 {
+                print("[BoxX] SIGHUP left network broken, performing full restart...")
+                let mixedPort = configEngine.mixedPort
+                await singBoxProcess.stop()
+                try? await Task.sleep(for: .seconds(2))
+                do {
+                    try await singBoxProcess.start(configPath: rtPath, mixedPort: mixedPort)
+                } catch {
+                    showAlert("自动重启失败: \(error.localizedDescription)")
+                }
+                singBoxProcess.flushDNS()
+            }
+        }
+
         pendingReload = false
+    }
+
+    /// Quick connectivity probe via the proxy to detect broken state after SIGHUP
+    private func probeConnectivity() async -> Bool {
+        let port = configEngine.mixedPort
+        let config = URLSessionConfiguration.ephemeral
+        config.connectionProxyDictionary = [
+            kCFNetworkProxiesHTTPEnable: true,
+            kCFNetworkProxiesHTTPProxy: "127.0.0.1",
+            kCFNetworkProxiesHTTPPort: port,
+            kCFNetworkProxiesHTTPSEnable: true,
+            kCFNetworkProxiesHTTPSProxy: "127.0.0.1",
+            kCFNetworkProxiesHTTPSPort: port,
+        ] as [String: Any]
+        config.timeoutIntervalForRequest = 8
+
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+
+        do {
+            let url = URL(string: "http://www.gstatic.com/generate_204")!
+            let (_, response) = try await session.data(from: url)
+            if let http = response as? HTTPURLResponse {
+                return http.statusCode == 204 || http.statusCode == 200
+            }
+            return false
+        } catch {
+            return false
+        }
     }
 }

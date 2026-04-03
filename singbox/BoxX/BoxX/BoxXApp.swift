@@ -316,12 +316,17 @@ final class StatusPoller {
         }
     }
 
-    // MARK: - Heartbeat (zombie detection)
+    // MARK: - Heartbeat (zombie detection + outbound health)
+
+    /// Outbound connectivity check interval (less frequent than API heartbeat)
+    private static let outboundCheckInterval: Duration = .seconds(90)
 
     private func startHeartbeat(appState: AppState) {
         guard heartbeatTask == nil else { return }
         heartbeatTask = Task { @MainActor in
             var consecutiveFailures = 0
+            var consecutiveOutboundFailures = 0
+            var tickCount = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.heartbeatInterval)
                 guard !Task.isCancelled else { break }
@@ -329,6 +334,7 @@ final class StatusPoller {
                 // Only check when we think sing-box is running
                 guard appState.isRunning else { break }
 
+                // 1. Clash API heartbeat (every 30s)
                 let alive = await Self.pingClashAPI()
                 if alive {
                     consecutiveFailures = 0
@@ -338,17 +344,56 @@ final class StatusPoller {
 
                     if consecutiveFailures >= Self.maxFailures {
                         print("[BoxX] sing-box unresponsive, forcing restart...")
-                        // Force stop — Helper's auto-restart will bring it back
                         await appState.singBoxProcess.stop()
                         consecutiveFailures = 0
+                        consecutiveOutboundFailures = 0
 
-                        // Wait for Helper auto-restart, then refresh
                         try? await Task.sleep(for: .seconds(4))
                         appState.isRunning = await appState.singBoxProcess.refreshStatus()
                         MenuBarHolder.shared.controller?.updateIcon()
 
-                        if !appState.isRunning {
-                            break
+                        if !appState.isRunning { break }
+                    }
+                    continue
+                }
+
+                // 2. Outbound connectivity check (every ~90s: 3 ticks of 30s)
+                tickCount += 1
+                guard tickCount >= 3 else { continue }
+                tickCount = 0
+
+                let outboundOK = await Self.probeOutbound(port: appState.configEngine.mixedPort)
+                if outboundOK {
+                    consecutiveOutboundFailures = 0
+                } else {
+                    consecutiveOutboundFailures += 1
+                    print("[BoxX] Outbound probe failed (\(consecutiveOutboundFailures)/2)")
+
+                    if consecutiveOutboundFailures >= 2 {
+                        print("[BoxX] Outbound broken, attempting SIGHUP recovery...")
+                        await appState.singBoxProcess.reload()
+                        appState.singBoxProcess.flushDNS()
+                        try? await appState.api.closeAllConnections()
+                        try? await Task.sleep(for: .seconds(3))
+
+                        let recovered = await Self.probeOutbound(port: appState.configEngine.mixedPort)
+                        if recovered {
+                            print("[BoxX] SIGHUP recovery succeeded")
+                            consecutiveOutboundFailures = 0
+                        } else {
+                            print("[BoxX] SIGHUP failed, performing full restart...")
+                            let rtPath = appState.configEngine.baseDir.appendingPathComponent("runtime-config.json").path
+                            let mixedPort = appState.configEngine.mixedPort
+                            await appState.singBoxProcess.stop()
+                            try? await Task.sleep(for: .seconds(2))
+                            try? await appState.singBoxProcess.start(configPath: rtPath, mixedPort: mixedPort)
+                            appState.singBoxProcess.flushDNS()
+                            consecutiveOutboundFailures = 0
+
+                            try? await Task.sleep(for: .seconds(3))
+                            appState.isRunning = await appState.singBoxProcess.refreshStatus()
+                            MenuBarHolder.shared.controller?.updateIcon()
+                            if !appState.isRunning { break }
                         }
                     }
                 }
@@ -370,6 +415,32 @@ final class StatusPoller {
     private func stopAll() {
         stopWatchLoop()
         stopHeartbeat()
+    }
+
+    /// Probe actual outbound connectivity through the proxy
+    private nonisolated static func probeOutbound(port: Int) async -> Bool {
+        let config = URLSessionConfiguration.ephemeral
+        config.connectionProxyDictionary = [
+            kCFNetworkProxiesHTTPEnable: true,
+            kCFNetworkProxiesHTTPProxy: "127.0.0.1",
+            kCFNetworkProxiesHTTPPort: port,
+            kCFNetworkProxiesHTTPSEnable: true,
+            kCFNetworkProxiesHTTPSProxy: "127.0.0.1",
+            kCFNetworkProxiesHTTPSPort: port,
+        ] as [String: Any]
+        config.timeoutIntervalForRequest = 8
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+        do {
+            let url = URL(string: "http://www.gstatic.com/generate_204")!
+            let (_, response) = try await session.data(from: url)
+            if let http = response as? HTTPURLResponse {
+                return http.statusCode == 204 || http.statusCode == 200
+            }
+            return false
+        } catch {
+            return false
+        }
     }
 
     /// Ping Clash API to check if sing-box is responsive

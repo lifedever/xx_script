@@ -372,7 +372,7 @@
         "format": "binary",
         "tag": "geoip-cn",
         "type": "remote",
-        "url": "https://testingcf.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs"
+        "url": "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/srs/cn.srs"
       },
       {
         "download_detour": "DIRECT",
