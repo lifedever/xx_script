@@ -3,6 +3,9 @@
   "rules": [
     {
       "domain_suffix": [
+        "ai.google.dev",
+        "aistudio.google.com",
+        "anthropic.com",
         "antigravity-unleash.goog",
         "antigravity-unleash.google",
         "antigravity.google",
@@ -11,16 +14,36 @@
         "augmentcode.com",
         "byteoversea.com",
         "c.gle",
+        "chatgpt.com",
         "claude.ai",
         "claude.com",
         "codeium.com",
+        "copilot.github.com",
+        "cursor.com",
+        "cursor.sh",
         "diabrowser.com",
         "diabrowser.engineering",
+        "gemini.google.com",
+        "generativelanguage.googleapis.com",
+        "githubcopilot.com",
+        "grok.com",
+        "huggingface.co",
+        "midjourney.com",
+        "mistral.ai",
         "nel.goog",
+        "oaiusercontent.com",
+        "oaiusercontent.org",
+        "oaistatic.com",
         "open-vsx.org",
+        "openai.com",
+        "perplexity.ai",
+        "sourcegraph.com",
         "sparklabs.com",
+        "supermaven.com",
+        "tabnine.com",
         "trae.ai",
-        "windsurf.com"
+        "windsurf.com",
+        "x.ai"
       ]
     }
   ]
