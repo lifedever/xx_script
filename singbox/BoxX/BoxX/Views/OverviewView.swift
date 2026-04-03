@@ -310,6 +310,8 @@ struct OverviewView: View {
 
     private func pollStats() async {
         guard appState.isRunning else { return }
+        // Skip polling when all windows are hidden (menu bar only mode)
+        guard NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) else { return }
         let newSnapshot = try? await appState.api.getConnections()
         if let prev = snapshot, let curr = newSnapshot {
             downloadSpeed = max(0, (curr.downloadTotal - prev.downloadTotal) / 2)
