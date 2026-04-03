@@ -413,16 +413,19 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func stopSingBox() {
+        let hud = showHUD("正在停止…")
         Task {
             appState.isRestarting = true
             await appState.singBoxProcess.stop()
             appState.isRestarting = false
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
+            dismissHUD(hud, message: "已停止")
         }
     }
 
     @objc private func restartSingBox() {
+        let hud = showHUD("正在重启…")
         Task {
             appState.isRestarting = true
             do {
@@ -433,12 +436,92 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 appState.singBoxProcess.flushDNS()
                 try? await appState.api.closeAllConnections()
                 appState.pendingReload = false
+                dismissHUD(hud, message: "重启完成")
             } catch {
+                dismissHUD(hud)
                 appState.showAlert(error.localizedDescription)
             }
             appState.isRestarting = false
             StatusPoller.shared.nudge(appState: appState)
             await fetchAndRebuild()
+        }
+    }
+
+    /// Show a floating HUD with spinner and message, returns the window for later dismissal
+    private func showHUD(_ message: String) -> NSWindow {
+        let hud = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 80),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        hud.isOpaque = false
+        hud.backgroundColor = .clear
+        hud.level = .floating
+        hud.center()
+
+        let visualEffect = NSVisualEffectView(frame: hud.contentView!.bounds)
+        visualEffect.material = .hudWindow
+        visualEffect.state = .active
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 12
+        visualEffect.layer?.masksToBounds = true
+
+        let label = NSTextField(labelWithString: message)
+        label.font = .systemFont(ofSize: 15, weight: .medium)
+        label.textColor = .labelColor
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.startAnimation(nil)
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = NSStackView(views: [spinner, label])
+        stack.orientation = .horizontal
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        visualEffect.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: visualEffect.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: visualEffect.centerYAnchor),
+        ])
+
+        hud.contentView = visualEffect
+        hud.orderFrontRegardless()
+        return hud
+    }
+
+    /// Dismiss a HUD window, optionally showing a completion message before fading out
+    private func dismissHUD(_ hud: NSWindow, message: String? = nil) {
+        if let message {
+            // Update label text to completion message and remove spinner
+            if let effect = hud.contentView as? NSVisualEffectView,
+               let stack = effect.subviews.first as? NSStackView {
+                for view in stack.arrangedSubviews {
+                    if let spinner = view as? NSProgressIndicator {
+                        spinner.stopAnimation(nil)
+                        spinner.removeFromSuperview()
+                    }
+                    if let label = view as? NSTextField {
+                        label.stringValue = message
+                    }
+                }
+            }
+            // Brief pause to show completion, then fade out
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                NSAnimationContext.runAnimationGroup({ ctx in
+                    ctx.duration = 0.3
+                    hud.animator().alphaValue = 0
+                }, completionHandler: {
+                    hud.orderOut(nil)
+                })
+            }
+        } else {
+            hud.orderOut(nil)
         }
     }
 
@@ -664,51 +747,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quitApp() {
-        // Show "正在退出..." HUD window
-        let hudWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 80),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        hudWindow.isOpaque = false
-        hudWindow.backgroundColor = .clear
-        hudWindow.level = .floating
-        hudWindow.center()
-
-        let visualEffect = NSVisualEffectView(frame: hudWindow.contentView!.bounds)
-        visualEffect.material = .hudWindow
-        visualEffect.state = .active
-        visualEffect.wantsLayer = true
-        visualEffect.layer?.cornerRadius = 12
-        visualEffect.layer?.masksToBounds = true
-
-        let label = NSTextField(labelWithString: "正在退出…")
-        label.font = .systemFont(ofSize: 15, weight: .medium)
-        label.textColor = .labelColor
-        label.alignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-
-        let spinner = NSProgressIndicator()
-        spinner.style = .spinning
-        spinner.controlSize = .small
-        spinner.startAnimation(nil)
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-
-        let stack = NSStackView(views: [spinner, label])
-        stack.orientation = .horizontal
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        visualEffect.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: visualEffect.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: visualEffect.centerYAnchor),
-        ])
-
-        hudWindow.contentView = visualEffect
-        hudWindow.orderFrontRegardless()
-
+        _ = showHUD("正在退出…")
         // Quit app only — sing-box keeps running via launchd
         Task {
             await WakeObserverHolder.shared.observer?.stopObserving()
