@@ -2,7 +2,7 @@
 
 ## 概述
 
-这是一个代理软件规则配置项目，支持 Clash、Surge、Shadowrocket 等工具。
+这是一个代理软件规则配置项目，支持 Clash、Surge、Shadowrocket、sing-box 等工具。
 
 ## 项目结构
 
@@ -25,6 +25,13 @@
 │   │   ├── Proxy.list     # 代理规则
 │   │   └── Direct.list    # 直连规则
 │   └── shadowrocket.conf
+├── singbox/           # sing-box 配置
+│   ├── rules/         # sing-box 自定义规则文件（JSON 格式）
+│   │   ├── ai-custom.json     # AI 相关规则
+│   │   ├── proxy-custom.json  # 代理规则
+│   │   └── direct-custom.json # 直连规则
+│   ├── config.json    # sing-box 主配置
+│   └── services.json  # 服务分流配置
 └── surge/             # Surge 配置
     └── rules/         # Surge 规则文件
         ├── Ai.list        # AI 相关规则
@@ -39,12 +46,13 @@
 - **Shadowrocket (ss/rules/)**: 使用 `.list` 格式
 - **Surge (surge/rules/)**: 使用 `.list` 格式
 - **Clash (clash/rules/)**: 使用 `.yaml` 格式（需要 `payload:` 包裹）
+- **sing-box (singbox/rules/)**: 使用 `.json` 格式（sing-box rule-set v2 格式，`domain_suffix` / `ip_cidr` 数组）
 
 ### 当前规则分类
 
-- `Ai.list/yaml` - AI 相关服务规则
-- `Proxy.list/yaml` - 代理规则
-- `Direct.list/yaml` - 直连规则（包含 manyibar.cn、kanasinfo.cn、manyibar.com、manyiba.com 及相关 IP）
+- `Ai.list/yaml` / `ai-custom.json` - AI 相关服务规则
+- `Proxy.list/yaml` / `proxy-custom.json` - 代理规则
+- `Direct.list/yaml` / `direct-custom.json` - 直连规则（包含 manyibar.cn、kanasinfo.cn、manyibar.com、manyiba.com 及相关 IP）
 - `Private.yaml` - Clash 私有规则
 
 ## 规则格式
@@ -59,6 +67,7 @@ Clash 规则需要使用 YAML 格式，每条规则前需要加 `-` 前缀，并
 
 ## 开发指南
 
+- **添加/修改规则时，必须同步更新所有 4 个目录**：`ss/rules/`、`surge/rules/`、`clash/rules/`、`singbox/rules/`
 - 按类别整理规则
 - 为不明显的规则添加注释
 - 修改规则列表时更新日期注释
