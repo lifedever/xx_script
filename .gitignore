@@ -3,6 +3,7 @@ singbox/subscriptions.json
 singbox/config.json
 singbox/rules/
 !singbox/rules/*-custom.json
+singbox/BoxX/
 singbox/cache.db
 singbox/sing-box.log
 .worktrees
