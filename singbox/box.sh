@@ -25,11 +25,11 @@ warn()  { echo -e "${YELLOW}⚠️  $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; }
 
 is_running() {
-    sudo pgrep -f "sing-box run" &>/dev/null
+    pgrep -f "sing-box run" &>/dev/null
 }
 
 get_pid() {
-    sudo pgrep -f "sing-box run" 2>/dev/null
+    pgrep -f "sing-box run" 2>/dev/null | head -1
 }
 
 start() {
@@ -45,11 +45,13 @@ start() {
     echo -e "${CYAN}🚀 启动 sing-box...${NC}"
     sudo true || { error "sudo 认证失败"; return 1; }
     echo -e "\n===== $(date '+%Y-%m-%d %H:%M:%S') sing-box start =====" >> "$LOG_FILE"
-    sudo sing-box run -c "$CONFIG" >> "$LOG_FILE" 2>&1 &
+    sudo nohup bash -c "sing-box run -c '$CONFIG' >> '$LOG_FILE' 2>&1; echo \"===== \$(date '+%Y-%m-%d %H:%M:%S') sing-box exited (code: \$?) =====\" >> '$LOG_FILE'" &
     echo $! > "$PID_FILE"
     sleep 2
     if is_running; then
-        info "sing-box 已启动 (PID: $(get_pid))"
+        local version=$(sing-box version 2>/dev/null | head -1 | awk '{print $3}')
+        info "sing-box 已启动 (PID: $(get_pid))  v${version:-unknown}"
+        echo -e "   配置文件: ${BOLD}$CONFIG${NC}"
         echo -e "   代理端口: ${BOLD}$PROXY_PORT${NC} (HTTP + SOCKS5)"
         echo -e "   管理面板: ${BOLD}$PANEL_URL${NC}"
         echo -e "   后端地址: ${BOLD}http://$API_ADDR${NC}"
@@ -84,7 +86,9 @@ restart() {
 
 status() {
     if is_running; then
-        info "sing-box 运行中 (PID: $(get_pid))"
+        local version=$(sing-box version 2>/dev/null | head -1 | awk '{print $3}')
+        info "sing-box 运行中 (PID: $(get_pid))  v${version:-unknown}"
+        echo -e "   配置文件: ${BOLD}$CONFIG${NC}"
         echo -e "   代理端口: ${BOLD}$PROXY_PORT${NC} (HTTP + SOCKS5)"
         echo -e "   管理面板: ${BOLD}$PANEL_URL${NC}"
         echo -e "   后端地址: ${BOLD}http://$API_ADDR${NC}"
