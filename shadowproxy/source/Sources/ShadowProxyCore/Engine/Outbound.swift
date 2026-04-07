@@ -270,14 +270,15 @@ public final class Outbound: @unchecked Sendable {
             target: target,
             security: security,
             reqKey: reqKey,
-            reqIV: reqIV
+            reqIV: reqIV,
+            option: config.option
         )
 
         // Send VMess header
         try await Relay.sendData(header, to: remote)
 
         // Encryption cipher for client→remote data
-        var encCipher = VMessDataCipher(key: reqKey, iv: reqIV)
+        var encCipher = VMessDataCipher(key: reqKey, iv: reqIV, option: config.option)
 
         // If there's initial data, encrypt and send
         if let data = initialData {
@@ -293,7 +294,8 @@ public final class Outbound: @unchecked Sendable {
             remote: remote,
             encryptCipher: encCipher,
             responseKey: responseKey,
-            responseIV: responseIV
+            responseIV: responseIV,
+            option: config.option
         )
     }
 

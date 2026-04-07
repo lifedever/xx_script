@@ -227,7 +227,8 @@ public struct Relay {
         remote: NWConnection,
         encryptCipher: VMessDataCipher,
         responseKey: Data,
-        responseIV: Data
+        responseIV: Data,
+        option: VMessOption = .chunkStream
     ) async {
         await withTaskGroup(of: Void.self) { group in
             // Client → Remote: read plaintext, encrypt as VMess chunks
@@ -237,7 +238,7 @@ public struct Relay {
             }
             // Remote → Client: decrypt response header + VMess chunks
             group.addTask {
-                await vmessDecryptForward(from: remote, to: client, responseKey: responseKey, responseIV: responseIV)
+                await vmessDecryptForward(from: remote, to: client, responseKey: responseKey, responseIV: responseIV, option: option)
             }
             await group.next()
             client.cancel()
@@ -268,7 +269,8 @@ public struct Relay {
         from source: NWConnection,
         to dest: NWConnection,
         responseKey: Data,
-        responseIV: Data
+        responseIV: Data,
+        option: VMessOption = .chunkStream
     ) async {
         var buffer = Data()
         var responseParsed = false
@@ -295,7 +297,7 @@ public struct Relay {
                         responseParsed = true
                         splog.debug("VMess response header OK (\(consumed)B): \(respHeader.map { String(format: "%02x", $0) }.joined())", tag: "Relay")
                         // Initialize data decryption cipher with responseKey/IV
-                        decryptCipher = VMessDataCipher(key: responseKey, iv: responseIV)
+                        decryptCipher = VMessDataCipher(key: responseKey, iv: responseIV, option: option)
                     } catch {
                         splog.error("VMess response header decrypt failed: \(error)", tag: "Relay")
                         return

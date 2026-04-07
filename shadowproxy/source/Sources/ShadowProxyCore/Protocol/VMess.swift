@@ -18,7 +18,8 @@ public struct VMessHeader: Sendable {
         target: ProxyTarget,
         security: VMessSecurity,
         reqKey: Data,   // 16 bytes random
-        reqIV: Data     // 16 bytes random
+        reqIV: Data,    // 16 bytes random
+        option: VMessOption = .chunkMaskingPadding
     ) throws -> (header: Data, responseKey: Data, responseIV: Data) {
         let uuidBytes = try parseUUID(uuid)
         let cmdKey = vmessCmdKey(uuid: uuidBytes)
@@ -34,7 +35,7 @@ public struct VMessHeader: Sendable {
         cmd.append(contentsOf: reqKey)  // 16 bytes
         cmd.append(UInt8.random(in: 0...255))  // response auth V
         // Option byte (0x01=ChunkStream, 0x05=ChunkMasking, 0x1D=ChunkMaskingPadding)
-        cmd.append(0x01) // TODO: parameterize from VMessOption when header builder gains option field
+        cmd.append(option.rawValue)
         let paddingLen = UInt8.random(in: 0...15)
         let secByte = (paddingLen << 4) | security.rawValue
         cmd.append(secByte)
