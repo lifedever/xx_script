@@ -1,0 +1,452 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1E224CA16848A0448F734B70 /* ShadowProxyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8370D0D8EC4C1B9785294644 /* ShadowProxyApp.swift */; };
+		AE03DF8F702E71FA9A0753AF /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A4D0593E20303E37409516 /* main.swift */; };
+		B17BBB0C4BEFC5A08A98BC0E /* ShadowProxyCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6F00691B02A0537FA6121D7 /* ShadowProxyCore */; };
+		D6C4209BB6F5EAF3C49DCD11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 681255ECF708DA9ADE34D9A1 /* Assets.xcassets */; };
+		DC3FFBAEE24156F140E6C79E /* ShadowProxyCore in Frameworks */ = {isa = PBXBuildFile; productRef = C89CADDA246DA41FE57D70E7 /* ShadowProxyCore */; };
+		F6BF9E2C51A68A258C2F29F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A710B40294B8DE783D25A4D /* ContentView.swift */; };
+		F9B8A164B6778D41BCDC9349 /* ProxyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4A49CB80D2EDCF358CD6BC /* ProxyViewModel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2F985BCAF5B33C87D2FE432F /* ShadowProxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShadowProxy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		62A4D0593E20303E37409516 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		681255ECF708DA9ADE34D9A1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6BF50FB9EE483EDD9F4FDA8F /* source */ = {isa = PBXFileReference; lastKnownFileType = folder; name = source; path = .; sourceTree = SOURCE_ROOT; };
+		7CF819812174452FC8588B08 /* sp */ = {isa = PBXFileReference; includeInIndex = 0; path = sp; sourceTree = BUILT_PRODUCTS_DIR; };
+		8370D0D8EC4C1B9785294644 /* ShadowProxyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowProxyApp.swift; sourceTree = "<group>"; };
+		9A710B40294B8DE783D25A4D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AD4A49CB80D2EDCF358CD6BC /* ProxyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyViewModel.swift; sourceTree = "<group>"; };
+		DF216CC8844A066189424EF0 /* ShadowProxy.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShadowProxy.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9660DAB7DAEE0E0774999926 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC3FFBAEE24156F140E6C79E /* ShadowProxyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF1A7F232AB614942A756231 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B17BBB0C4BEFC5A08A98BC0E /* ShadowProxyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4636CFD4B7294C584A4282EC /* ShadowProxyApp */ = {
+			isa = PBXGroup;
+			children = (
+				681255ECF708DA9ADE34D9A1 /* Assets.xcassets */,
+				9A710B40294B8DE783D25A4D /* ContentView.swift */,
+				AD4A49CB80D2EDCF358CD6BC /* ProxyViewModel.swift */,
+				DF216CC8844A066189424EF0 /* ShadowProxy.entitlements */,
+				8370D0D8EC4C1B9785294644 /* ShadowProxyApp.swift */,
+			);
+			path = ShadowProxyApp;
+			sourceTree = "<group>";
+		};
+		6703218A431B7EBEAD65C83A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2F985BCAF5B33C87D2FE432F /* ShadowProxy.app */,
+				7CF819812174452FC8588B08 /* sp */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CDD80E3A30E81E1C3F0FADB7 = {
+			isa = PBXGroup;
+			children = (
+				D6ECC05F47CA3967574F8B6A /* Packages */,
+				4636CFD4B7294C584A4282EC /* ShadowProxyApp */,
+				D750BDB67C011A8115449B88 /* ShadowProxyCLI */,
+				6703218A431B7EBEAD65C83A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D6ECC05F47CA3967574F8B6A /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				6BF50FB9EE483EDD9F4FDA8F /* source */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		D750BDB67C011A8115449B88 /* ShadowProxyCLI */ = {
+			isa = PBXGroup;
+			children = (
+				62A4D0593E20303E37409516 /* main.swift */,
+			);
+			name = ShadowProxyCLI;
+			path = Sources/ShadowProxyCLI;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8F1649CEBEF907451BEDA957 /* ShadowProxy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4413D6074DF9EADD9F5A7E6F /* Build configuration list for PBXNativeTarget "ShadowProxy" */;
+			buildPhases = (
+				46D38EBE34880BCEA2F4F2DF /* Sources */,
+				BF85F8BF45432920286AAE10 /* Resources */,
+				CF1A7F232AB614942A756231 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShadowProxy;
+			packageProductDependencies = (
+				E6F00691B02A0537FA6121D7 /* ShadowProxyCore */,
+			);
+			productName = ShadowProxy;
+			productReference = 2F985BCAF5B33C87D2FE432F /* ShadowProxy.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F368094551B31E400095EDD3 /* sp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 274EDC60F03ABC0ED58D9CDD /* Build configuration list for PBXNativeTarget "sp" */;
+			buildPhases = (
+				4C54FCD4910E3ADA870EF52A /* Sources */,
+				9660DAB7DAEE0E0774999926 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = sp;
+			packageProductDependencies = (
+				C89CADDA246DA41FE57D70E7 /* ShadowProxyCore */,
+			);
+			productName = sp;
+			productReference = 7CF819812174452FC8588B08 /* sp */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B9515C87B4BD8A5F7DC628C0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 1F943AAA47CB96CF687C7B0D /* Build configuration list for PBXProject "ShadowProxy" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CDD80E3A30E81E1C3F0FADB7;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6C0DD7743FA2FC0F580FDFA6 /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6703218A431B7EBEAD65C83A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8F1649CEBEF907451BEDA957 /* ShadowProxy */,
+				F368094551B31E400095EDD3 /* sp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BF85F8BF45432920286AAE10 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6C4209BB6F5EAF3C49DCD11 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		46D38EBE34880BCEA2F4F2DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BF9E2C51A68A258C2F29F1 /* ContentView.swift in Sources */,
+				F9B8A164B6778D41BCDC9349 /* ProxyViewModel.swift in Sources */,
+				1E224CA16848A0448F734B70 /* ShadowProxyApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C54FCD4910E3ADA870EF52A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE03DF8F702E71FA9A0753AF /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DB0DFA1DAFA580532265C1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ShadowProxyApp/ShadowProxy.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shadowproxy.app;
+				PRODUCT_NAME = ShadowProxy;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		4B54E5DC7072B1693C3C04DD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C386BAE35C0EB881B49B182E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ShadowProxyApp/ShadowProxy.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shadowproxy.app;
+				PRODUCT_NAME = ShadowProxy;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D1FE02B048B84F76842A1331 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shadowproxy.sp;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		EE37F18D36155AD9F5179DA4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shadowproxy.sp;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		FB1D3747985BC564539DBAA9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1F943AAA47CB96CF687C7B0D /* Build configuration list for PBXProject "ShadowProxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B54E5DC7072B1693C3C04DD /* Debug */,
+				FB1D3747985BC564539DBAA9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		274EDC60F03ABC0ED58D9CDD /* Build configuration list for PBXNativeTarget "sp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1FE02B048B84F76842A1331 /* Debug */,
+				EE37F18D36155AD9F5179DA4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4413D6074DF9EADD9F5A7E6F /* Build configuration list for PBXNativeTarget "ShadowProxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DB0DFA1DAFA580532265C1E /* Debug */,
+				C386BAE35C0EB881B49B182E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		6C0DD7743FA2FC0F580FDFA6 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C89CADDA246DA41FE57D70E7 /* ShadowProxyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ShadowProxyCore;
+		};
+		E6F00691B02A0537FA6121D7 /* ShadowProxyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ShadowProxyCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = B9515C87B4BD8A5F7DC628C0 /* Project object */;
+}

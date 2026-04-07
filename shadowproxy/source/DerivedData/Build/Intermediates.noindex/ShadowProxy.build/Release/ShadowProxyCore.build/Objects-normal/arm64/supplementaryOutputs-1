@@ -1,0 +1,12 @@
+{
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Config/ConfigParser.swift" : {
+    "abi-baseline-json" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore.abi.json",
+    "const-values" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore-primary.swiftconstvalues",
+    "dependencies" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore-primary.d",
+    "diagnostics" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore-primary.dia",
+    "objc-header" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore-Swift.h",
+    "swiftdoc" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore.swiftdoc",
+    "swiftmodule" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore.swiftmodule",
+    "swiftsourceinfo" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxyCore.build/Objects-normal/arm64/ShadowProxyCore.swiftsourceinfo"
+  }
+}

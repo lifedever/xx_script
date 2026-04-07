@@ -1,0 +1,65 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "73d00bd07a676dd0622bbe479a12419eb45536d909ece2d8ac6dc72c366db743"
+    }
+  ],
+  "containerPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/ShadowProxy.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "arm64",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : false,
+      "hostTargetedPlatform" : null,
+      "platform" : "macosx",
+      "sdk" : "macosx26.4",
+      "sdkVariant" : "macos",
+      "supportedArchitectures" : [
+        "arm64e",
+        "arm64",
+        "x86_64"
+      ],
+      "targetArchitecture" : "arm64"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Products",
+      "derivedDataPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData",
+      "indexDataStoreFolderPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Release",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+          "ARCHS" : "arm64"
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES",
+          "ONLY_ACTIVE_ARCH" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

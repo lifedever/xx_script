@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/primary.swiftdeps"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCLI/main.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/main.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/main.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/main.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/main.dia"
+  }
+}

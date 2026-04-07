@@ -1,0 +1,3 @@
+module ShadowProxyCore {
+    header "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/include/ShadowProxyCore-Swift.h"
+}

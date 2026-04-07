@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'ShadowProxy' in project 'ShadowProxy'
+➜ Explicit dependency on target 'ShadowProxyCore' in project 'ShadowProxy'
+Target 'ShadowProxyCore' in project 'ShadowProxy'
+➜ Explicit dependency on target 'ShadowProxyCore' in project 'ShadowProxy'
+Target 'ShadowProxyCore' in project 'ShadowProxy' (no dependencies)

@@ -1,0 +1,40 @@
+{
+  "": {
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/primary.swiftdeps"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Tests/ShadowProxyCoreTests/ConfigParserTests.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ConfigParserTests.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ConfigParserTests.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ConfigParserTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ConfigParserTests.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ConfigParserTests.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Tests/ShadowProxyCoreTests/CryptoTests.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/CryptoTests.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/CryptoTests.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/CryptoTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/CryptoTests.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/CryptoTests.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Tests/ShadowProxyCoreTests/ProxyProtocolTests.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ProxyProtocolTests.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ProxyProtocolTests.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ProxyProtocolTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ProxyProtocolTests.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/ProxyProtocolTests.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Tests/ShadowProxyCoreTests/RouterTests.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/RouterTests.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/RouterTests.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/RouterTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/RouterTests.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/RouterTests.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Tests/ShadowProxyCoreTests/VMessTests.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/VMessTests.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/VMessTests.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/VMessTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/VMessTests.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCoreTests.build/VMessTests.dia"
+  }
+}

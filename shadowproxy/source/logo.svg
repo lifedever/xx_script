@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F3F4F6"/>
+    </linearGradient>
+    <linearGradient id="plane1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="plane2" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="3" dy="6" stdDeviation="14" flood-color="#1E3A8A" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- 白色圆角背景 -->
+  <rect x="100" y="100" width="824" height="824" rx="185" ry="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" ry="185" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+
+  <!-- 经典纸飞机 — 大、居中、向右上方飞 -->
+  <g filter="url(#shadow)" transform="translate(480, 530)">
+    <!-- 上半面（亮面） -->
+    <path d="M-200 10 L260 -150 L0 -10 Z" fill="url(#plane1)"/>
+    <!-- 下半面（暗面） -->
+    <path d="M-200 10 L260 -150 L20 120 Z" fill="url(#plane2)"/>
+    <!-- 折痕线 -->
+    <path d="M-200 10 L260 -150" stroke="white" stroke-width="1.5" opacity="0.3"/>
+    <!-- 内折三角（增加立体感） -->
+    <path d="M-200 10 L0 -10 L20 120 Z" fill="#1E40AF" opacity="0.15"/>
+  </g>
+</svg>

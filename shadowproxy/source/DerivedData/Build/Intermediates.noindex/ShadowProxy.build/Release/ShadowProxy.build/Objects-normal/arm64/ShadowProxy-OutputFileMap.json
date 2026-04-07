@@ -1,0 +1,31 @@
+{
+  "" : {
+    "const-values" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary.swiftconstvalues",
+    "dependencies" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary.d",
+    "diagnostics" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary.dia",
+    "emit-module-dependencies" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary-emit-module.dia",
+    "pch" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxy-primary.swiftdeps"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/ShadowProxyApp/ContentView.swift" : {
+    "index-unit-output-path" : "/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/ShadowProxyApp/ProxyViewModel.swift" : {
+    "index-unit-output-path" : "/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ProxyViewModel.o",
+    "llvm-bc" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ProxyViewModel.bc",
+    "object" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ProxyViewModel.o"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/ShadowProxyApp/ShadowProxyApp.swift" : {
+    "index-unit-output-path" : "/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxyApp.o",
+    "llvm-bc" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxyApp.bc",
+    "object" : "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/DerivedData/Build/Intermediates.noindex/ShadowProxy.build/Release/ShadowProxy.build/Objects-normal/arm64/ShadowProxyApp.o"
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "": {
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/primary.swiftdeps"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Config/ConfigParser.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ConfigParser.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ConfigParser.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ConfigParser~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ConfigParser.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ConfigParser.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Crypto/AESCFB.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESCFB.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESCFB.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESCFB~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESCFB.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESCFB.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Crypto/AESGCM.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESGCM.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESGCM.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESGCM~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESGCM.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESGCM.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Crypto/ObfsHTTP.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ObfsHTTP.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ObfsHTTP.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ObfsHTTP~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ObfsHTTP.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ObfsHTTP.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/Inbound.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Inbound.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Inbound.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Inbound~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Inbound.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Inbound.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/Outbound.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Outbound.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Outbound.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Outbound~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Outbound.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Outbound.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/ProxyEngine.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyEngine.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyEngine.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyEngine~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyEngine.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyEngine.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/Relay.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Relay.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Relay.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Relay~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Relay.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Relay.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Protocol/ProxyProtocol.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyProtocol.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyProtocol.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyProtocol~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyProtocol.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyProtocol.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Protocol/VMess.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/VMess.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/VMess.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/VMess~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/VMess.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/VMess.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Router/Router.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Router.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Router.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Router~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Router.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Router.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Router/RuleSetLoader.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/RuleSetLoader.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/RuleSetLoader.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/RuleSetLoader~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/RuleSetLoader.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/RuleSetLoader.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/System/Logger.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Logger.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Logger.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Logger~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Logger.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Logger.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/System/SleepWatcher.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SleepWatcher.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SleepWatcher.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SleepWatcher~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SleepWatcher.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SleepWatcher.dia"
+  },
+  "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/System/SystemProxy.swift": {
+    "dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SystemProxy.d",
+    "object": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SystemProxy.swift.o",
+    "swiftmodule": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SystemProxy~partial.swiftmodule",
+    "swift-dependencies": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SystemProxy.swiftdeps",
+    "diagnostics": "/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SystemProxy.dia"
+  }
+}

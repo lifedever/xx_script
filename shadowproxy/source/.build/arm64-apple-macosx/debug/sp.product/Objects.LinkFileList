@@ -1,0 +1,16 @@
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCLI.build/main.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESCFB.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/AESGCM.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ConfigParser.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Inbound.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Logger.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ObfsHTTP.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Outbound.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyEngine.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/ProxyProtocol.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Relay.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/Router.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/RuleSetLoader.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SleepWatcher.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/SystemProxy.swift.o
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/.build/arm64-apple-macosx/debug/ShadowProxyCore.build/VMess.swift.o

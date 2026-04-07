@@ -1,0 +1,15 @@
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Config/ConfigParser.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Crypto/AESCFB.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Crypto/AESGCM.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Crypto/ObfsHTTP.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/Inbound.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/Outbound.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/ProxyEngine.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Engine/Relay.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Protocol/ProxyProtocol.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Protocol/VMess.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Router/Router.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/Router/RuleSetLoader.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/System/Logger.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/System/SleepWatcher.swift
+/Users/gefangshuai/Documents/Dev/myspace/xx_script/shadowproxy/source/Sources/ShadowProxyCore/System/SystemProxy.swift

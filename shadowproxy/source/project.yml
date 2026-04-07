@@ -1,0 +1,50 @@
+name: ShadowProxy
+options:
+  bundleIdPrefix: com.shadowproxy
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+
+packages:
+  ShadowProxyCore:
+    path: .
+
+targets:
+  ShadowProxy:
+    type: application
+    platform: macOS
+    sources:
+      - path: ShadowProxyApp
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - package: ShadowProxyCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shadowproxy.app
+        PRODUCT_NAME: ShadowProxy
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        INFOPLIST_KEY_LSUIElement: false
+        GENERATE_INFOPLIST_FILE: YES
+    entitlements:
+      path: ShadowProxyApp/ShadowProxy.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.network.client: true
+        com.apple.security.network.server: true
+
+  sp:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/ShadowProxyCLI
+    dependencies:
+      - package: ShadowProxyCore
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"

@@ -1,0 +1,4 @@
+module ShadowProxyCore {
+header "ShadowProxyCore-Swift.h"
+export *
+}
