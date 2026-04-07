@@ -101,6 +101,13 @@ struct MenuBarPopover: View {
                 .buttonStyle(.plain)
                 .font(.system(size: 12))
                 Spacer()
+                Button("📋 请求") {
+                    openWindow(id: "request-viewer")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12))
+                Spacer()
                 Button("🔄 重载") { viewModel.reload() }
                     .buttonStyle(.plain)
                     .font(.system(size: 12))

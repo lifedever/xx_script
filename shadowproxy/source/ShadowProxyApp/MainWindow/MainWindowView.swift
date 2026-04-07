@@ -25,6 +25,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
 struct MainWindowView: View {
     @ObservedObject var viewModel: ProxyViewModel
+    @Environment(\.openWindow) private var openWindow
     @State private var selectedItem: SidebarItem? = .overview
 
     var body: some View {
@@ -44,6 +45,15 @@ struct MainWindowView: View {
             case .subscription: SubscriptionView(viewModel: viewModel)
             case .settings: SettingsView(viewModel: viewModel)
             case .none: Text("选择一个页面").foregroundStyle(.secondary)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    openWindow(id: "request-viewer")
+                } label: {
+                    Label("请求查看器", systemImage: "list.bullet.rectangle")
+                }
             }
         }
     }
