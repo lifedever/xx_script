@@ -11,6 +11,7 @@ public final class ProxyEngine: @unchecked Sendable {
     private var _isRunning = false
 
     public var isRunning: Bool { _isRunning }
+    public var onRequest: (@Sendable (RequestRecord) -> Void)?
 
     public init(config: AppConfig, port: UInt16 = 7890) {
         self.config = config
@@ -69,10 +70,22 @@ public final class ProxyEngine: @unchecked Sendable {
             if pattern.hasPrefix("*.") {
                 let suffix = String(pattern.dropFirst(1)) // ".domain.com"
                 if target.host.hasSuffix(suffix) || target.host == String(pattern.dropFirst(2)) {
+                    let record = RequestRecord(
+                        host: target.host, port: target.port,
+                        requestProtocol: request.initialData != nil ? "HTTP" : "HTTPS",
+                        policy: "DIRECT"
+                    )
+                    onRequest?(record)
                     outbound.relay(client: connection, target: target, policy: "DIRECT", initialData: request.initialData)
                     return
                 }
             } else if target.host == pattern {
+                let record = RequestRecord(
+                    host: target.host, port: target.port,
+                    requestProtocol: request.initialData != nil ? "HTTP" : "HTTPS",
+                    policy: "DIRECT"
+                )
+                onRequest?(record)
                 outbound.relay(client: connection, target: target, policy: "DIRECT", initialData: request.initialData)
                 return
             }
@@ -80,6 +93,12 @@ public final class ProxyEngine: @unchecked Sendable {
 
         // Route through rules
         let policy = router.match(host: target.host)
+        let record = RequestRecord(
+            host: target.host, port: target.port,
+            requestProtocol: request.initialData != nil ? "HTTP" : "HTTPS",
+            policy: policy
+        )
+        onRequest?(record)
         outbound.relay(client: connection, target: target, policy: policy, initialData: request.initialData)
     }
 }

@@ -13,6 +13,8 @@ final class ProxyViewModel: ObservableObject {
     @Published var configLoaded = false
     @Published var ruleCount = 0
     @Published var nodeSpeeds: [String: Int] = [:]
+    @Published var requestRecords: [RequestRecord] = []
+    private let maxRecords = 2000
 
     private var config: AppConfig?
     private var expandedRuleSets: [String: [Rule]] = [:]
@@ -91,6 +93,12 @@ final class ProxyViewModel: ObservableObject {
         Task {
             let engine = ProxyEngine(config: config, port: port, expandedRuleSets: expandedRuleSets)
 
+            engine.onRequest = { [weak self] record in
+                Task { @MainActor in
+                    self?.appendRequest(record)
+                }
+            }
+
             do {
                 try engine.start()
                 self.engine = engine
@@ -156,6 +164,13 @@ final class ProxyViewModel: ObservableObject {
         loadConfig()
         start()
         log("Configuration reloaded")
+    }
+
+    func appendRequest(_ record: RequestRecord) {
+        requestRecords.append(record)
+        if requestRecords.count > maxRecords {
+            requestRecords.removeFirst(requestRecords.count - maxRecords)
+        }
     }
 
     func log(_ message: String) {
