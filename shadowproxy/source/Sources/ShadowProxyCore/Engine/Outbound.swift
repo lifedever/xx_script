@@ -50,6 +50,58 @@ public final class Outbound: @unchecked Sendable {
         return nil
     }
 
+    /// 根据 TransportConfig 创建 NWConnection（支持裸 TCP / TLS / WebSocket / TLS+WebSocket）
+    private func createConnection(server: String, port: UInt16, transport: TransportConfig) -> NWConnection {
+        let host = NWEndpoint.Host(server)
+        let nwPort = NWEndpoint.Port(rawValue: port)!
+
+        if transport.tls {
+            let tlsOptions = NWProtocolTLS.Options()
+            let secOptions = tlsOptions.securityProtocolOptions
+
+            let sni = transport.tlsSNI ?? server
+            sec_protocol_options_set_tls_server_name(secOptions, sni)
+
+            if let alpns = transport.tlsALPN {
+                for alpn in alpns {
+                    sec_protocol_options_add_tls_application_protocol(secOptions, alpn)
+                }
+            }
+
+            if transport.tlsAllowInsecure {
+                sec_protocol_options_set_verify_block(secOptions, { _, _, completionHandler in
+                    completionHandler(true)
+                }, queue)
+            }
+
+            let tcpOptions = NWProtocolTCP.Options()
+            let params = NWParameters(tls: tlsOptions, tcp: tcpOptions)
+
+            if let wsPath = transport.wsPath {
+                let wsOptions = NWProtocolWebSocket.Options()
+                wsOptions.autoReplyPing = true
+                wsOptions.setAdditionalHeaders(buildWSHeaders(host: transport.wsHost ?? sni, path: wsPath))
+                params.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
+            }
+
+            return NWConnection(host: host, port: nwPort, using: params)
+        } else if let wsPath = transport.wsPath {
+            let tcpOptions = NWProtocolTCP.Options()
+            let params = NWParameters(tls: nil, tcp: tcpOptions)
+            let wsOptions = NWProtocolWebSocket.Options()
+            wsOptions.autoReplyPing = true
+            wsOptions.setAdditionalHeaders(buildWSHeaders(host: transport.wsHost ?? server, path: wsPath))
+            params.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
+            return NWConnection(host: host, port: nwPort, using: params)
+        } else {
+            return NWConnection(host: host, port: nwPort, using: .tcp)
+        }
+    }
+
+    private func buildWSHeaders(host: String, path: String) -> [(String, String)] {
+        [("Host", host), ("Upgrade", "websocket")]
+    }
+
     /// Create a connection to the proxy server and relay data with the client
     public func relay(
         client: NWConnection,
@@ -113,11 +165,7 @@ public final class Outbound: @unchecked Sendable {
         let masterKey = ShadowsocksKeyDerivation.evpBytesToKey(password: config.password, keyLen: keyLen)
 
         // Connect to SS server
-        let remote = NWConnection(
-            host: NWEndpoint.Host(config.server),
-            port: NWEndpoint.Port(rawValue: config.port)!,
-            using: .tcp
-        )
+        let remote = createConnection(server: config.server, port: config.port, transport: config.transport)
         try await remote.connectAsync(queue: queue)
         splog.debug("SS connected to \(config.server):\(config.port)", tag: "SS")
 
@@ -193,11 +241,7 @@ public final class Outbound: @unchecked Sendable {
     // MARK: - VMess
 
     private func relayVMess(client: NWConnection, target: ProxyTarget, config: VMessConfig, initialData: Data?) async throws {
-        let remote = NWConnection(
-            host: NWEndpoint.Host(config.server),
-            port: NWEndpoint.Port(rawValue: config.port)!,
-            using: .tcp
-        )
+        let remote = createConnection(server: config.server, port: config.port, transport: config.transport)
         try await remote.connectAsync(queue: queue)
         splog.debug("VMess connected to \(config.server):\(config.port)", tag: "VMess")
 
