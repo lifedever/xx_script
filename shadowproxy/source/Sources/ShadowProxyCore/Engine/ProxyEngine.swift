@@ -20,7 +20,7 @@ public final class ProxyEngine: @unchecked Sendable {
         self.router = Router(rules: config.rules)
 
         // Build outbound with proxies and groups
-        self.outbound = Outbound(proxies: config.proxies, groups: config.groups)
+        self.outbound = Outbound(proxies: config.proxies, groups: config.groups, dnsServer: config.general.dnsServer)
     }
 
     /// Initialize with expanded RULE-SET rules
@@ -28,7 +28,7 @@ public final class ProxyEngine: @unchecked Sendable {
         self.config = config
         self.listenPort = port
         self.router = Router(rules: config.rules, expandedRuleSets: expandedRuleSets)
-        self.outbound = Outbound(proxies: config.proxies, groups: config.groups)
+        self.outbound = Outbound(proxies: config.proxies, groups: config.groups, dnsServer: config.general.dnsServer)
     }
 
     public func start() throws {
