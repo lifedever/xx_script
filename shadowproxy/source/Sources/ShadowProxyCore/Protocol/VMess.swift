@@ -33,8 +33,8 @@ public struct VMessHeader: Sendable {
         cmd.append(contentsOf: reqIV)   // 16 bytes
         cmd.append(contentsOf: reqKey)  // 16 bytes
         cmd.append(UInt8.random(in: 0...255))  // response auth V
-        // Option: ChunkStream only (simplest data format: plain length + GCM payload)
-        cmd.append(0x01)
+        // Option byte (0x01=ChunkStream, 0x05=ChunkMasking, 0x1D=ChunkMaskingPadding)
+        cmd.append(0x01) // TODO: parameterize from VMessOption when header builder gains option field
         let paddingLen = UInt8.random(in: 0...15)
         let secByte = (paddingLen << 4) | security.rawValue
         cmd.append(secByte)
@@ -347,43 +347,148 @@ struct VMessGCM: Sendable {
 
 /// VMess AEAD chunk-based data encryption/decryption
 ///
-/// Each chunk on wire:
-///   [encrypted 2-byte length (2+16=18 bytes)][encrypted payload (N+16 bytes)]
-///
-/// Length and payload use separate GCM ciphers with VMess nonce scheme
+/// Supports three wire formats controlled by `VMessOption`:
+/// - **0x01 (chunkStream)**: `[plain 2-byte length][GCM payload]`
+/// - **0x05 (chunkMasking)**: `[GCM(SHAKE-masked 2-byte length) = 18 bytes][GCM payload]`
+/// - **0x1D (chunkMaskingPadding)**: same as 0x05, plus random padding after each chunk
 public struct VMessDataCipher: Sendable {
+    private let option: VMessOption
     private var dataCipher: VMessGCM
+    private var shakeMask: SHAKE128?    // for 0x05/0x1D: generates 2 mask bytes per chunk
+    private var shakePadding: SHAKE128? // for 0x1D only: generates 2 bytes for padding length
 
-    public init(key: Data, iv: Data, security: VMessSecurity = .aes128gcm) {
-        // Data cipher uses key directly with VMess nonce scheme
+    public init(key: Data, iv: Data, option: VMessOption = .chunkStream, security: VMessSecurity = .aes128gcm) {
+        self.option = option
         self.dataCipher = VMessGCM(key: key, iv: iv)
+
+        if option == .chunkMasking || option == .chunkMaskingPadding {
+            var mask = SHAKE128()
+            mask.absorb(iv)
+            self.shakeMask = mask
+        }
+        if option == .chunkMaskingPadding {
+            var pad = SHAKE128()
+            pad.absorb(iv)
+            self.shakePadding = pad
+        }
     }
 
-    /// Encrypt plaintext into a VMess chunk: [2-byte BE length of encrypted][GCM encrypted payload]
+    /// Encrypt plaintext into a VMess chunk
     public mutating func encrypt(_ plaintext: Data) throws -> Data {
-        let encPayload = try dataCipher.encrypt(plaintext)
+        switch option {
+        case .chunkStream:
+            return try encryptChunkStream(plaintext)
+        case .chunkMasking:
+            return try encryptChunkMasking(plaintext, withPadding: false)
+        case .chunkMaskingPadding:
+            return try encryptChunkMasking(plaintext, withPadding: true)
+        }
+    }
 
-        // Plain 2-byte length (big-endian) of the encrypted payload
+    /// Decrypt a single chunk from buffer. Returns (plaintext, bytesConsumed) or nil if not enough data.
+    public mutating func decryptChunk(from buffer: Data) throws -> (Data, Int)? {
+        switch option {
+        case .chunkStream:
+            return try decryptChunkStream(from: buffer)
+        case .chunkMasking:
+            return try decryptChunkMasking(from: buffer, withPadding: false)
+        case .chunkMaskingPadding:
+            return try decryptChunkMasking(from: buffer, withPadding: true)
+        }
+    }
+
+    // MARK: - Option 0x01: ChunkStream
+
+    private mutating func encryptChunkStream(_ plaintext: Data) throws -> Data {
+        let encPayload = try dataCipher.encrypt(plaintext)
         let encLen = UInt16(encPayload.count)
         var chunk = Data([UInt8(encLen >> 8), UInt8(encLen & 0xFF)])
         chunk.append(encPayload)
         return chunk
     }
 
-    /// Decrypt a single chunk from buffer. Returns (plaintext, bytesConsumed) or nil if not enough data.
-    public mutating func decryptChunk(from buffer: Data) throws -> (Data, Int)? {
-        // Need at least 2 bytes for length
+    private mutating func decryptChunkStream(from buffer: Data) throws -> (Data, Int)? {
         guard buffer.count >= 2 else { return nil }
-
-        // Read plain 2-byte length
         let encPayloadLen = Int(UInt16(buffer[buffer.startIndex]) << 8 | UInt16(buffer[buffer.startIndex + 1]))
-        guard encPayloadLen > 0 else { return (Data(), 2) } // zero = end of stream
+        guard encPayloadLen > 0 else { return (Data(), 2) }
 
         let totalChunkSize = 2 + encPayloadLen
         guard buffer.count >= totalChunkSize else { return nil }
 
-        // Decrypt payload
         let encPayload = Data(buffer[(buffer.startIndex + 2)..<(buffer.startIndex + totalChunkSize)])
+        let plaintext = try dataCipher.decrypt(encPayload)
+        return (plaintext, totalChunkSize)
+    }
+
+    // MARK: - Option 0x05/0x1D: ChunkMasking (+ optional Padding)
+
+    private mutating func encryptChunkMasking(_ plaintext: Data, withPadding: Bool) throws -> Data {
+        // Determine padding length
+        var paddingLen: UInt16 = 0
+        if withPadding {
+            let padBytes = shakePadding!.squeeze(count: 2)
+            paddingLen = (UInt16(padBytes[0]) << 8 | UInt16(padBytes[1])) % 64
+        }
+
+        // We need to know the encrypted payload size for the length field,
+        // but must encrypt length first (nonce order: length=N, payload=N+1).
+        // Encrypted payload size = plaintext.count + 16 (GCM tag)
+        let encPayloadSize = UInt16(plaintext.count + 16)
+
+        // Length = encrypted payload size + padding size
+        let totalPayloadLen = encPayloadSize + paddingLen
+
+        // Mask the length with SHAKE-128
+        let maskBytes = shakeMask!.squeeze(count: 2)
+        let maskedLen = totalPayloadLen ^ (UInt16(maskBytes[0]) << 8 | UInt16(maskBytes[1]))
+
+        // GCM encrypt the masked 2-byte length first (nonce N)
+        let lenData = Data([UInt8(maskedLen >> 8), UInt8(maskedLen & 0xFF)])
+        let encLen = try dataCipher.encrypt(lenData)
+
+        // GCM encrypt the payload second (nonce N+1)
+        let encPayload = try dataCipher.encrypt(plaintext)
+
+        var chunk = Data()
+        chunk.append(encLen)        // 18 bytes (2 ct + 16 tag)
+        chunk.append(encPayload)    // plaintext.count + 16 bytes
+
+        // Append random padding
+        if paddingLen > 0 {
+            chunk.append(contentsOf: (0..<paddingLen).map { _ in UInt8.random(in: 0...255) })
+        }
+
+        return chunk
+    }
+
+    private mutating func decryptChunkMasking(from buffer: Data, withPadding: Bool) throws -> (Data, Int)? {
+        // Need at least 18 bytes for GCM-encrypted length
+        guard buffer.count >= 18 else { return nil }
+
+        // Decrypt length (18 bytes -> 2 bytes masked length)
+        let encLenData = Data(buffer[buffer.startIndex..<(buffer.startIndex + 18)])
+        let maskedLenBytes = try dataCipher.decrypt(encLenData)
+
+        // Unmask the length
+        let maskBytes = shakeMask!.squeeze(count: 2)
+        let maskedLen = UInt16(maskedLenBytes[0]) << 8 | UInt16(maskedLenBytes[1])
+        let totalPayloadLen = maskedLen ^ (UInt16(maskBytes[0]) << 8 | UInt16(maskBytes[1]))
+
+        guard totalPayloadLen > 0 else { return (Data(), 18) }
+
+        // Determine padding length
+        var paddingLen: UInt16 = 0
+        if withPadding {
+            let padBytes = shakePadding!.squeeze(count: 2)
+            paddingLen = (UInt16(padBytes[0]) << 8 | UInt16(padBytes[1])) % 64
+        }
+
+        let encPayloadLen = Int(totalPayloadLen) - Int(paddingLen)
+        let totalChunkSize = 18 + Int(totalPayloadLen)
+        guard buffer.count >= totalChunkSize else { return nil }
+
+        // Decrypt payload (skip padding at end)
+        let encPayload = Data(buffer[(buffer.startIndex + 18)..<(buffer.startIndex + 18 + encPayloadLen)])
         let plaintext = try dataCipher.decrypt(encPayload)
 
         return (plaintext, totalChunkSize)

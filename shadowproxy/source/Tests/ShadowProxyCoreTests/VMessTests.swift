@@ -129,3 +129,46 @@ import CryptoKit
     let security = VMessSecurity.auto
     #expect(security.resolved == .aes128gcm)
 }
+
+@Test func vmessChunkMaskingRoundTrip() throws {
+    let key = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+    let iv = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+    let plaintext = Data("Hello VMess ChunkMasking!".utf8)
+
+    var enc = VMessDataCipher(key: key, iv: iv, option: .chunkMasking)
+    let chunk = try enc.encrypt(plaintext)
+
+    var dec = VMessDataCipher(key: key, iv: iv, option: .chunkMasking)
+    let result = try dec.decryptChunk(from: chunk)
+    #expect(result != nil)
+    #expect(result!.0 == plaintext)
+    #expect(result!.1 == chunk.count)
+}
+
+@Test func vmessChunkMaskingPaddingRoundTrip() throws {
+    let key = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+    let iv = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+    let plaintext = Data("Hello VMess Padding!".utf8)
+
+    var enc = VMessDataCipher(key: key, iv: iv, option: .chunkMaskingPadding)
+    let chunk = try enc.encrypt(plaintext)
+
+    var dec = VMessDataCipher(key: key, iv: iv, option: .chunkMaskingPadding)
+    let result = try dec.decryptChunk(from: chunk)
+    #expect(result != nil)
+    #expect(result!.0 == plaintext)
+}
+
+@Test func vmessOption01StillWorks() throws {
+    let key = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+    let iv = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+    let plaintext = Data("Legacy option 0x01".utf8)
+
+    var enc = VMessDataCipher(key: key, iv: iv, option: .chunkStream)
+    let chunk = try enc.encrypt(plaintext)
+
+    var dec = VMessDataCipher(key: key, iv: iv, option: .chunkStream)
+    let result = try dec.decryptChunk(from: chunk)
+    #expect(result != nil)
+    #expect(result!.0 == plaintext)
+}

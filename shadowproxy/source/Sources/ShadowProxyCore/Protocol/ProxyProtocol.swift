@@ -56,20 +56,32 @@ public struct ShadowsocksConfig: Sendable {
     }
 }
 
+/// VMess data channel option (controls chunk format on wire)
+public enum VMessOption: UInt8, Sendable {
+    /// Plain 2-byte length + GCM payload
+    case chunkStream = 0x01
+    /// SHAKE-128 masked length (GCM encrypted) + GCM payload
+    case chunkMasking = 0x05
+    /// SHAKE-128 masked length (GCM encrypted) + GCM payload + random padding
+    case chunkMaskingPadding = 0x1D
+}
+
 public struct VMessConfig: Sendable {
     public let server: String
     public let port: UInt16
     public let uuid: String
     public let alterId: Int
     public let security: String
+    public let option: VMessOption
     public let transport: TransportConfig
 
-    public init(server: String, port: UInt16, uuid: String, alterId: Int = 0, security: String = "auto", transport: TransportConfig = TransportConfig()) {
+    public init(server: String, port: UInt16, uuid: String, alterId: Int = 0, security: String = "auto", option: VMessOption = .chunkMaskingPadding, transport: TransportConfig = TransportConfig()) {
         self.server = server
         self.port = port
         self.uuid = uuid
         self.alterId = alterId
         self.security = security
+        self.option = option
         self.transport = transport
     }
 }
