@@ -12,6 +12,7 @@ final class ProxyViewModel: ObservableObject {
     @Published var proxyNames: [String] = []
     @Published var configLoaded = false
     @Published var ruleCount = 0
+    @Published var nodeSpeeds: [String: Int] = [:]
 
     private var config: AppConfig?
     private var expandedRuleSets: [String: [Rule]] = [:]
@@ -94,6 +95,7 @@ final class ProxyViewModel: ObservableObject {
                 try engine.start()
                 self.engine = engine
                 self.isRunning = true
+                (NSApp.delegate as? AppDelegate)?.updateStatusIcon(running: true)
                 self.statusText = "Running — 127.0.0.1:\(port)"
                 log("Proxy started on port \(port)")
             } catch {
@@ -138,6 +140,7 @@ final class ProxyViewModel: ObservableObject {
         }
 
         isRunning = false
+        (NSApp.delegate as? AppDelegate)?.updateStatusIcon(running: false)
         statusText = "Stopped"
         log("Proxy stopped")
     }
@@ -146,6 +149,13 @@ final class ProxyViewModel: ObservableObject {
         selectedNodes[group] = node
         engine?.select(group: group, node: node)
         log("Selected \(node) for \(group)")
+    }
+
+    func reload() {
+        stop()
+        loadConfig()
+        start()
+        log("Configuration reloaded")
     }
 
     func log(_ message: String) {
