@@ -127,9 +127,9 @@ public final class Outbound: @unchecked Sendable {
                 case .vmess(let config):
                     splog.debug("VMess → \(config.server):\(config.port) → \(target.host):\(target.port)", tag: "Outbound")
                     try await relayVMess(client: client, target: target, config: config, initialData: initialData)
-                case .vless:
-                    splog.warning("VLESS not yet implemented", tag: "Outbound")
-                    client.cancel()
+                case .vless(let config):
+                    splog.debug("VLESS → \(config.server):\(config.port) → \(target.host):\(target.port)", tag: "Outbound")
+                    try await relayVLESS(client: client, target: target, config: config, initialData: initialData)
                 case .trojan:
                     splog.warning("Trojan not yet implemented", tag: "Outbound")
                     client.cancel()
@@ -280,6 +280,34 @@ public final class Outbound: @unchecked Sendable {
             responseKey: responseKey,
             responseIV: responseIV
         )
+    }
+
+    // MARK: - VLESS
+
+    private func relayVLESS(client: NWConnection, target: ProxyTarget, config: VLESSConfig, initialData: Data?) async throws {
+        let remote = createConnection(server: config.server, port: config.port, transport: config.transport)
+        try await remote.connectAsync(queue: queue)
+        splog.debug("VLESS connected to \(config.server):\(config.port)", tag: "VLESS")
+
+        let header = try VLESSHeader.buildRequest(uuid: config.uuid, target: target)
+        var firstPacket = header
+        if let data = initialData { firstPacket.append(data) }
+        try await Relay.sendData(firstPacket, to: remote)
+
+        // Read VLESS response header
+        let respData = try await Relay.receiveData(from: remote)
+        guard let consumed = VLESSHeader.parseResponse(respData) else {
+            splog.error("VLESS response header parse failed", tag: "VLESS")
+            remote.cancel(); client.cancel(); return
+        }
+
+        // Forward any extra data beyond response header
+        if consumed < respData.count {
+            let remaining = respData.suffix(from: respData.startIndex + consumed)
+            try await Relay.sendData(Data(remaining), to: client)
+        }
+
+        await Relay.bridge(client: client, remote: remote)
     }
 
     // MARK: - Helpers
