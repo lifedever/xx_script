@@ -3,10 +3,11 @@
 # 用法: box <命令>
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG="$SCRIPT_DIR/config.json"
-PID_FILE="$SCRIPT_DIR/.sing-box.pid"
-LOG_FILE="$SCRIPT_DIR/sing-box.log"
-CACHE_FILE="$SCRIPT_DIR/cache.db"
+BOX_DIR="$HOME/.sing-box"
+CONFIG="$BOX_DIR/runtime-config.json"
+PID_FILE="$BOX_DIR/.sing-box.pid"
+LOG_FILE="$BOX_DIR/sing-box.log"
+CACHE_FILE="$BOX_DIR/cache.db"
 PANEL_URL="https://yacd.metacubex.one"
 API_ADDR="127.0.0.1:9091"
 PROXY_PORT=7890
@@ -37,7 +38,8 @@ start() {
         return 1
     fi
     if [ ! -f "$CONFIG" ]; then
-        error "配置文件不存在，先运行: box generate"
+        error "配置文件不存在: $CONFIG"
+        error "请先通过 BoxX 生成配置，或运行: box generate"
         return 1
     fi
     echo -e "${CYAN}🚀 启动 sing-box...${NC}"
@@ -135,7 +137,8 @@ for r in regions:
 
 generate() {
     echo -e "${CYAN}📦 生成配置...${NC}"
-    python3 "$SCRIPT_DIR/generate.py"
+    local script_dir="$(cd "$(dirname "$0")" && pwd)"
+    python3 "$script_dir/generate.py"
 }
 
 update() {
