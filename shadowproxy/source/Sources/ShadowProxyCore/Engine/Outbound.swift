@@ -7,12 +7,14 @@ public final class Outbound: @unchecked Sendable {
     private let proxies: [String: ServerConfig]
     private let groups: [String: ProxyGroup]
     private let queue = DispatchQueue(label: "shadowproxy.outbound")
+    private let dohResolver: DoHResolver
 
     /// Currently selected node per group (group name -> node name)
     private var selectedNodes: [String: String] = [:]
 
-    public init(proxies: [String: ServerConfig], groups: [ProxyGroup]) {
+    public init(proxies: [String: ServerConfig], groups: [ProxyGroup], dnsServer: String = "https://223.5.5.5/dns-query") {
         self.proxies = proxies
+        self.dohResolver = DoHResolver(server: dnsServer)
         var groupMap: [String: ProxyGroup] = [:]
         for g in groups { groupMap[g.name] = g }
         self.groups = groupMap
@@ -130,9 +132,9 @@ public final class Outbound: @unchecked Sendable {
                 case .vless(let config):
                     splog.debug("VLESS → \(config.server):\(config.port) → \(target.host):\(target.port)", tag: "Outbound")
                     try await relayVLESS(client: client, target: target, config: config, initialData: initialData)
-                case .trojan:
-                    splog.warning("Trojan not yet implemented", tag: "Outbound")
-                    client.cancel()
+                case .trojan(let config):
+                    splog.debug("Trojan → \(config.server):\(config.port) → \(target.host):\(target.port)", tag: "Outbound")
+                    try await relayTrojan(client: client, target: target, config: config, initialData: initialData)
                 }
             } catch {
                 splog.error("Relay error for \(target.host): \(error)", tag: "Outbound")
@@ -144,8 +146,21 @@ public final class Outbound: @unchecked Sendable {
     // MARK: - Direct
 
     private func relayDirect(client: NWConnection, target: ProxyTarget, initialData: Data?) async throws {
+        let host: String
+        if target.host.first?.isLetter == true {
+            do {
+                host = try await dohResolver.resolve(target.host)
+                splog.debug("DoH resolved \(target.host) → \(host)", tag: "Outbound")
+            } catch {
+                splog.warning("DoH failed for \(target.host), fallback to system DNS: \(error)", tag: "Outbound")
+                host = target.host
+            }
+        } else {
+            host = target.host
+        }
+
         let remote = NWConnection(
-            host: NWEndpoint.Host(target.host),
+            host: NWEndpoint.Host(host),
             port: NWEndpoint.Port(rawValue: target.port)!,
             using: .tcp
         )
@@ -307,6 +322,21 @@ public final class Outbound: @unchecked Sendable {
             try await Relay.sendData(Data(remaining), to: client)
         }
 
+        await Relay.bridge(client: client, remote: remote)
+    }
+
+    // MARK: - Trojan
+
+    private func relayTrojan(client: NWConnection, target: ProxyTarget, config: TrojanConfig, initialData: Data?) async throws {
+        let remote = createConnection(server: config.server, port: config.port, transport: config.transport)
+        try await remote.connectAsync(queue: queue)
+        splog.debug("Trojan connected to \(config.server):\(config.port)", tag: "Trojan")
+
+        var firstPacket = TrojanHeader.buildRequest(password: config.password, target: target)
+        if let data = initialData { firstPacket.append(data) }
+        try await Relay.sendData(firstPacket, to: remote)
+
+        // No response header — Trojan is raw data after request
         await Relay.bridge(client: client, remote: remote)
     }
 
