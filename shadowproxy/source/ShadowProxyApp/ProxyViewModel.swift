@@ -14,7 +14,16 @@ final class ProxyViewModel: ObservableObject {
     @Published var ruleCount = 0
     @Published var nodeSpeeds: [String: Int] = [:]
     @Published var requestRecords: [RequestRecord] = []
+    @Published var isTestingSpeed = false
+    @Published var subscriptions: [SubscriptionInfo] = []
     private let maxRecords = 2000
+    private let subscriptionManager = SubscriptionManager()
+
+    @AppStorage("proxyPort") var settingsPort: Int = 7891
+    @AppStorage("dnsServer") var settingsDNS: String = "https://223.5.5.5/dns-query"
+    @AppStorage("logLevel") var settingsLogLevel: String = "info"
+    @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
+    @AppStorage("autoRefreshSubs") var autoRefreshSubs: Bool = true
 
     private var config: AppConfig?
     private var expandedRuleSets: [String: [Rule]] = [:]
@@ -83,6 +92,8 @@ final class ProxyViewModel: ObservableObject {
                 log("Loaded \(total) rules from rule sets")
             }
         }
+
+        loadSubscriptions()
     }
 
     func start() {
@@ -175,6 +186,95 @@ final class ProxyViewModel: ObservableObject {
 
     func log(_ message: String) {
         splog.info(message, tag: "App")
+    }
+
+    // MARK: - Subscriptions
+
+    func loadSubscriptions() {
+        subscriptions = subscriptionManager.subscriptions()
+    }
+
+    func addSubscription(name: String, url: String) async {
+        do {
+            try await subscriptionManager.add(name: name, url: url)
+            subscriptions = subscriptionManager.subscriptions()
+            log("Added subscription: \(name)")
+        } catch {
+            log("Add subscription failed: \(error)")
+        }
+    }
+
+    func refreshSubscription(id: String) async {
+        do {
+            try await subscriptionManager.refresh(id: id)
+            subscriptions = subscriptionManager.subscriptions()
+        } catch {
+            log("Refresh failed: \(error)")
+        }
+    }
+
+    func refreshAllSubscriptions() async {
+        do {
+            try await subscriptionManager.refreshAll()
+            subscriptions = subscriptionManager.subscriptions()
+        } catch {
+            log("Refresh all failed: \(error)")
+        }
+    }
+
+    func deleteSubscription(id: String) {
+        subscriptionManager.delete(id: id)
+        subscriptions = subscriptionManager.subscriptions()
+    }
+
+    // MARK: - Speed Test
+
+    func testSpeed(nodes: [String]? = nil) {
+        guard isRunning, let config else { return }
+        isTestingSpeed = true
+        let targetNodes = nodes ?? Array(config.proxies.keys)
+        let port = self.port
+
+        Task {
+            await withTaskGroup(of: (String, Int?).self) { group in
+                for name in targetNodes {
+                    group.addTask {
+                        let ms = await Self.measureNodeLatency(port: port)
+                        return (name, ms)
+                    }
+                }
+                for await (name, ms) in group {
+                    self.nodeSpeeds[name] = ms ?? -1
+                }
+            }
+            isTestingSpeed = false
+            log("Speed test completed for \(targetNodes.count) nodes")
+        }
+    }
+
+    private static func measureNodeLatency(port: UInt16) async -> Int? {
+        let start = Date()
+        let proxyDict: [String: Any] = [
+            kCFNetworkProxiesHTTPEnable as String: true,
+            kCFNetworkProxiesHTTPProxy as String: "127.0.0.1",
+            kCFNetworkProxiesHTTPPort as String: Int(port),
+            kCFNetworkProxiesHTTPSEnable as String: true,
+            kCFNetworkProxiesHTTPSProxy as String: "127.0.0.1",
+            kCFNetworkProxiesHTTPSPort as String: Int(port),
+        ]
+        let sessionConfig = URLSessionConfiguration.ephemeral
+        sessionConfig.connectionProxyDictionary = proxyDict
+        sessionConfig.timeoutIntervalForRequest = 5
+        let session = URLSession(configuration: sessionConfig)
+        do {
+            let (_, response) = try await session.data(from: URL(string: "http://www.gstatic.com/generate_204")!)
+            if let http = response as? HTTPURLResponse, http.statusCode == 204 {
+                return Int(Date().timeIntervalSince(start) * 1000)
+            }
+            return nil
+        } catch {
+            return nil
+        }
     }
 }
 

@@ -38,11 +38,11 @@ struct MainWindowView: View {
             switch selectedItem {
             case .overview: OverviewView(viewModel: viewModel)
             case .proxyGroups: ProxyGroupsView(viewModel: viewModel)
-            case .nodes: Text("节点列表").foregroundStyle(.secondary)
-            case .speedTest: Text("测速").foregroundStyle(.secondary)
-            case .log: Text("日志").foregroundStyle(.secondary)
-            case .subscription: Text("订阅").foregroundStyle(.secondary)
-            case .settings: Text("设置").foregroundStyle(.secondary)
+            case .nodes: NodeListView(viewModel: viewModel)
+            case .speedTest: SpeedTestView(viewModel: viewModel)
+            case .log: LogView(viewModel: viewModel)
+            case .subscription: SubscriptionView(viewModel: viewModel)
+            case .settings: SettingsView(viewModel: viewModel)
             case .none: Text("选择一个页面").foregroundStyle(.secondary)
             }
         }
