@@ -3,34 +3,20 @@ import ShadowProxyCore
 
 @main
 struct ShadowProxyApp: App {
-    @StateObject private var viewModel = ProxyViewModel()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
-            ContentView(viewModel: viewModel)
-                .frame(minWidth: 520, minHeight: 400)
-                .onAppear {
-                    appDelegate.viewModel = viewModel
-                }
+        Window("ShadowProxy", id: "main") {
+            MainWindowView(viewModel: appDelegate.viewModel)
+                .frame(minWidth: 700, minHeight: 500)
         }
         .windowResizability(.contentMinSize)
-    }
-}
+        .defaultPosition(.center)
 
-class AppDelegate: NSObject, NSApplicationDelegate {
-    var viewModel: ProxyViewModel?
-
-    func applicationWillTerminate(_ notification: Notification) {
-        // Clean up system proxy on any exit (normal quit, force quit via Cmd+Q, etc.)
-        try? SystemProxy.disable()
-    }
-
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        // Register for SIGTERM (kill command) to clean up proxy
-        signal(SIGTERM) { _ in
-            try? SystemProxy.disable()
-            exit(0)
+        Window("请求查看器", id: "request-viewer") {
+            RequestViewerWindow(viewModel: appDelegate.viewModel)
+                .frame(minWidth: 600, minHeight: 400)
         }
+        .windowResizability(.contentMinSize)
     }
 }

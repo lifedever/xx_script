@@ -7,24 +7,30 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		032870FA52DFF03CC7B42D55 /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFBBE955D854C36C682BBE6B /* MainWindowView.swift */; };
 		1E224CA16848A0448F734B70 /* ShadowProxyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8370D0D8EC4C1B9785294644 /* ShadowProxyApp.swift */; };
+		3BF680F8537096A55E2BEBD7 /* MenuBarPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 556122DC2D19EA3FEB4DD288 /* MenuBarPopover.swift */; };
+		48DBAC8CA1757204FBF7EDE9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAD9240AADF0DF7951343A8 /* AppDelegate.swift */; };
+		6A6C78B91F082DCFBEF92643 /* RequestViewerWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13776E1524C02275E4322DCD /* RequestViewerWindow.swift */; };
 		AE03DF8F702E71FA9A0753AF /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A4D0593E20303E37409516 /* main.swift */; };
 		B17BBB0C4BEFC5A08A98BC0E /* ShadowProxyCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6F00691B02A0537FA6121D7 /* ShadowProxyCore */; };
 		D6C4209BB6F5EAF3C49DCD11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 681255ECF708DA9ADE34D9A1 /* Assets.xcassets */; };
 		DC3FFBAEE24156F140E6C79E /* ShadowProxyCore in Frameworks */ = {isa = PBXBuildFile; productRef = C89CADDA246DA41FE57D70E7 /* ShadowProxyCore */; };
-		F6BF9E2C51A68A258C2F29F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A710B40294B8DE783D25A4D /* ContentView.swift */; };
 		F9B8A164B6778D41BCDC9349 /* ProxyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4A49CB80D2EDCF358CD6BC /* ProxyViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		13776E1524C02275E4322DCD /* RequestViewerWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestViewerWindow.swift; sourceTree = "<group>"; };
 		2F985BCAF5B33C87D2FE432F /* ShadowProxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShadowProxy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		556122DC2D19EA3FEB4DD288 /* MenuBarPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopover.swift; sourceTree = "<group>"; };
 		62A4D0593E20303E37409516 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		681255ECF708DA9ADE34D9A1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6BF50FB9EE483EDD9F4FDA8F /* source */ = {isa = PBXFileReference; lastKnownFileType = folder; name = source; path = .; sourceTree = SOURCE_ROOT; };
 		7CF819812174452FC8588B08 /* sp */ = {isa = PBXFileReference; includeInIndex = 0; path = sp; sourceTree = BUILT_PRODUCTS_DIR; };
 		8370D0D8EC4C1B9785294644 /* ShadowProxyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowProxyApp.swift; sourceTree = "<group>"; };
-		9A710B40294B8DE783D25A4D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AD4A49CB80D2EDCF358CD6BC /* ProxyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyViewModel.swift; sourceTree = "<group>"; };
+		AFBBE955D854C36C682BBE6B /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+		CAAD9240AADF0DF7951343A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DF216CC8844A066189424EF0 /* ShadowProxy.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShadowProxy.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -51,11 +57,14 @@
 		4636CFD4B7294C584A4282EC /* ShadowProxyApp */ = {
 			isa = PBXGroup;
 			children = (
+				CAAD9240AADF0DF7951343A8 /* AppDelegate.swift */,
 				681255ECF708DA9ADE34D9A1 /* Assets.xcassets */,
-				9A710B40294B8DE783D25A4D /* ContentView.swift */,
+				556122DC2D19EA3FEB4DD288 /* MenuBarPopover.swift */,
 				AD4A49CB80D2EDCF358CD6BC /* ProxyViewModel.swift */,
 				DF216CC8844A066189424EF0 /* ShadowProxy.entitlements */,
 				8370D0D8EC4C1B9785294644 /* ShadowProxyApp.swift */,
+				BD5558E875DF28AAF4F2B542 /* MainWindow */,
+				A1C4FC11F859881F5687AFEB /* RequestViewer */,
 			);
 			path = ShadowProxyApp;
 			sourceTree = "<group>";
@@ -67,6 +76,22 @@
 				7CF819812174452FC8588B08 /* sp */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1C4FC11F859881F5687AFEB /* RequestViewer */ = {
+			isa = PBXGroup;
+			children = (
+				13776E1524C02275E4322DCD /* RequestViewerWindow.swift */,
+			);
+			path = RequestViewer;
+			sourceTree = "<group>";
+		};
+		BD5558E875DF28AAF4F2B542 /* MainWindow */ = {
+			isa = PBXGroup;
+			children = (
+				AFBBE955D854C36C682BBE6B /* MainWindowView.swift */,
+			);
+			path = MainWindow;
 			sourceTree = "<group>";
 		};
 		CDD80E3A30E81E1C3F0FADB7 = {
@@ -188,8 +213,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6BF9E2C51A68A258C2F29F1 /* ContentView.swift in Sources */,
+				48DBAC8CA1757204FBF7EDE9 /* AppDelegate.swift in Sources */,
+				032870FA52DFF03CC7B42D55 /* MainWindowView.swift in Sources */,
+				3BF680F8537096A55E2BEBD7 /* MenuBarPopover.swift in Sources */,
 				F9B8A164B6778D41BCDC9349 /* ProxyViewModel.swift in Sources */,
+				6A6C78B91F082DCFBEF92643 /* RequestViewerWindow.swift in Sources */,
 				1E224CA16848A0448F734B70 /* ShadowProxyApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -213,7 +241,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -298,7 +326,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
