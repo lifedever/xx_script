@@ -19,7 +19,8 @@
         "jsonip.com",
         "warp.dev",
         "llgjc1.com",
-        "tabbitbrowser.com"
+        "tabbitbrowser.com",
+        "googleapis.com"
       ]
     },
     { "ip_cidr": ["162.125.18.129/32"] }

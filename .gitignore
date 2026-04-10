@@ -6,6 +6,7 @@ singbox/rules/
 singbox/BoxX/
 singbox/cache.db
 singbox/sing-box.log
+shadowproxy/
 .worktrees
 .superpowers
 CLAUDE.md
