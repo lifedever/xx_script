@@ -20,7 +20,8 @@
         "warp.dev",
         "llgjc1.com",
         "tabbitbrowser.com",
-        "googleapis.com"
+        "googleapis.com",
+        "google.com"
       ]
     },
     { "ip_cidr": ["162.125.18.129/32"] }
