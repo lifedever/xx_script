@@ -21,9 +21,13 @@
         "llgjc1.com",
         "tabbitbrowser.com",
         "googleapis.com",
-        "google.com"
+        "google.com",
+        "gstatic.com",
+        "ggpht.com",
+        "googletagmanager.com"
       ]
     },
+    { "domain": ["cdn.jetbrains.com"] },
     { "ip_cidr": ["162.125.18.129/32"] }
   ]
 }

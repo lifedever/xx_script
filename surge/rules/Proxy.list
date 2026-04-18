@@ -20,3 +20,9 @@ IP-CIDR,162.125.18.129/32
 DOMAIN-SUFFIX,tabbitbrowser.com
 DOMAIN-SUFFIX,googleapis.com
 DOMAIN-SUFFIX,google.com
+# Google 静态/图片资源（覆盖 Loyalsoldier direct.txt 的误判）
+DOMAIN-SUFFIX,gstatic.com
+DOMAIN-SUFFIX,ggpht.com
+DOMAIN-SUFFIX,googletagmanager.com
+# JetBrains CDN
+DOMAIN,cdn.jetbrains.com
