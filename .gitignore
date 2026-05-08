@@ -1,4 +1,5 @@
 .idea
+.DS_Store
 singbox/subscriptions.json
 singbox/config.json
 singbox/rules/
