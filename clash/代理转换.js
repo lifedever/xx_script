@@ -15,10 +15,8 @@ function main(config) {
             proxies: [
                 "⚡ 自动",
                 "🇭🇰 香港",
-                "🇨🇳 台湾",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
-                "🇰🇷 韩国",
                 "🇺🇸 美国",
                 "🌏 其他国家",
             ],
@@ -38,7 +36,16 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
             name: "🤖 AI",
             type: "select",
-            proxies: ["🇸🇬 新加坡", "🇯🇵 日本", "🇰🇷 韩国", "🇺🇸 美国", "🌏 其他国家"],
+            proxies: [
+                "🚀 代理",
+                "DIRECT",
+                "🐟 漏网之鱼",
+                "🇭🇰 香港",
+                "🇸🇬 新加坡",
+                "🇯🇵 日本",
+                "🇺🇸 美国",
+                "🌏 其他国家",
+            ],
         },
         // Telegram 专用
         {
@@ -46,11 +53,12 @@ function main(config) {
             name: "✈️ 电报",
             type: "select",
             proxies: [
+                "🚀 代理",
+                "DIRECT",
+                "🐟 漏网之鱼",
                 "🇭🇰 香港",
-                "🇨🇳 台湾",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
-                "🇰🇷 韩国",
                 "🇺🇸 美国",
                 "🌏 其他国家",
             ],
@@ -61,11 +69,12 @@ function main(config) {
             name: "🔍 谷歌",
             type: "select",
             proxies: [
+                "🚀 代理",
+                "DIRECT",
+                "🐟 漏网之鱼",
                 "🇭🇰 香港",
-                "🇨🇳 台湾",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
-                "🇰🇷 韩国",
                 "🇺🇸 美国",
                 "🌏 其他国家",
             ],
@@ -76,12 +85,12 @@ function main(config) {
             name: "🪟 微软",
             type: "select",
             proxies: [
+                "🚀 代理",
                 "DIRECT",
+                "🐟 漏网之鱼",
                 "🇭🇰 香港",
-                "🇨🇳 台湾",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
-                "🇰🇷 韩国",
                 "🇺🇸 美国",
                 "🌏 其他国家",
             ],
@@ -92,17 +101,39 @@ function main(config) {
             name: "📝 Notion",
             type: "select",
             proxies: [
-                "DIRECT",
                 "🚀 代理",
-                "⚡ 自动",
+                "DIRECT",
+                "🐟 漏网之鱼",
                 "🇭🇰 香港",
-                "🇨🇳 台湾",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
-                "🇰🇷 韩国",
                 "🇺🇸 美国",
                 "🌏 其他国家",
             ],
+        },
+        // 漏网之鱼（兜底）
+        {
+            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Final.png",
+            name: "🐟 漏网之鱼",
+            type: "select",
+            proxies: [
+                "🚀 代理",
+                "DIRECT",
+                "⚡ 自动",
+                "🇭🇰 香港",
+                "🇸🇬 新加坡",
+                "🇯🇵 日本",
+                "🇺🇸 美国",
+                "🌏 其他国家",
+            ],
+        },
+        // 订阅信息
+        {
+            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/GLaDOS.png",
+            "include-all": true,
+            filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            name: "ℹ️ 订阅信息",
+            type: "select",
         },
         // 地区节点组
         {
@@ -112,16 +143,6 @@ function main(config) {
                 "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             filter: "(?i)香港|Hong Kong|HK|🇭🇰",
             name: "🇭🇰 香港",
-            type: "url-test",
-            interval: 3600,
-        },
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/TW.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)台湾|Taiwan|TW|🇹🇼",
-            name: "🇨🇳 台湾",
             type: "url-test",
             interval: 3600,
         },
@@ -146,16 +167,6 @@ function main(config) {
             interval: 3600,
         },
         {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/KR.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)韩国|Korea|KR|🇰🇷",
-            name: "🇰🇷 韩国",
-            type: "url-test",
-            interval: 3600,
-        },
-        {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/US.png",
             "include-all": true,
             "exclude-filter":
@@ -171,55 +182,10 @@ function main(config) {
             "exclude-filter":
                 "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             filter:
-                "^(?!.*(台湾|Taiwan|TW|香港|Hong Kong|HK|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸|韩国|Korea|KR|🇰🇷)).*$",
+                "^(?!.*(香港|Hong Kong|HK|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸)).*$",
             name: "🌏 其他国家",
             type: "url-test",
             interval: 3600,
-        },
-        // 订阅信息
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/GLaDOS.png",
-            "include-all": true,
-            filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            name: "ℹ️ 订阅信息",
-            type: "select",
-        },
-        // 全球直连
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Global.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            proxies: [
-                "⚡ 自动",
-                "🇭🇰 香港",
-                "🇨🇳 台湾",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇰🇷 韩国",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
-            name: "🌍 全球直连",
-            type: "select",
-        },
-        // 兜底分组
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Final.png",
-            name: "🐟 兜底",
-            type: "select",
-            proxies: [
-                "DIRECT",
-                "🚀 代理",
-                "⚡ 自动",
-                "🇭🇰 香港",
-                "🇨🇳 台湾",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇰🇷 韩国",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
         },
     ];
 
@@ -434,7 +400,7 @@ function main(config) {
         "RULE-SET,geolocation-!cn,🚀 代理",
         "RULE-SET,cn_domain,DIRECT",
         "RULE-SET,cn_ip,DIRECT",
-        "MATCH,🐟 兜底",
+        "MATCH,🐟 漏网之鱼",
     ];
 
     return config;
