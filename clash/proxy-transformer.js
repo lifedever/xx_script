@@ -1,5 +1,29 @@
 /**
- * Clash 配置转换脚本
+ * Clash 配置转换脚本（Sub-Store / Stash 等可加载）
+ *
+ * 主要功能：
+ *   - 注入 proxy-groups：主入口（🚀代理 / ⚡自动）、服务分组
+ *     （🤖AI / ✈️电报 / 🔍谷歌 / 🪟微软 / 📝Notion）、兜底（🐟漏网之鱼）、
+ *     订阅信息（ℹ️）、地区池（🇭🇰 / 🇸🇬 / 🇯🇵 / 🇺🇸 / 🌏其他）
+ *   - 注入 rule-providers：拉取 MetaCubeX/blackmatrix7 第三方规则集，
+ *     以及本仓库自定义 Ai.yaml / Proxy.yaml / Private.yaml
+ *   - 注入 rules：按"私有 → 自定义 → 服务 → 国别 → MATCH"次序分流
+ *   - 服务分组只允许在「代理 / 直连 / 漏网之鱼 / 地区」之间选择，避免
+ *     上层组互相循环引用
+ *
+ * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
+ *           追加一项简述变更。
+ *
+ * @version 1.0.0
+ *
+ * Changelog:
+ *   1.0.0 (2026-05-20)
+ *     - 地区精简到 5 个：HK / SG / JP / US / 其他（去掉 TW / KR）
+ *     - 服务组（AI / 电报 / 谷歌 / 微软 / Notion）统一加入 🚀代理 / DIRECT / 🐟漏网之鱼
+ *     - 🐟 兜底 改名 🐟 漏网之鱼，MATCH 同步
+ *     - 排序：主入口 → 服务组 → 漏网之鱼 → 订阅信息 → 地区池
+ *     - 「🌏 其他国家」filter 加 (?i)，避免与地区组双重匹配小写节点
+ *     - 文件改名：代理转换.js → proxy-transformer.js
  */
 function main(config) {
     // 代理组配置
@@ -119,7 +143,6 @@ function main(config) {
             proxies: [
                 "🚀 代理",
                 "DIRECT",
-                "⚡ 自动",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -182,7 +205,7 @@ function main(config) {
             "exclude-filter":
                 "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             filter:
-                "^(?!.*(香港|Hong Kong|HK|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸)).*$",
+                "(?i)^(?!.*(香港|Hong Kong|HK|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸)).*$",
             name: "🌏 其他国家",
             type: "url-test",
             interval: 3600,
@@ -357,7 +380,6 @@ function main(config) {
             format: "yaml",
             type: "http",
         },
-        // 自定义规则
         my_proxy: {
             url: "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/clash/rules/Proxy.yaml",
             path: "./ruleset/my_proxy.yaml",

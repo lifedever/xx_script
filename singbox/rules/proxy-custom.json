@@ -19,12 +19,7 @@
         "jsonip.com",
         "warp.dev",
         "llgjc1.com",
-        "tabbitbrowser.com",
-        "googleapis.com",
-        "google.com",
-        "gstatic.com",
-        "ggpht.com",
-        "googletagmanager.com"
+        "tabbitbrowser.com"
       ]
     },
     { "domain": ["cdn.jetbrains.com"] },
