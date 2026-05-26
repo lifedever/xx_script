@@ -1,8 +1,17 @@
-# 内容：直连规则
-# 更新：2026-01-04
+# 内容：直连规则（4 端同步：clash YAML / surge list / ss list / singbox JSON）
+# 更新：2026-05-26
 
+# 自有域名
 DOMAIN-SUFFIX,manyibar.cn
-DOMAIN-SUFFIX,kanasinfo.cn
 DOMAIN-SUFFIX,manyibar.com
+DOMAIN-SUFFIX,manyibar.com.cn
 DOMAIN-SUFFIX,manyiba.com
+DOMAIN-SUFFIX,kanasinfo.cn
+
+# 第三方直连
+DOMAIN-SUFFIX,down.sandai.net
+DOMAIN-SUFFIX,crashlytics.com
+
+# 指定 IP / 网段
 IP-CIDR,47.82.7.161/32
+IP-CIDR,10.6.0.0/16

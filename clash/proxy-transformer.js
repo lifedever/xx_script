@@ -14,9 +14,19 @@
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.2.0
+ * @version 1.4.0
  *
  * Changelog:
+ *   1.4.0 (2026-05-26)
+ *     - my_private rule-provider 改引用 clash/rules/Direct.yaml
+ *       （behavior: classical），与 surge/ss/singbox 三端共用同一份直连源
+ *     - Direct.yaml 同时包含自有域名 + IP-CIDR，原 Private.yaml 失去引用
+ *
+ *   1.3.0 (2026-05-26)
+ *     - 新增「🍎 Apple」代理组（默认 DIRECT，可切 🚀代理 / 漏网之鱼 / 节点 /
+ *       地区池），对齐 ss/shadowrocket.conf 的 `🍎Apple = select,DIRECT,Proxy`
+ *     - apple rule-set 的出站从硬编码 DIRECT 改为 🍎 Apple，用户可手动切换
+ *
  *   1.2.0 (2026-05-26)
  *     - 新增「📦 节点」分组：include-all 兜底所有真节点（仅排除信息节点），
  *       作为地区组 filter 漏判时的安全网，也方便直接挑具体节点
@@ -162,6 +172,23 @@ function main(config) {
                 "🌏 其他国家",
             ],
         },
+        // Apple 服务（默认 DIRECT，海外 Apple ID / 商店切换走代理时再切）
+        {
+            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Apple.png",
+            name: "🍎 Apple",
+            type: "select",
+            proxies: [
+                "DIRECT",
+                "🚀 代理",
+                "🐟 漏网之鱼",
+                "📦 节点",
+                "🇭🇰 香港",
+                "🇸🇬 新加坡",
+                "🇯🇵 日本",
+                "🇺🇸 美国",
+                "🌏 其他国家",
+            ],
+        },
         // 漏网之鱼（兜底）
         {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Final.png",
@@ -247,9 +274,9 @@ function main(config) {
 
     config["rule-providers"] = Object.assign(config["rule-providers"], {
         my_private: {
-            url: "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/clash/rules/Private.yaml",
+            url: "https://raw.githubusercontent.com/lifedever/xx_script/refs/heads/main/clash/rules/Direct.yaml",
             path: "./ruleset/my_private.yaml",
-            behavior: "domain",
+            behavior: "classical",
             interval: 86400,
             format: "yaml",
             type: "http",
@@ -430,7 +457,7 @@ function main(config) {
     config["rules"] = [
         "RULE-SET,my_private,DIRECT",
         "RULE-SET,private,DIRECT",
-        "RULE-SET,apple,DIRECT",
+        "RULE-SET,apple,🍎 Apple",
         "RULE-SET,my_ai,🤖 AI",
         "RULE-SET,my_proxy,🚀 代理",
         "RULE-SET,bing,🤖 AI",
