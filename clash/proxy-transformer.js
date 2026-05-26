@@ -14,9 +14,21 @@
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.0.0
+ * @version 1.2.0
  *
  * Changelog:
+ *   1.2.0 (2026-05-26)
+ *     - 新增「📦 节点」分组：include-all 兜底所有真节点（仅排除信息节点），
+ *       作为地区组 filter 漏判时的安全网，也方便直接挑具体节点
+ *     - 「📦 节点」加进 🚀 代理 / 5 个服务组 / 🐟 漏网之鱼 的 proxies
+ *
+ *   1.1.0 (2026-05-26)
+ *     - exclude-filter / 订阅信息 filter 去掉 `GB` 关键词，避免节点名含
+ *       `249.25GB` 这种流量额度的单节点订阅被误判为信息节点
+ *     - 4 个地区组（HK/SG/JP/US）的 filter 加上短码匹配（hk/sg/jp/us），
+ *       适配 `jp-lifedever-xxx` 这种"短码 + 套餐名"风格的单节点拼车
+ *     - 🌏 其他国家 的反向 lookahead 同步加上短码排除
+ *
  *   1.0.0 (2026-05-20)
  *     - 地区精简到 5 个：HK / SG / JP / US / 其他（去掉 TW / KR）
  *     - 服务组（AI / 电报 / 谷歌 / 微软 / Notion）统一加入 🚀代理 / DIRECT / 🐟漏网之鱼
@@ -33,11 +45,12 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Static.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             name: "🚀 代理",
             type: "select",
             proxies: [
                 "⚡ 自动",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -50,10 +63,19 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             name: "⚡ 自动",
             type: "url-test",
             interval: 3600,
+        },
+        // 全部节点池（兜底，列出所有真节点，单节点订阅或 filter 漏判时的安全网）
+        {
+            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Available.png",
+            "include-all": true,
+            "exclude-filter":
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            name: "📦 节点",
+            type: "select",
         },
         // AI 服务专用
         {
@@ -64,6 +86,7 @@ function main(config) {
                 "🚀 代理",
                 "DIRECT",
                 "🐟 漏网之鱼",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -80,6 +103,7 @@ function main(config) {
                 "🚀 代理",
                 "DIRECT",
                 "🐟 漏网之鱼",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -96,6 +120,7 @@ function main(config) {
                 "🚀 代理",
                 "DIRECT",
                 "🐟 漏网之鱼",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -112,6 +137,7 @@ function main(config) {
                 "🚀 代理",
                 "DIRECT",
                 "🐟 漏网之鱼",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -128,6 +154,7 @@ function main(config) {
                 "🚀 代理",
                 "DIRECT",
                 "🐟 漏网之鱼",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -143,6 +170,7 @@ function main(config) {
             proxies: [
                 "🚀 代理",
                 "DIRECT",
+                "📦 节点",
                 "🇭🇰 香港",
                 "🇸🇬 新加坡",
                 "🇯🇵 日本",
@@ -154,7 +182,7 @@ function main(config) {
         {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/GLaDOS.png",
             "include-all": true,
-            filter: "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            filter: "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             name: "ℹ️ 订阅信息",
             type: "select",
         },
@@ -163,8 +191,8 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/HK.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)香港|Hong Kong|HK|🇭🇰",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            filter: "(?i)香港|Hong Kong|🇭🇰|(?:^|[-_\\s])hk(?:[-_\\s\\d]|$)",
             name: "🇭🇰 香港",
             type: "url-test",
             interval: 3600,
@@ -173,8 +201,8 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/SG.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)新加坡|Singapore|🇸🇬",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            filter: "(?i)新加坡|Singapore|🇸🇬|(?:^|[-_\\s])sg(?:[-_\\s\\d]|$)",
             name: "🇸🇬 新加坡",
             type: "url-test",
             interval: 3600,
@@ -183,8 +211,8 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/JP.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)日本|Japan|🇯🇵",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            filter: "(?i)日本|Japan|🇯🇵|(?:^|[-_\\s])jp(?:[-_\\s\\d]|$)",
             name: "🇯🇵 日本",
             type: "url-test",
             interval: 3600,
@@ -193,8 +221,8 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/US.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)美国|USA|🇺🇸",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            filter: "(?i)美国|USA|🇺🇸|(?:^|[-_\\s])us(?:[-_\\s\\d]|$)",
             name: "🇺🇸 美国",
             type: "url-test",
             interval: 3600,
@@ -203,9 +231,9 @@ function main(config) {
             icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/UN.png",
             "include-all": true,
             "exclude-filter":
-                "(?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
             filter:
-                "(?i)^(?!.*(香港|Hong Kong|HK|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸)).*$",
+                "(?i)^(?!.*(香港|Hong Kong|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸|(?:^|[-_\\s])(?:hk|sg|jp|us)(?:[-_\\s\\d]|$))).*$",
             name: "🌏 其他国家",
             type: "url-test",
             interval: 3600,
