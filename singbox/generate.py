@@ -198,6 +198,30 @@ def parse_clash_proxies(yaml_text):
                 ob["tls"]["insecure"] = True
             outbounds.append(ob)
 
+        elif ptype == "tuic":
+            ob = {
+                "type": "tuic",
+                "tag": name,
+                "server": p["server"],
+                "server_port": int(p["port"]),
+                "uuid": p["uuid"],
+                "password": p.get("password", ""),
+                "congestion_control": p.get("congestion-controller", p.get("congestion-control", "bbr")),
+                "udp_relay_mode": p.get("udp-relay-mode", "quic"),
+                "zero_rtt_handshake": bool(p.get("reduce-rtt", False)),
+                "tls": {
+                    "enabled": True,
+                    "server_name": p.get("sni", p["server"]),
+                },
+            }
+            if p.get("alpn"):
+                ob["tls"]["alpn"] = list(p["alpn"])
+            if p.get("skip-cert-verify"):
+                ob["tls"]["insecure"] = True
+            if p.get("disable-sni"):
+                ob["tls"]["disable_sni"] = True
+            outbounds.append(ob)
+
         elif ptype == "vless":
             ob = {
                 "type": "vless",
@@ -212,12 +236,16 @@ def parse_clash_proxies(yaml_text):
                 ob["tls"] = {"enabled": True, "server_name": p.get("servername", p["server"])}
                 if p.get("skip-cert-verify"):
                     ob["tls"]["insecure"] = True
+                # utls 指纹伪装 — Reality 强烈建议带，否则 client hello 容易被识别
+                fp = p.get("client-fingerprint")
+                if fp:
+                    ob["tls"]["utls"] = {"enabled": True, "fingerprint": fp}
                 reality = p.get("reality-opts")
                 if reality:
                     ob["tls"]["reality"] = {
                         "enabled": True,
                         "public_key": reality.get("public-key", ""),
-                        "short_id": reality.get("short-id", ""),
+                        "short_id": str(reality.get("short-id", "")),
                     }
             net = p.get("network", "tcp")
             if net == "ws":

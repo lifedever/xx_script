@@ -68,9 +68,18 @@ stop() {
     local pids=$(get_pid)
     if [ -n "$pids" ]; then
         echo -e "${CYAN}🛑 停止 sing-box...${NC}"
+        # 先通过 Clash API 关闭所有活跃连接，让 sing-box 向下游发 RST
+        # 避免客户端（VSCode 等）抱着 keep-alive 死连接不重连
+        curl -s -X DELETE "http://$API_ADDR/connections" -o /dev/null 2>/dev/null
+        sleep 0.2
         sudo kill $pids 2>/dev/null
         sleep 1
         sudo kill -9 $pids 2>/dev/null
+        # 等待端口真正释放（最多 4 秒）
+        for i in {1..20}; do
+            lsof -iTCP:$PROXY_PORT -sTCP:LISTEN -t >/dev/null 2>&1 || break
+            sleep 0.2
+        done
         rm -f "$PID_FILE"
         info "已停止"
     else
@@ -142,7 +151,11 @@ for r in regions:
 generate() {
     echo -e "${CYAN}📦 生成配置...${NC}"
     local script_dir="$(cd "$(dirname "$0")" && pwd)"
-    python3 "$script_dir/generate.py"
+    python3 "$script_dir/generate.py" || return 1
+    # 同步到 ~/.sing-box/runtime-config.json（box start 实际使用的路径）
+    mkdir -p "$BOX_DIR"
+    cp "$script_dir/config.json" "$CONFIG"
+    info "已同步到 $CONFIG"
 }
 
 update() {
