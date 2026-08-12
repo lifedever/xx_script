@@ -1,5 +1,5 @@
 # 内容：自用
-# 更新：2026-04-04
+# 更新：2026-08-12
 
 DOMAIN-SUFFIX,ai.google.dev
 DOMAIN-SUFFIX,aistudio.google.com
@@ -8,7 +8,6 @@ DOMAIN-SUFFIX,antigravity-unleash.goog
 DOMAIN-SUFFIX,antigravity-unleash.google
 DOMAIN-SUFFIX,antigravity.google
 DOMAIN-SUFFIX,anyrouter.top
-DOMAIN-SUFFIX,arc.net
 DOMAIN-SUFFIX,augmentcode.com
 DOMAIN-SUFFIX,byteoversea.com
 DOMAIN-SUFFIX,c.gle
@@ -19,8 +18,6 @@ DOMAIN-SUFFIX,codeium.com
 DOMAIN-SUFFIX,copilot.github.com
 DOMAIN-SUFFIX,cursor.com
 DOMAIN-SUFFIX,cursor.sh
-DOMAIN-SUFFIX,diabrowser.com
-DOMAIN-SUFFIX,diabrowser.engineering
 DOMAIN-SUFFIX,gemini.google.com
 DOMAIN-SUFFIX,generativelanguage.googleapis.com
 DOMAIN-SUFFIX,githubcopilot.com

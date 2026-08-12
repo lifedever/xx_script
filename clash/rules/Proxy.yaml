@@ -17,5 +17,9 @@ payload:
   - DOMAIN-SUFFIX,llgjc1.com
   - IP-CIDR,162.125.18.129/32
   - DOMAIN-SUFFIX,tabbitbrowser.com
+  # Arc / Dia 浏览器（2026-08-12 从 Ai 移出，AI 组节点太慢）
+  - DOMAIN-SUFFIX,arc.net
+  - DOMAIN-SUFFIX,diabrowser.com
+  - DOMAIN-SUFFIX,diabrowser.engineering
   # JetBrains CDN
   - DOMAIN,cdn.jetbrains.com
