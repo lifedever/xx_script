@@ -20,5 +20,7 @@ DOMAIN-SUFFIX,tabbitbrowser.com
 DOMAIN-SUFFIX,arc.net
 DOMAIN-SUFFIX,diabrowser.com
 DOMAIN-SUFFIX,diabrowser.engineering
+# LaunchDarkly 功能开关（Cursor / Dia 等多个 App 共用，直连易卡启动）
+DOMAIN-SUFFIX,launchdarkly.com
 # JetBrains CDN
 DOMAIN,cdn.jetbrains.com
