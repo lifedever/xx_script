@@ -1,0 +1,52 @@
+# ============================================================
+#  Clash 本地覆写模板：proxy-providers（机场订阅）
+# ============================================================
+#
+# ⚠️ 这个文件是**模板**，里面不能有真实订阅 URL —— 本仓库是公开仓库。
+#    真实配置请在 Clash 客户端的「覆写 → 新建 → 本地(YAML)」里粘贴填好的内容，
+#    它只存在于本机，不会进 git。
+#
+# 用法（Clash Party）：
+#   1. 覆写 → 新建 → 本地 → YAML，把下面内容粘进去并填上真实 URL
+#   2. 把这条本地覆写排在 proxy-transformer.js **之前**
+#      （providers 必须先存在，脚本才能枚举到并生成 📦 机场组）
+#   3. 订阅（Profile）切到空白的 default，所有节点都从 providers 来
+#
+# 新增一个机场 = 在 proxy-providers 下复制一个块、改 name/url。
+# proxy-transformer.js 会自动多出一个「📦 <name>」组并挂进
+# 🚀代理 / 各服务组 / 🐟漏网之鱼，脚本本身不需要任何改动。
+#
+# 顶层 key 就是机场组的显示名：写 `SoCloud` → 组名「📦 SoCloud」。
+# 中文、空格都可以，但别用 emoji（脚本已统一加 📦 前缀）。
+
+proxy-providers:
+  SoCloud:
+    type: http
+    url: "在此填入 SoCloud 的订阅链接"
+    path: ./providers/socloud.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+
+  Hneko:
+    type: http
+    url: "在此填入 Hneko 的订阅链接"
+    path: ./providers/hneko.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+
+  # ---- 新增机场照抄下面这块，改 key / url / path 即可 ----
+  # 良心云:
+  #   type: http
+  #   url: "订阅链接"
+  #   path: ./providers/lxy.yaml
+  #   interval: 3600
+  #   health-check:
+  #     enable: true
+  #     url: https://www.gstatic.com/generate_204
+  #     interval: 300

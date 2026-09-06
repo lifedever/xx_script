@@ -1,22 +1,44 @@
 /**
- * Clash 配置转换脚本（Sub-Store / Stash 等可加载）
+ * Clash 配置转换脚本（Sub-Store / Stash / Clash Party 等可加载）
  *
  * 主要功能：
- *   - 注入 proxy-groups：主入口（🚀代理 / ⚡自动）、服务分组
- *     （🤖AI / ✈️电报 / 🔍谷歌 / 🪟微软 / 📝Notion）、兜底（🐟漏网之鱼）、
- *     订阅信息（ℹ️）、地区池（🇭🇰 / 🇸🇬 / 🇯🇵 / 🇺🇸 / 🌏其他）
+ *   - 注入 proxy-groups：主入口（🚀代理 / ⚡自动）、机场组（📦，动态生成）、
+ *     服务分组（🤖AI / ✈️电报 / 🔍谷歌 / 🪟微软 / 📝Notion / 🍎Apple）、
+ *     兜底（🐟漏网之鱼）、订阅信息（ℹ️）
  *   - 注入 rule-providers：拉取 MetaCubeX/blackmatrix7 第三方规则集，
- *     以及本仓库自定义 Ai.yaml / Proxy.yaml / Private.yaml
+ *     以及本仓库自定义 Ai.yaml / Proxy.yaml / Direct.yaml
  *   - 注入 rules：按"私有 → 自定义 → 服务 → 国别 → MATCH"次序分流
- *   - 服务分组只允许在「代理 / 直连 / 漏网之鱼 / 地区」之间选择，避免
+ *   - 服务分组只允许在「代理 / 直连 / 漏网之鱼 / 机场」之间选择，避免
  *     上层组互相循环引用
+ *
+ * 机场组约定（重要）：
+ *   机场组由 config["proxy-providers"] 的 key 运行时枚举生成，本文件
+ *   **不硬编码任何订阅名单，也绝不能写入订阅 URL / token** —— 本仓库是
+ *   公开仓库，订阅链接一旦进来等同于公开发布。proxy-providers 请在
+ *   Clash 客户端的「本地覆写」里定义（模板见 clash/local-providers.example.yaml）。
+ *   未检测到 proxy-providers 时自动降级为「📦 节点」平铺模式，不会断网。
  *
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.4.0
+ * @version 1.5.0
  *
  * Changelog:
+ *   1.5.0 (2026-09-06)
+ *     - 删除全部 5 个地区组（🇭🇰 / 🇸🇬 / 🇯🇵 / 🇺🇸 / 🌏其他）。原「🌏 其他国家」
+ *       会把台湾/韩国/印度/尼日利亚/巴西等 22 个节点混在一起做 url-test，
+ *       自动选路结果不可预期
+ *     - 改为「按机场分组」：从 proxy-providers 动态生成 📦<机场名> 组，
+ *       🚀代理 与各服务组指向机场组而非具体节点 —— 切换机场内部节点时
+ *       上层选择不再失效（对齐 Surge 的策略组模型）
+ *     - 🚀 代理 去掉 include-all，不再直接平铺节点名，只列机场组
+ *     - 删除「⚡ 自动」与常驻的「📦 节点」两个组，精简层级。注意：这意味着
+ *       配置里不再有任何 url-test 组，节点失效不会自动切换，需手动换
+ *     - 「📦 节点」保留为**降级兜底**：仅在未配置 proxy-providers 时生成，
+ *       否则 🚀代理 会变成空组，mihomo 拒绝启动导致整个代理不可用
+ *     - 信息节点过滤补充「防失联 / 官网」关键词（此前 `【防失联】：xxx`
+ *       会作为可选节点出现在每个组里）
+ *
  *   1.4.0 (2026-05-26)
  *     - my_private rule-provider 改引用 clash/rules/Direct.yaml
  *       （behavior: classical），与 surge/ss/singbox 三端共用同一份直连源
@@ -47,223 +69,94 @@
  *     - 「🌏 其他国家」filter 加 (?i)，避免与地区组双重匹配小写节点
  *     - 文件改名：代理转换.js → proxy-transformer.js
  */
+const ICON = "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color";
+
+// 信息节点（流量 / 到期 / 防失联公告）关键词——这些不是真节点，要从所有可选组里剔除
+const INFO_FILTER =
+    "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置|防失联|官网";
+
 function main(config) {
-    // 代理组配置
+    // ---- 机场组：从 proxy-providers 运行时枚举，不硬编码订阅名单 ----
+    // 本地覆写负责注入 proxy-providers（含订阅 URL / token），本文件保持公开可分享
+    const providerNames = Object.keys(config["proxy-providers"] || {});
+
+    // 一家机场一个组；没配 proxy-providers 时退回单个「📦 节点」全量池。
+    // 这个兜底不是可选项：上层组的 proxies 全部由机场组构成，机场组为空
+    // 会让 🚀 代理 变成空组，mihomo 直接拒绝启动 → 整个代理不可用
+    const airportGroupDefs = providerNames.length
+        ? providerNames.map((name) => ({
+              icon: `${ICON}/Available.png`,
+              name: `📦 ${name}`,
+              type: "select",
+              use: [name],
+              "exclude-filter": INFO_FILTER,
+          }))
+        : [
+              {
+                  icon: `${ICON}/Available.png`,
+                  name: "📦 节点",
+                  type: "select",
+                  "include-all": true,
+                  "exclude-filter": INFO_FILTER,
+              },
+          ];
+    const airportGroups = airportGroupDefs.map((g) => g.name);
+
+    // 服务组的可选下游：代理 / 直连 / 兜底 / 各机场
+    // 只向下引用（Layer 3 → Layer 2 → Layer 1 → Layer 0），不会形成环
+    const serviceOutbounds = ["🚀 代理", "DIRECT", "🐟 漏网之鱼", ...airportGroups];
+
+    // 服务分组模板——除 🍎 Apple 默认直连外，其余结构一致
+    const serviceGroup = (name, icon) => ({
+        icon: `${ICON}/${icon}.png`,
+        name,
+        type: "select",
+        proxies: serviceOutbounds,
+    });
+
     config["proxy-groups"] = [
-        // 主代理选择
+        // ---- 主入口 ----
+        // 只列 自动 / 机场组 / 节点池，不直接平铺节点名：
+        // 这样机场内部换节点时，指向 🚀 代理 的上层组不受影响
         {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Static.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            icon: `${ICON}/Static.png`,
             name: "🚀 代理",
             type: "select",
-            proxies: [
-                "⚡ 自动",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
+            proxies: [...airportGroups],
         },
-        // 自动选择最快节点
+
+        // ---- 机场组（每个 proxy-provider 一个，动态生成）----
+        ...airportGroupDefs,
+
+        // ---- 服务分组 ----
+        serviceGroup("🤖 AI", "OpenAI"),
+        serviceGroup("✈️ 电报", "Telegram"),
+        serviceGroup("🔍 谷歌", "Google"),
+        serviceGroup("🪟 微软", "Microsoft"),
+        serviceGroup("📝 Notion", "Notion"),
+        // Apple 默认直连（海外 Apple ID / 商店需要时再切代理）
         {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            name: "⚡ 自动",
-            type: "url-test",
-            interval: 3600,
-        },
-        // 全部节点池（兜底，列出所有真节点，单节点订阅或 filter 漏判时的安全网）
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Available.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            name: "📦 节点",
-            type: "select",
-        },
-        // AI 服务专用
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
-            name: "🤖 AI",
-            type: "select",
-            proxies: [
-                "🚀 代理",
-                "DIRECT",
-                "🐟 漏网之鱼",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
-        },
-        // Telegram 专用
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Telegram.png",
-            name: "✈️ 电报",
-            type: "select",
-            proxies: [
-                "🚀 代理",
-                "DIRECT",
-                "🐟 漏网之鱼",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
-        },
-        // Google 服务专用
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
-            name: "🔍 谷歌",
-            type: "select",
-            proxies: [
-                "🚀 代理",
-                "DIRECT",
-                "🐟 漏网之鱼",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
-        },
-        // Microsoft 服务专用
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Microsoft.png",
-            name: "🪟 微软",
-            type: "select",
-            proxies: [
-                "🚀 代理",
-                "DIRECT",
-                "🐟 漏网之鱼",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
-        },
-        // Notion 专用
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Notion.png",
-            name: "📝 Notion",
-            type: "select",
-            proxies: [
-                "🚀 代理",
-                "DIRECT",
-                "🐟 漏网之鱼",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
-        },
-        // Apple 服务（默认 DIRECT，海外 Apple ID / 商店切换走代理时再切）
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Apple.png",
+            icon: `${ICON}/Apple.png`,
             name: "🍎 Apple",
             type: "select",
-            proxies: [
-                "DIRECT",
-                "🚀 代理",
-                "🐟 漏网之鱼",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
+            proxies: ["DIRECT", "🚀 代理", "🐟 漏网之鱼", ...airportGroups],
         },
-        // 漏网之鱼（兜底）
+
+        // ---- 兜底 ----
         {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Final.png",
+            icon: `${ICON}/Final.png`,
             name: "🐟 漏网之鱼",
             type: "select",
-            proxies: [
-                "🚀 代理",
-                "DIRECT",
-                "📦 节点",
-                "🇭🇰 香港",
-                "🇸🇬 新加坡",
-                "🇯🇵 日本",
-                "🇺🇸 美国",
-                "🌏 其他国家",
-            ],
+            proxies: ["🚀 代理", "DIRECT", ...airportGroups],
         },
-        // 订阅信息
+
+        // ---- 订阅信息（流量 / 到期，仅作展示）----
         {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/GLaDOS.png",
+            icon: `${ICON}/GLaDOS.png`,
             "include-all": true,
-            filter: "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
+            filter: INFO_FILTER,
             name: "ℹ️ 订阅信息",
             type: "select",
-        },
-        // 地区节点组
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/HK.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)香港|Hong Kong|🇭🇰|(?:^|[-_\\s])hk(?:[-_\\s\\d]|$)",
-            name: "🇭🇰 香港",
-            type: "url-test",
-            interval: 3600,
-        },
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/SG.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)新加坡|Singapore|🇸🇬|(?:^|[-_\\s])sg(?:[-_\\s\\d]|$)",
-            name: "🇸🇬 新加坡",
-            type: "url-test",
-            interval: 3600,
-        },
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/JP.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)日本|Japan|🇯🇵|(?:^|[-_\\s])jp(?:[-_\\s\\d]|$)",
-            name: "🇯🇵 日本",
-            type: "url-test",
-            interval: 3600,
-        },
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/US.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter: "(?i)美国|USA|🇺🇸|(?:^|[-_\\s])us(?:[-_\\s\\d]|$)",
-            name: "🇺🇸 美国",
-            type: "url-test",
-            interval: 3600,
-        },
-        {
-            icon: "https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/UN.png",
-            "include-all": true,
-            "exclude-filter":
-                "(?i)剩余流量|套餐|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置",
-            filter:
-                "(?i)^(?!.*(香港|Hong Kong|🇭🇰|新加坡|Singapore|🇸🇬|日本|Japan|🇯🇵|美国|USA|🇺🇸|(?:^|[-_\\s])(?:hk|sg|jp|us)(?:[-_\\s\\d]|$))).*$",
-            name: "🌏 其他国家",
-            type: "url-test",
-            interval: 3600,
         },
     ];
 
