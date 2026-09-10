@@ -21,9 +21,14 @@
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.5.1
+ * @version 1.5.2
  *
  * Changelog:
+ *   1.5.2 (2026-09-10)
+ *     - rules 在 cn_ip 前补 5 条私网 / 环回 / CGNAT 段 IP-CIDR 直连（不带 no-resolve）。
+ *       此前域名解析到 10.x / 127.0.0.1 的内网探测请求（alibaba-inc.com 等）会一路
+ *       掉到 MATCH 走代理，与 ss/shadowrocket.conf 的同名规则对齐
+ *
  *   1.5.1 (2026-09-10)
  *     - apple rule-provider 改拉 Apple_Classical.yaml。blackmatrix7 已把
  *       Apple.yaml 里的 DOMAIN / DOMAIN-SUFFIX 拆到 Apple_Domain.yaml，
@@ -376,6 +381,12 @@ function main(config) {
         "RULE-SET,notion,📝 Notion",
         "RULE-SET,geolocation-!cn,🚀 代理",
         "RULE-SET,cn_domain,DIRECT",
+        // 解析到内网 / 环回地址的域名直连（不带 no-resolve，与紧随其后的 cn_ip 一样在此触发解析）
+        "IP-CIDR,10.0.0.0/8,DIRECT",
+        "IP-CIDR,127.0.0.0/8,DIRECT",
+        "IP-CIDR,172.16.0.0/12,DIRECT",
+        "IP-CIDR,192.168.0.0/16,DIRECT",
+        "IP-CIDR,100.64.0.0/10,DIRECT",
         "RULE-SET,cn_ip,DIRECT",
         "MATCH,🐟 漏网之鱼",
     ];

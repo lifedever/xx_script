@@ -16,6 +16,12 @@ payload:
   - DOMAIN-SUFFIX,snssdk.com
   - DOMAIN-SUFFIX,alibaba-inc.com
   - DOMAIN-SUFFIX,volcanicengine.com
-  # 指定 IP / 网段
-  - IP-CIDR,47.82.7.161/32
-  - IP-CIDR,10.6.0.0/16
+  # 字节 / 火山家族补全：不在 blackmatrix7 China_Domain 里，此前只靠 GEOIP 兜底
+  - DOMAIN-SUFFIX,volcengine.com
+  - DOMAIN-SUFFIX,volccdn.com
+  - DOMAIN-SUFFIX,doubao.com
+  # NTP 对时不走代理（time.windows.com 被 Microsoft 规则集送进代理）
+  - DOMAIN,time.windows.com
+  # 指定 IP / 网段（no-resolve：只匹配按 IP 访问的请求，避免其他域名请求在这里提前触发 DNS 解析）
+  - IP-CIDR,47.82.7.161/32,no-resolve
+  - IP-CIDR,10.6.0.0/16,no-resolve
