@@ -21,9 +21,16 @@
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.5.0
+ * @version 1.5.1
  *
  * Changelog:
+ *   1.5.1 (2026-09-10)
+ *     - apple rule-provider 改拉 Apple_Classical.yaml。blackmatrix7 已把
+ *       Apple.yaml 里的 DOMAIN / DOMAIN-SUFFIX 拆到 Apple_Domain.yaml，
+ *       Apple.yaml 只剩 33 条（IP-CIDR / PROCESS-NAME / DOMAIN-KEYWORD），
+ *       icloud.com / apple.com 等域名全部匹配不到，落到 MATCH 走代理；
+ *       Apple_Classical.yaml 仍是完整的 1593 条（classical 格式不变）
+ *
  *   1.5.0 (2026-09-06)
  *     - 删除全部 5 个地区组（🇭🇰 / 🇸🇬 / 🇯🇵 / 🇺🇸 / 🌏其他）。原「🌏 其他国家」
  *       会把台湾/韩国/印度/尼日利亚/巴西等 22 个节点混在一起做 url-test，
@@ -183,7 +190,7 @@ function main(config) {
             type: "http",
         },
         apple: {
-            url: "https://testingcf.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Apple/Apple.yaml",
+            url: "https://testingcf.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Apple/Apple_Classical.yaml",
             path: "./ruleset/apple.yaml",
             behavior: "classical",
             interval: 86400,

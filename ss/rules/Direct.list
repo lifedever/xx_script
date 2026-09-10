@@ -1,5 +1,5 @@
 # 内容：直连规则（4 端同步：clash YAML / surge list / ss list / singbox JSON）
-# 更新：2026-08-20
+# 更新：2026-09-10
 
 # 自有域名
 DOMAIN-SUFFIX,manyibar.cn
@@ -12,6 +12,11 @@ DOMAIN-SUFFIX,kanasinfo.cn
 DOMAIN-SUFFIX,down.sandai.net
 DOMAIN-SUFFIX,crashlytics.com
 DOMAIN,api.cloudflare.com
+
+# 国内服务直连（2026-09-10：snssdk 被 blackmatrix7 TikTok 规则集截走进代理，火山引擎充值打不开；alibaba-inc / volcanicengine 解析到内网地址，GEOIP 不算 CN 掉兜底）
+DOMAIN-SUFFIX,snssdk.com
+DOMAIN-SUFFIX,alibaba-inc.com
+DOMAIN-SUFFIX,volcanicengine.com
 
 # 指定 IP / 网段
 IP-CIDR,47.82.7.161/32
