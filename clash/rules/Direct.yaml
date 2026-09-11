@@ -8,6 +8,9 @@ payload:
   - DOMAIN-SUFFIX,manyibar.com.cn
   - DOMAIN-SUFFIX,manyiba.com
   - DOMAIN-SUFFIX,kanasinfo.cn
+  # 补自有域名（2026-09-11 日志分析：inioinsight.cn 被 fakeip 劫持；kanasinfo.com 是 kanasinfo.cn 的 CNAME 目标，此前只有 .cn 进了白名单）
+  - DOMAIN-SUFFIX,inioinsight.cn
+  - DOMAIN-SUFFIX,kanasinfo.com
   # 第三方直连
   - DOMAIN-SUFFIX,down.sandai.net
   - DOMAIN-SUFFIX,crashlytics.com
