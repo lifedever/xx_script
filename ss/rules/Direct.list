@@ -15,6 +15,11 @@ DOMAIN-SUFFIX,kanasinfo.com
 DOMAIN-SUFFIX,down.sandai.net
 DOMAIN-SUFFIX,crashlytics.com
 DOMAIN,api.cloudflare.com
+# iStat Menus：天气按出口 IP 定位，走代理会显示美国天气；updates 直连也更快。ip/ip4/ip6 故意不加——ip4 直连 6.3s 明显劣化，维持走代理（2026-09-11 实测）
+DOMAIN,weather.istatmenus.app
+DOMAIN,updates.istatmenus.app
+# BytePlus 静态 CDN：直连 127ms vs 代理 355ms。注意 byteplusbiz.com 直连是失败的，不要加后缀通配（2026-09-11 实测）
+DOMAIN-SUFFIX,bytepluscdn.com
 
 # 国内服务直连（2026-09-10：snssdk 被 blackmatrix7 TikTok 规则集截走进代理，火山引擎充值打不开；alibaba-inc / volcanicengine 解析到内网地址，GEOIP 不算 CN 掉兜底）
 DOMAIN-SUFFIX,snssdk.com
