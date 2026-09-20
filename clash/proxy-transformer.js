@@ -21,9 +21,17 @@
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.5.2
+ * @version 1.6.0
  *
  * Changelog:
+ *   1.6.0 (2026-09-20)
+ *     - 新增「🧠 AI 专线」组：include-all + filter 只收名字带 AI专用 / ChatGPT /
+ *       OpenAI / GPT / Claude 的节点，专供 🤖 AI 使用。此前 AI 组的候选全是
+ *       select 组，想锁具体节点只能进 📦 机场组选，而机场组被 🚀 代理 共用，
+ *       一选就把全局出口也换掉了
+ *     - 🤖 AI 的 proxies 首项改为「🧠 AI 专线」（其余服务组不变，AI 专用节点
+ *       通常禁流媒体，不适合给电报 / 谷歌用）
+ *
  *   1.5.2 (2026-09-10)
  *     - rules 在 cn_ip 前补 5 条私网 / 环回 / CGNAT 段 IP-CIDR 直连（不带 no-resolve）。
  *       此前域名解析到 10.x / 127.0.0.1 的内网探测请求（alibaba-inc.com 等）会一路
@@ -118,6 +126,20 @@ function main(config) {
     // 只向下引用（Layer 3 → Layer 2 → Layer 1 → Layer 0），不会形成环
     const serviceOutbounds = ["🚀 代理", "DIRECT", "🐟 漏网之鱼", ...airportGroups];
 
+    // ---- AI 专线：机场里那条「AI 专用」节点（一般禁流媒体、专门解锁 ChatGPT/Claude）----
+    // 必须独立成组：📦 机场组被 🚀 代理 和所有服务组共用，在机场组里选节点会
+    // 连带改掉全局出口。AI 要单独锁一个节点，就得有一个只被 🤖 AI 引用的叶子池。
+    // filter 匹配不到任何节点时 mihomo 会给出 COMPATIBLE（等同直连），不会拒绝启动，
+    // 但 AI 流量会变直连 —— 首次加载后请在 UI 里确认本组内确实有节点
+    const aiDedicatedGroup = {
+        icon: `${ICON}/Available.png`,
+        name: "🧠 AI 专线",
+        type: "select",
+        "include-all": true,
+        filter: "(?i)AI专用|AI 专用|AI-|ChatGPT|OpenAI|GPT|Claude",
+        "exclude-filter": INFO_FILTER,
+    };
+
     // 服务分组模板——除 🍎 Apple 默认直连外，其余结构一致
     const serviceGroup = (name, icon) => ({
         icon: `${ICON}/${icon}.png`,
@@ -141,7 +163,14 @@ function main(config) {
         ...airportGroupDefs,
 
         // ---- 服务分组 ----
-        serviceGroup("🤖 AI", "OpenAI"),
+        // AI 比其它服务组多一个「🧠 AI 专线」下游，且默认就选它
+        {
+            icon: `${ICON}/OpenAI.png`,
+            name: "🤖 AI",
+            type: "select",
+            proxies: ["🧠 AI 专线", ...serviceOutbounds],
+        },
+        aiDedicatedGroup,
         serviceGroup("✈️ 电报", "Telegram"),
         serviceGroup("🔍 谷歌", "Google"),
         serviceGroup("🪟 微软", "Microsoft"),
