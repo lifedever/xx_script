@@ -21,9 +21,16 @@
  * 维护约定：每次修改本文件 → 版本号递增（SemVer），并在 Changelog 顶部
  *           追加一项简述变更。
  *
- * @version 1.6.0
+ * @version 1.7.0
  *
  * Changelog:
+ *   1.7.0 (2026-09-20)
+ *     - 「🧠 AI 专线」改名「🧠 AI 节点」并去掉 filter：改为平铺全部节点
+ *       （仅排除信息节点），AI 可以直接选订阅里的任意一条线路。1.6.0 写死
+ *       AI专用/ChatGPT/OpenAI 关键词，换机场就匹配不到，且匹配为空时 mihomo
+ *       退化成 COMPATIBLE（等同直连），AI 站点会静默打不开
+ *     - 注意组名变了，旧的 selector 选择会失效，需在 UI 里重选一次
+ *
  *   1.6.0 (2026-09-20)
  *     - 新增「🧠 AI 专线」组：include-all + filter 只收名字带 AI专用 / ChatGPT /
  *       OpenAI / GPT / Claude 的节点，专供 🤖 AI 使用。此前 AI 组的候选全是
@@ -126,17 +133,17 @@ function main(config) {
     // 只向下引用（Layer 3 → Layer 2 → Layer 1 → Layer 0），不会形成环
     const serviceOutbounds = ["🚀 代理", "DIRECT", "🐟 漏网之鱼", ...airportGroups];
 
-    // ---- AI 专线：机场里那条「AI 专用」节点（一般禁流媒体、专门解锁 ChatGPT/Claude）----
+    // ---- AI 出口：只被 🤖 AI 引用的全量节点池 ----
     // 必须独立成组：📦 机场组被 🚀 代理 和所有服务组共用，在机场组里选节点会
-    // 连带改掉全局出口。AI 要单独锁一个节点，就得有一个只被 🤖 AI 引用的叶子池。
-    // filter 匹配不到任何节点时 mihomo 会给出 COMPATIBLE（等同直连），不会拒绝启动，
-    // 但 AI 流量会变直连 —— 首次加载后请在 UI 里确认本组内确实有节点
+    // 连带改掉全局出口。AI 想单独锁一条线路，就得有一个只服务它自己的池子。
+    // 刻意不加 filter：各家机场节点命名毫无规律，写死「AI专用」这类关键词等于
+    // 替用户决定哪条是 AI 线路，换机场就失效（匹配为空时 mihomo 会退化成
+    // COMPATIBLE 直连，表现为 AI 站点打不开）。这里平铺全部节点，选哪条交给 UI
     const aiDedicatedGroup = {
         icon: `${ICON}/Available.png`,
-        name: "🧠 AI 专线",
+        name: "🧠 AI 节点",
         type: "select",
         "include-all": true,
-        filter: "(?i)AI专用|AI 专用|AI-|ChatGPT|OpenAI|GPT|Claude",
         "exclude-filter": INFO_FILTER,
     };
 
@@ -163,12 +170,12 @@ function main(config) {
         ...airportGroupDefs,
 
         // ---- 服务分组 ----
-        // AI 比其它服务组多一个「🧠 AI 专线」下游，且默认就选它
+        // AI 比其它服务组多一个「🧠 AI 节点」下游，且默认就选它
         {
             icon: `${ICON}/OpenAI.png`,
             name: "🤖 AI",
             type: "select",
-            proxies: ["🧠 AI 专线", ...serviceOutbounds],
+            proxies: ["🧠 AI 节点", ...serviceOutbounds],
         },
         aiDedicatedGroup,
         serviceGroup("✈️ 电报", "Telegram"),
