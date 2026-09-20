@@ -24,6 +24,10 @@ proxy-providers:
     type: http
     url: "在此填入 SoCloud 的订阅链接"
     path: ./providers/socloud.yaml
+    # 给本机场所有节点名加前缀，多机场混在一个组里时才分得清来源
+    # （🧠 AI 节点 / 🐟 漏网之鱼 这类 include-all 组会把各家节点平铺在一起）
+    override:
+      additional-prefix: "[SoCloud] "
     interval: 3600
     health-check:
       enable: true
@@ -34,17 +38,21 @@ proxy-providers:
     type: http
     url: "在此填入 Hneko 的订阅链接"
     path: ./providers/hneko.yaml
+    override:
+      additional-prefix: "[Hneko] "
     interval: 3600
     health-check:
       enable: true
       url: https://www.gstatic.com/generate_204
       interval: 300
 
-  # ---- 新增机场照抄下面这块，改 key / url / path 即可 ----
+  # ---- 新增机场照抄下面这块，改 key / url / path / prefix 即可 ----
   # 良心云:
   #   type: http
   #   url: "订阅链接"
   #   path: ./providers/lxy.yaml
+  #   override:
+  #     additional-prefix: "[良心云] "
   #   interval: 3600
   #   health-check:
   #     enable: true
