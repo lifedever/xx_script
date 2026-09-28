@@ -1,6 +1,6 @@
 # NAME: Direct
 # 直连规则（4 端同步：clash YAML / surge list / ss list / singbox JSON）
-# 更新：2026-09-10
+# 更新：2026-09-28
 payload:
   # 自有域名
   - DOMAIN-SUFFIX,manyibar.cn
@@ -8,8 +8,8 @@ payload:
   - DOMAIN-SUFFIX,manyibar.com.cn
   - DOMAIN-SUFFIX,manyiba.com
   - DOMAIN-SUFFIX,kanasinfo.cn
-  # 补自有域名（2026-09-11 日志分析：inioinsight.cn 被 fakeip 劫持；kanasinfo.com 是 kanasinfo.cn 的 CNAME 目标，此前只有 .cn 进了白名单）
-  - DOMAIN-SUFFIX,inioinsight.cn
+  # 补自有域名（2026-09-11 日志分析：innoinsight.cn 被 fakeip 劫持；kanasinfo.com 是 kanasinfo.cn 的 CNAME 目标，此前只有 .cn 进了白名单）
+  - DOMAIN-SUFFIX,innoinsight.cn
   - DOMAIN-SUFFIX,kanasinfo.com
   # 第三方直连
   - DOMAIN-SUFFIX,down.sandai.net
