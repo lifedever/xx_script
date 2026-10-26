@@ -13,3 +13,5 @@ singbox-vless/
 .superpowers
 CLAUDE.md
 nohup.out
+# Claude Code 本地设置（settings.local.json 含 API key / bot token）
+.claude/
