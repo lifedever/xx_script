@@ -100,9 +100,11 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
 
   # Hneko云
+  # 本文件在公开仓库中，真实订阅链接（含 token）不要写进来。
+  # 本地使用时替换下面的 token 即可；旧 token 已随提交历史公开，建议去机场后台重置。
   hneko:
     type: http
-    url: "https://study.small1999.sbs/study/xuexi/v999/hneko?token=3191030f3727b2d1c0842d4a1365314c"
+    url: "https://study.small1999.sbs/study/xuexi/v999/hneko?token=REPLACE_WITH_YOUR_TOKEN"
     interval: 3600
     path: ./proxies/hneko.yaml
     health-check:
