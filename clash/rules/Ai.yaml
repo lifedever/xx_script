@@ -31,6 +31,7 @@ payload:
   - DOMAIN-SUFFIX,open-vsx.org
   - DOMAIN-SUFFIX,openai.com
   - DOMAIN-SUFFIX,perplexity.ai
+  - DOMAIN-SUFFIX,pixpix.com
   - DOMAIN-SUFFIX,sourcegraph.com
   - DOMAIN-SUFFIX,sparklabs.com
   - DOMAIN-SUFFIX,supermaven.com

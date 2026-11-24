@@ -1,5 +1,5 @@
 # 内容：自用
-# 更新：2026-08-12
+# 更新：2026-11-24
 
 DOMAIN-SUFFIX,ai.google.dev
 DOMAIN-SUFFIX,aistudio.google.com
@@ -32,6 +32,7 @@ DOMAIN-SUFFIX,oaistatic.com
 DOMAIN-SUFFIX,open-vsx.org
 DOMAIN-SUFFIX,openai.com
 DOMAIN-SUFFIX,perplexity.ai
+DOMAIN-SUFFIX,pixpix.com
 DOMAIN-SUFFIX,sourcegraph.com
 DOMAIN-SUFFIX,sparklabs.com
 DOMAIN-SUFFIX,supermaven.com
